@@ -252,7 +252,11 @@ tr:hover td{background:rgba(247,248,252,.8);}
 <!-- VIEW MODAL -->
 <div class="modal-overlay" id="viewModal">
   <div class="modal">
-    <div class="modal-header" id="modalHeader"><h3 id="modalTitle">Submission Details</h3><button class="modal-close" onclick="closeModal('viewModal')">✕</button></div>
+    <div class="modal-header" id="modalHeader" style="display:flex;align-items:center;gap:10px;">
+      <button id="staticEditBtn" onclick="" style="padding:8px 16px;background:var(--gold);color:var(--navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">✏️ Edit Details</button>
+      <h3 id="modalTitle" style="flex:1;">Submission Details</h3>
+      <button class="modal-close" onclick="closeModal('viewModal')">✕</button>
+    </div>
     <div class="modal-body" id="modalBody"></div>
   </div>
 </div>
@@ -481,12 +485,13 @@ function viewSubmission(idx){
     <button onclick="saveProfileSummary(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Profile Summary</button>
   </div>`;
 
+  const ri = submissions.indexOf(s);
   document.getElementById('modalTitle').textContent=`${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel]||''}`;
   document.getElementById('modalBody').innerHTML=html;
 
-  // Add Edit button to modal header
-  const editBtnHtml = `<button onclick="openEditModal(${submissions.indexOf(s)})" style="padding:8px 16px;background:var(--gold);color:var(--navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px;">✏️ Edit Details</button>`;
-  document.getElementById('modalHeader').insertAdjacentHTML('afterbegin', editBtnHtml);
+  // Update edit button index — never add a new button, just update the existing one
+  const editBtn = document.getElementById('staticEditBtn');
+  if(editBtn) editBtn.onclick = () => openEditModal(ri);
 
   document.getElementById('viewModal').classList.add('open');
 }
