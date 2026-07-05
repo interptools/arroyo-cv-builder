@@ -115,7 +115,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .to-topbar{background:#1a2744;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;}
 .to-topbar h3{color:white;font-size:16px;font-weight:700;}
 .to-topbar p{color:rgba(255,255,255,.5);font-size:12px;margin-top:2px;}
-.to-body{display:flex;flex:1;overflow:hidden;}
+.to-body{display:flex;flex:1;overflow:hidden;min-height:0;}
 .to-sidebar{width:180px;background:#131c30;flex-shrink:0;overflow-y:auto;padding:12px;}
 .to-tmpl-btn{width:100%;margin-bottom:8px;border:2px solid rgba(255,255,255,.08);border-radius:10px;background:rgba(255,255,255,.03);cursor:pointer;padding:12px 10px;display:flex;align-items:center;gap:10px;transition:all .2s;text-align:left;}
 .to-tmpl-btn:hover{border-color:rgba(200,168,75,.4);background:rgba(200,168,75,.05);}
@@ -123,9 +123,9 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .to-tmpl-swatch{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
 .to-tmpl-name{font-size:12px;font-weight:700;color:white;}
 .to-tmpl-desc{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
-.to-preview{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;padding:0;background:#1a1f2e;position:relative;}
-.to-preview-wrap{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-.to-preview-wrap iframe{border:none;display:block;background:white;}
+.to-preview{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:16px;background:#0f1422;position:relative;min-height:0;}
+.to-preview-wrap{display:block;overflow:hidden;background:white;box-shadow:0 12px 60px rgba(0,0,0,.7);border-radius:3px;position:relative;}
+.to-preview-wrap iframe{border:none;display:block;background:white;position:absolute;top:0;left:0;}
 .to-actions{background:#1a2744;padding:14px 24px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,.1);flex-shrink:0;}
 .to-gen-btn{padding:12px 28px;background:var(--gold);color:var(--navy);border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;gap:8px;}
 .to-gen-btn:hover{opacity:.9;}
@@ -470,25 +470,42 @@ function closeTemplateOverlay(){
 }
 
 function scalePreview(){
+  const overlay = document.getElementById('templateOverlay');
+  if(!overlay.classList.contains('open')) return;
+
+  const previewArea = overlay.querySelector('.to-preview');
   const wrap = document.getElementById('previewWrap');
-  const container = wrap.parentElement;
-  const cw = container.clientWidth;
-  const ch = container.clientHeight;
+  const frame = document.getElementById('previewFrame');
+
   const cvW = 794;
   const cvH = 1123;
-  const scaleX = cw / cvW;
-  const scaleY = ch / cvH;
-  const scale = Math.min(scaleX, scaleY) * 0.97;
-  const frame = document.getElementById('previewFrame');
+
+  // Available space inside .to-preview (accounting for padding 16px each side)
+  const availW = previewArea.clientWidth - 32;
+  const availH = previewArea.clientHeight - 32;
+
+  const scaleX = availW / cvW;
+  const scaleY = availH / cvH;
+  const scale = Math.min(scaleX, scaleY);
+
+  const displayW = Math.floor(cvW * scale);
+  const displayH = Math.floor(cvH * scale);
+
+  // Size the wrapper to the scaled display size
+  wrap.style.width = displayW + 'px';
+  wrap.style.height = displayH + 'px';
+  wrap.style.position = 'relative';
+  wrap.style.overflow = 'hidden';
+  wrap.style.flexShrink = '0';
+
+  // iframe is full CV size, scaled down via transform
   frame.style.width = cvW + 'px';
   frame.style.height = cvH + 'px';
-  wrap.style.width = cvW + 'px';
-  wrap.style.height = cvH + 'px';
-  wrap.style.transform = `scale(${scale})`;
-  wrap.style.transformOrigin = 'center center';
-  wrap.style.borderRadius = '4px';
-  wrap.style.boxShadow = '0 8px 40px rgba(0,0,0,.6)';
-  wrap.style.overflow = 'hidden';
+  frame.style.position = 'absolute';
+  frame.style.top = '0';
+  frame.style.left = '0';
+  frame.style.transform = `scale(${scale})`;
+  frame.style.transformOrigin = 'top left';
 }
 
 window.addEventListener('resize', scalePreview);
