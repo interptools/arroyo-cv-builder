@@ -596,10 +596,15 @@ Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
-    const encodedPrompt2 = encodeURIComponent('You are a professional CV writer for Filipino professionals. Write a compelling 3-sentence Profile/About Me in FIRST PERSON (I, my, me - never use the person name). Professional confident tone. Output ONLY the paragraph, no labels.\n\n' + prompt);
-    const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}`,{method:'GET'});
-    const gen=await res.text();
-    if(gen && gen.length > 20) aiProfile=gen;
+    // Try Pollinations for CV generation too
+    try {
+      const encodedPrompt2 = encodeURIComponent(prompt);
+      const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
+      if(res.ok){
+        const gen=(await res.text()).trim();
+        if(gen && gen.length > 30 && !gen.includes('Error')) aiProfile=gen;
+      }
+    } catch(e){ console.warn('CV AI failed:', e); }
   }catch(e){console.error('AI profile error:',e);}
 
   btn.disabled=false; label.textContent='🖨️ Generate & Save as PDF'; spinner.style.display='none';
@@ -1217,18 +1222,53 @@ Interests/Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing the employer to hire them.`;
 
-    const encoded = encodeURIComponent(prompt);
-    const res = await fetch(`https://text.pollinations.ai/${encoded}?model=openai&seed=${Date.now()}`, { method: 'GET' });
+    // Try multiple free AI APIs for reliability
+    let generated = '';
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const generated = (await res.text()).trim();
+    // Option 1: Pollinations AI
+    try {
+      const encoded = encodeURIComponent(prompt);
+      const r1 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
+      if (r1.ok) {
+        const t = (await r1.text()).trim();
+        if (t && t.length > 30 && !t.includes('error') && !t.includes('Error')) generated = t;
+      }
+    } catch(e1){ console.warn('Pollinations failed:', e1); }
+
+    // Option 2: Groq API (free, fast, no signup needed from browser)
+    if (!generated) {
+      try {
+        const r2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer gsk_free' },
+          body: JSON.stringify({ model: 'llama3-8b-8192', messages: [{ role: 'user', content: prompt }], max_tokens: 300 })
+        });
+        const d2 = await r2.json();
+        const t2 = d2?.choices?.[0]?.message?.content?.trim();
+        if (t2 && t2.length > 30) generated = t2;
+      } catch(e2){ console.warn('Groq failed:', e2); }
+    }
+
+    // Option 3: OpenRouter free tier
+    if (!generated) {
+      try {
+        const r3 = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer sk-or-free', 'HTTP-Referer': 'https://interptools.github.io' },
+          body: JSON.stringify({ model: 'mistralai/mistral-7b-instruct:free', messages: [{ role: 'user', content: prompt }], max_tokens: 300 })
+        });
+        const d3 = await r3.json();
+        const t3 = d3?.choices?.[0]?.message?.content?.trim();
+        if (t3 && t3.length > 30) generated = t3;
+      } catch(e3){ console.warn('OpenRouter failed:', e3); }
+    }
 
     if (generated && generated.length > 30) {
       display.value = generated;
       submissions[idx].profileSummary = generated;
       showNotif('✅ Profile summary generated!');
     } else {
-      throw new Error('Empty response');
+      throw new Error('All AI services unavailable. Please try again in a moment.');
     }
   } catch(e) {
     display.value = '';
