@@ -642,29 +642,35 @@ function buildCVHtml(s,tmpl,mode){
 
   const printCSS=`<style>
     *{box-sizing:border-box;}
-    html,body{margin:0;padding:0;width:100%;height:100%;}
-    .page{width:100%;min-height:100vh;display:flex;overflow:hidden;}
+    html,body{margin:0;padding:0;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page{width:100%;display:flex;min-height:100vh;}
+    @media screen{
+      body{background:#ccc;}
+    }
     @media print{
       .no-print{display:none!important;}
       @page{margin:0;size:auto;}
-      html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}
-      .page{
-        width:100% !important;
-        height:100vh !important;
-        min-height:unset !important;
-        overflow:hidden !important;
-        page-break-after:avoid !important;
-        page-break-before:avoid !important;
-        page-break-inside:avoid !important;
-        break-after:avoid !important;
-        break-before:avoid !important;
-        break-inside:avoid !important;
-      }
-      body{
+      html,body{
+        margin:0;padding:0;
         -webkit-print-color-adjust:exact;
         print-color-adjust:exact;
-        overflow:hidden !important;
-        height:100vh !important;
+      }
+      /* Left sidebar stays fixed on all pages */
+      .L,.left,.sidebar-col{
+        position:fixed;
+        top:0;left:0;
+        height:100vh;
+        overflow:hidden;
+      }
+      /* Right content flows naturally across pages */
+      .R,.right,.main-col{
+        page-break-inside:auto;
+      }
+      /* No orphan items */
+      .item,.work-item,.edu-item{
+        page-break-inside:avoid;
+        break-inside:avoid;
       }
     }
   </style>`;
