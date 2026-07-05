@@ -632,43 +632,31 @@ function buildCVHtml(s,tmpl,mode){
   const refs=(s.references||[]).filter(r=>r.name);
 
   const printBar=mode==='print'
-    ?`<div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.4);">
+    ?`<style>@media screen{.print-bar{display:flex!important;}}</style>
+      <div class="print-bar no-print" style="display:none;position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;gap:12px;align-items:center;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.4);">
         <span style="color:white;font-family:Inter,sans-serif;font-size:14px;font-weight:700;margin-right:8px;">Arroyo CV Builder</span>
         <button onclick="window.print()" style="background:#c8a84b;color:#1a2744;border:none;padding:9px 24px;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;">🖨 Print / Save as PDF</button>
         <button onclick="window.close()" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;">✕ Close</button>
-        <span style="color:rgba(255,255,255,.45);font-size:11px;">In print dialog: Margins → None · Background graphics → ON</span>
+        <span style="color:rgba(255,255,255,.45);font-size:11px;">Margins → None · Background graphics → ON · Paper → A4</span>
       </div>`
     :``;
 
   const printCSS=`<style>
     *{box-sizing:border-box;}
-    html,body{margin:0;padding:0;}
-    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    html,body{margin:0;padding:0;width:100%;}
+    body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#ccc;}
     .page{width:100%;display:flex;min-height:100vh;}
-    @media screen{
-      body{background:#ccc;}
-    }
     @media print{
       .no-print{display:none!important;}
       @page{margin:0;size:auto;}
-      html,body{
-        margin:0;padding:0;
-        -webkit-print-color-adjust:exact;
-        print-color-adjust:exact;
+      html,body{margin:0;padding:0;background:white;width:100%;}
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .page{
+        width:100%;
+        min-height:unset;
+        display:flex;
       }
-      /* Left sidebar stays fixed on all pages */
-      .L,.left,.sidebar-col{
-        position:fixed;
-        top:0;left:0;
-        height:100vh;
-        overflow:hidden;
-      }
-      /* Right content flows naturally across pages */
-      .R,.right,.main-col{
-        page-break-inside:auto;
-      }
-      /* No orphan items */
-      .item,.work-item,.edu-item{
+      .item,.work-item,.edu-item,.sec,.rsec,.lsec{
         page-break-inside:avoid;
         break-inside:avoid;
       }
