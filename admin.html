@@ -123,9 +123,9 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .to-tmpl-swatch{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;}
 .to-tmpl-name{font-size:12px;font-weight:700;color:white;}
 .to-tmpl-desc{font-size:10px;color:rgba(255,255,255,.45);margin-top:1px;}
-.to-preview{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px;background:#1a1f2e;}
-.to-preview-wrap{width:794px;flex-shrink:0;background:white;border-radius:4px;box-shadow:0 8px 40px rgba(0,0,0,.5);transform-origin:top center;}
-.to-preview-wrap iframe{width:794px;height:1123px;border:none;display:block;}
+.to-preview{flex:1;display:flex;align-items:flex-start;justify-content:center;overflow:hidden;padding:0;background:#1a1f2e;position:relative;}
+.to-preview-wrap{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.to-preview-wrap iframe{border:none;display:block;background:white;}
 .to-actions{background:#1a2744;padding:14px 24px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,.1);flex-shrink:0;}
 .to-gen-btn{padding:12px 28px;background:var(--gold);color:var(--navy);border:none;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;gap:8px;}
 .to-gen-btn:hover{opacity:.9;}
@@ -463,10 +463,35 @@ function openTemplateOverlay(idx){
   const s=submissions[idx];
   if(s.templatePref) selectTemplate(parseInt(s.templatePref));
   else selectTemplate(1);
+  setTimeout(scalePreview, 100);
 }
 function closeTemplateOverlay(){
   document.getElementById('templateOverlay').classList.remove('open');
 }
+
+function scalePreview(){
+  const wrap = document.getElementById('previewWrap');
+  const container = wrap.parentElement;
+  const cw = container.clientWidth;
+  const ch = container.clientHeight;
+  const cvW = 794;
+  const cvH = 1123;
+  const scaleX = cw / cvW;
+  const scaleY = ch / cvH;
+  const scale = Math.min(scaleX, scaleY) * 0.97;
+  const frame = document.getElementById('previewFrame');
+  frame.style.width = cvW + 'px';
+  frame.style.height = cvH + 'px';
+  wrap.style.width = cvW + 'px';
+  wrap.style.height = cvH + 'px';
+  wrap.style.transform = `scale(${scale})`;
+  wrap.style.transformOrigin = 'center center';
+  wrap.style.borderRadius = '4px';
+  wrap.style.boxShadow = '0 8px 40px rgba(0,0,0,.6)';
+  wrap.style.overflow = 'hidden';
+}
+
+window.addEventListener('resize', scalePreview);
 
 function selectTemplate(num, el){
   selectedTemplate=num;
@@ -481,6 +506,7 @@ function updatePreview(){
   const html=buildCVHtml(s,selectedTemplate,'preview');
   const frame=document.getElementById('previewFrame');
   frame.srcdoc=html;
+  frame.onload = () => scalePreview();
 }
 
 // ── GENERATE PDF ──────────────────────────────────────────────────────────────
