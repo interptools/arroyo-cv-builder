@@ -1230,11 +1230,11 @@ async function submitForm() {
     let submissions = [];
     try {
       const getRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-        headers: { 'X-Master-Key': JSONBIN_API_KEY, 'X-Bin-Meta': 'false' }
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
       });
       if(getRes.ok) {
         const json = await getRes.json();
-        submissions = Array.isArray(json?.submissions) ? json.submissions : (json?.record?.submissions || []);
+        submissions = json?.record?.submissions || json?.submissions || [];
       }
     } catch(e) { console.warn('Could not load existing:', e); }
 

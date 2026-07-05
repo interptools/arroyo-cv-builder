@@ -376,10 +376,9 @@ async function loadData(){
 
 async function getFullRecord(){
   try{
-    const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY,'X-Bin-Meta':'false'}});
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
     const json=await res.json();
-    // JSONBin v3 with X-Bin-Meta:false returns record directly
-    return json||{};
+    return json?.record||{};
   }catch(e){console.error('getFullRecord error:',e);return{};}
 }
 
