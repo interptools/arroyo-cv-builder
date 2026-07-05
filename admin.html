@@ -652,8 +652,8 @@ function buildCVHtml(s,tmpl,mode){
       min-height:100vh;
     }
     .page{
-      width:210mm;
-      min-height:297mm;
+      width:216mm;
+      min-height:356mm;
       background:white;
       display:flex;
       box-shadow:0 4px 30px rgba(0,0,0,.4);
@@ -662,7 +662,7 @@ function buildCVHtml(s,tmpl,mode){
     /* Print: clean A4 */
     @media print{
       .no-print{display:none!important;}
-      @page{margin:0;size:A4 portrait;}
+      @page{margin:0;size:legal portrait;}
       html,body{
         margin:0;padding:0;
         background:white;
@@ -676,8 +676,8 @@ function buildCVHtml(s,tmpl,mode){
         background:white;
       }
       .page{
-        width:210mm;
-        min-height:297mm;
+        width:216mm;
+        min-height:356mm;
         box-shadow:none;
         page-break-after:avoid;
       }
