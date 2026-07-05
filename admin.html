@@ -570,7 +570,7 @@ Awards: ${s.awards||'None'}
 Hobbies: ${s.hobbies||'Not specified'}
 Their own draft: ${s.profileSummary||'None'}`;
 
-    const geminiUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const res=await fetch(geminiUrl2,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
     const data=await res.json();
     const gen=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
@@ -1149,7 +1149,7 @@ Civil Status: ${p.civilStatus||'Not specified'}
 Awards: ${s.awards||'None'}
 Hobbies/Interests: ${s.hobbies||'Not specified'}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
     const res = await fetch(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
