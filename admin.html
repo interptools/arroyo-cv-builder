@@ -345,6 +345,9 @@ tr:hover td { background: rgba(247,248,252,0.8); }
       <button class="nav-item" onclick="showPage('gcashPage', this)">
         <span class="ni-icon">💳</span> GCash QR
       </button>
+      <button class="nav-item" onclick="showPage('passwordPage', this)">
+        <span class="ni-icon">🔑</span> Change Password
+      </button>
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
@@ -504,6 +507,38 @@ tr:hover td { background: rgba(247,248,252,0.8); }
   </div>
 </div>
 
+<!-- CHANGE PASSWORD PAGE -->
+    <div class="admin-page" id="passwordPage">
+      <div class="topbar">
+        <div>
+          <h2>Change Password</h2>
+          <p>Update your admin login password</p>
+        </div>
+      </div>
+      <div class="gcash-admin" style="max-width:440px;">
+        <h3>🔑 Change Admin Password</h3>
+        <p>Enter your current password and choose a new one. You will need to log in again after changing.</p>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px;">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--navy);display:block;margin-bottom:6px;">Current Password</label>
+            <input type="password" id="currentPass" placeholder="Enter current password" style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-light);border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--gray-light)'">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--navy);display:block;margin-bottom:6px;">New Password</label>
+            <input type="password" id="newPass" placeholder="Enter new password" style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-light);border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--gray-light)'">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--navy);display:block;margin-bottom:6px;">Confirm New Password</label>
+            <input type="password" id="confirmPass" placeholder="Re-enter new password" style="width:100%;padding:12px 14px;border:1.5px solid var(--gray-light);border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;" onfocus="this.style.borderColor='var(--navy)'" onblur="this.style.borderColor='var(--gray-light)'" onkeydown="if(event.key==='Enter') changePassword()">
+          </div>
+          <button onclick="changePassword()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">🔐 Update Password</button>
+        </div>
+        <div style="margin-top:20px;padding:14px;background:#fef3c7;border-radius:10px;border:1px solid #fbbf24;">
+          <p style="font-size:12px;color:#92400e;">⚠️ <strong>Remember your new password!</strong> If you forget it, you will need to edit admin.html on GitHub directly.</p>
+        </div>
+      </div>
+    </div>
+
 <div class="notif" id="notif">
   <span id="notifIcon">✅</span>
   <span id="notifMsg"></span>
@@ -522,11 +557,34 @@ let selectedTemplate = 1;
 let currentSubmission = null;
 let qrBase64 = '';
 
+// ── PASSWORD (stored in localStorage) ────────────────────────────────────────
+function getCurrentPassword() {
+  return localStorage.getItem('adminPassword') || ADMIN_PASS;
+}
+
+function changePassword() {
+  const current = document.getElementById('currentPass').value;
+  const newP = document.getElementById('newPass').value;
+  const confirm = document.getElementById('confirmPass').value;
+
+  if (!current || !newP || !confirm) { showNotif('Please fill in all fields.', true); return; }
+  if (current !== getCurrentPassword()) { showNotif('Current password is incorrect.', true); return; }
+  if (newP.length < 6) { showNotif('New password must be at least 6 characters.', true); return; }
+  if (newP !== confirm) { showNotif('New passwords do not match.', true); return; }
+
+  localStorage.setItem('adminPassword', newP);
+  showNotif('Password updated! Please log in again.');
+  document.getElementById('currentPass').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('confirmPass').value = '';
+  setTimeout(() => doLogout(), 2000);
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
-  if (u === ADMIN_USER && p === ADMIN_PASS) {
+  if (u === ADMIN_USER && p === getCurrentPassword()) {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('adminApp').style.display = 'block';
     loadData();
