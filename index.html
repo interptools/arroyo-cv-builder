@@ -857,6 +857,9 @@
               <option value="6">Template 6 – Dark navy & gold/yellow</option>
               <option value="7">Template 7 – Classic navy, clean columns</option>
             </select>
+            <button type="button" onclick="openTemplatePreview()" style="margin-top:8px;width:100%;padding:10px;background:linear-gradient(135deg,#1a2744,#243358);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+              👁 Preview All Templates with Sample CV
+            </button>
           </div>
           <div class="field">
             <label>Any Special Instructions</label>
@@ -917,6 +920,33 @@
   </div>
 
 </main>
+
+<!-- TEMPLATE PREVIEW MODAL -->
+<div id="tmplPreviewOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;flex-direction:column;">
+  <div style="background:#1a2744;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div>
+      <h3 style="color:white;font-size:16px;font-weight:700;">👁 Template Preview</h3>
+      <p style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px;">Browse all 7 templates — click one to select it</p>
+    </div>
+    <button onclick="closeTemplatePreview()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;">✕ Close</button>
+  </div>
+  <div style="display:flex;flex:1;overflow:hidden;">
+    <!-- Sidebar -->
+    <div style="width:160px;background:#131c30;flex-shrink:0;overflow-y:auto;padding:10px;">
+      <div id="tmplBtns"></div>
+    </div>
+    <!-- Preview -->
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;background:#1a1f2e;padding:16px;overflow:hidden;">
+      <div id="tmplPreviewWrap" style="background:white;box-shadow:0 8px 40px rgba(0,0,0,0.6);border-radius:4px;overflow:hidden;">
+        <iframe id="tmplPreviewFrame" scrolling="no" style="border:none;display:block;"></iframe>
+      </div>
+    </div>
+  </div>
+  <div style="background:#1a2744;padding:12px 20px;display:flex;align-items:center;gap:12px;border-top:1px solid rgba(255,255,255,0.1);flex-shrink:0;">
+    <button id="selectTmplBtn" onclick="selectAndClose()" style="padding:11px 28px;background:#c8a84b;color:#1a2744;border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;">✅ Select This Template</button>
+    <span style="color:rgba(255,255,255,0.4);font-size:12px;">This is a sample CV — your actual info will be used</span>
+  </div>
+</div>
 
 <!-- NOTIFICATION -->
 <div class="notif" id="notif">
@@ -1319,6 +1349,195 @@ function resetForm() {
 }
 
 
+
+// ─── TEMPLATE PREVIEW ────────────────────────────────────────────────────────
+const SAMPLE = {
+  personal: {
+    firstName: 'Juan', lastName: 'dela Cruz',
+    jobTitle: 'Customer Service Representative',
+    phone: '09XX-XXX-XXXX', email: 'juan@email.com',
+    address: 'Barangay San Antonio, Cebu City',
+    nationality: 'Filipino', civilStatus: 'Single',
+    gender: 'Male', dob: '1998-05-15',
+    social: 'facebook.com/juandelacruz', photo: ''
+  },
+  profileSummary: 'I am a dedicated and customer-focused professional with strong communication skills and a passion for delivering excellent service. I bring hands-on experience in handling customer inquiries, resolving complaints efficiently, and maintaining high satisfaction rates in fast-paced environments. I am eager to contribute my bilingual abilities and technical knowledge to a dynamic organization that values growth and innovation.',
+  education: [{ school: 'University of Cebu', degree: 'Bachelor of Science in Business Administration', yearStart: '2016', yearGrad: '2020', honors: 'Cum Laude' }],
+  workExperience: [
+    { company: 'BDO Unibank', position: 'Customer Service Officer', dateStart: 'June 2020', dateEnd: 'Present', location: 'Cebu City', responsibilities: '– Handles customer inquiries and account concerns – Processes transactions accurately and efficiently – Maintains excellent customer satisfaction scores' },
+    { company: 'SM Supermalls', position: 'Sales Associate', dateStart: 'March 2019', dateEnd: 'May 2020', location: 'Cebu City', responsibilities: '– Assisted customers in product selection – Managed inventory and product displays – Achieved monthly sales targets consistently' }
+  ],
+  skills: ['Microsoft Office', 'Customer Service', 'Communication', 'Teamwork', 'Problem Solving'],
+  languages: ['English (Fluent)', 'Filipino (Native)', 'Bisaya (Native)'],
+  references: [{ name: 'Maria Santos', position: 'Branch Manager', company: 'BDO Unibank', contact: '09XX-XXX-XXXX' }],
+  hobbies: 'Reading, Basketball, Cooking',
+  awards: 'Best Employee of the Month – BDO Unibank (2022)',
+  eduLevel: 'college'
+};
+
+const TMPL_INFO = [
+  {num:1, name:'Template 1', desc:'Dark · Cyan'},
+  {num:2, name:'Template 2', desc:'Black · Orange'},
+  {num:3, name:'Template 3', desc:'Gray · Maroon'},
+  {num:4, name:'Template 4', desc:'Blue · Pro'},
+  {num:5, name:'Template 5', desc:'Modern Blue'},
+  {num:6, name:'Template 6', desc:'Navy · Gold'},
+  {num:7, name:'Template 7', desc:'Classic · Clean'},
+];
+
+let previewSelectedTmpl = 1;
+
+function openTemplatePreview(){
+  const overlay = document.getElementById('tmplPreviewOverlay');
+  overlay.style.display = 'flex';
+
+  // Build sidebar buttons
+  const btns = document.getElementById('tmplBtns');
+  btns.innerHTML = TMPL_INFO.map(t => `
+    <div onclick="previewTmpl(${t.num},this)" class="tmpl-btn-prev" style="border:2px solid ${previewSelectedTmpl===t.num?'#c8a84b':'rgba(255,255,255,0.08)'};background:${previewSelectedTmpl===t.num?'rgba(200,168,75,0.1)':'rgba(255,255,255,0.02)'};border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+      <div style="width:28px;height:28px;border-radius:6px;background:#243358;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#c8a84b;flex-shrink:0;">${t.num}</div>
+      <div><div style="font-size:11px;font-weight:700;color:white;">${t.name}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px;">${t.desc}</div></div>
+    </div>`).join('');
+
+  previewTmpl(previewSelectedTmpl, null);
+  setTimeout(scalePreviewFrame, 100);
+}
+
+function previewTmpl(num, el){
+  previewSelectedTmpl = num;
+  document.querySelectorAll('.tmpl-btn-prev').forEach((b,i)=>{
+    b.style.border = (i+1===num) ? '2px solid #c8a84b' : '2px solid rgba(255,255,255,0.08)';
+    b.style.background = (i+1===num) ? 'rgba(200,168,75,0.1)' : 'rgba(255,255,255,0.02)';
+  });
+  const html = buildSampleCV(num);
+  document.getElementById('tmplPreviewFrame').srcdoc = html;
+  document.getElementById('tmplPreviewFrame').onload = scalePreviewFrame;
+}
+
+function scalePreviewFrame(){
+  const wrap = document.getElementById('tmplPreviewWrap');
+  const frame = document.getElementById('tmplPreviewFrame');
+  const container = wrap.parentElement;
+  const availW = container.clientWidth - 32;
+  const availH = container.clientHeight - 32;
+  const cvW = 216 * 3.7795; // 216mm in px ~= 816px
+  const cvH = 356 * 3.7795; // 356mm in px ~= 1345px
+  const scale = Math.min(availW/cvW, availH/cvH);
+  frame.style.width = cvW+'px';
+  frame.style.height = cvH+'px';
+  frame.style.transform = `scale(${scale})`;
+  frame.style.transformOrigin = 'top left';
+  wrap.style.width = (cvW*scale)+'px';
+  wrap.style.height = (cvH*scale)+'px';
+}
+
+function closeTemplatePreview(){
+  document.getElementById('tmplPreviewOverlay').style.display = 'none';
+}
+
+function selectAndClose(){
+  document.getElementById('templatePref').value = previewSelectedTmpl;
+  closeTemplatePreview();
+  showNotif('✅ Template ' + previewSelectedTmpl + ' selected!');
+}
+
+window.addEventListener('resize', ()=>{ if(document.getElementById('tmplPreviewOverlay').style.display!=='none') scalePreviewFrame(); });
+
+function buildSampleCV(tmpl){
+  const s = SAMPLE;
+  const p = s.personal;
+  const ph = `<div style="width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>`;
+  const edu = s.education;
+  const work = s.workExperience;
+  const refs = s.references;
+  const skills = s.skills;
+  const langs = s.languages;
+
+  const eduHtml = edu.map(e=>`<div style="margin-bottom:8px;padding-left:10px;border-left:2px solid rgba(0,212,255,0.35);"><div style="font-size:13px;font-weight:800;">${e.school}</div><div style="font-size:11px;color:#555;">${e.degree}</div><div style="font-size:10px;color:#00b4d8;">${e.yearStart} – ${e.yearGrad}</div>${e.honors?`<div style="font-size:10px;color:#555;">${e.honors}</div>`:''}</div>`).join('');
+  const workHtml = work.map(w=>`<div style="margin-bottom:8px;padding-left:10px;border-left:2px solid rgba(0,212,255,0.35);"><div style="font-size:13px;font-weight:800;">${w.company}</div><div style="font-size:11px;">${w.position}</div><div style="font-size:10px;color:#00b4d8;">${w.dateStart} – ${w.dateEnd} · ${w.location}</div><div style="font-size:10px;color:#555;line-height:1.6;">${w.responsibilities}</div></div>`).join('');
+  const refsHtml = refs.map(r=>`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:#00d4ff;">${r.name}</div><div style="font-size:10px;color:rgba(255,255,255,0.5);">${r.position} · ${r.company}</div></div>`).join('');
+
+  const printCSS = `<style>*{box-sizing:border-box;}html,body{margin:0;padding:0;}body{font-family:Arial,sans-serif;}</style>`;
+
+  if(tmpl===1) return `<!DOCTYPE html><html><head><meta charset="UTF-8">${printCSS}</head><body>
+    <div style="display:flex;width:216mm;min-height:356mm;background:white;">
+      <div style="width:32%;background:#12122a;flex-shrink:0;padding:0;color:white;display:flex;flex-direction:column;">
+        <div style="width:90px;height:90px;border-radius:50%;border:3px solid #00d4ff;margin:18px auto 8px;overflow:hidden;">${ph}</div>
+        <div style="text-align:center;padding:6px 12px 10px;border-bottom:1px solid rgba(255,255,255,.07);">
+          <div style="font-size:14px;font-weight:900;color:white;text-transform:uppercase;">${p.firstName} ${p.lastName}</div>
+          <div style="color:#00d4ff;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:4px;">${p.jobTitle}</div>
+        </div>
+        <div style="padding:10px 14px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid rgba(0,212,255,0.2);">Contact</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;">📱 ${p.phone}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;">✉️ ${p.email}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;">📍 ${p.address}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;">🌏 ${p.nationality}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.75);margin-bottom:5px;">💍 ${p.civilStatus}</div>
+        </div>
+        <div style="padding:10px 14px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:8px;">Skills</div>
+          ${skills.map(sk=>`<div style="margin-bottom:6px;"><div style="font-size:10px;color:rgba(255,255,255,.7);margin-bottom:2px;">${sk}</div><div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;"><div style="height:3px;background:#00d4ff;border-radius:2px;width:80%;"></div></div></div>`).join('')}
+        </div>
+        <div style="padding:10px 14px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:8px;">Languages</div>
+          ${langs.map(l=>`<div style="font-size:10px;color:rgba(255,255,255,.72);margin-bottom:4px;padding-left:8px;position:relative;"><span style="position:absolute;left:0;color:#00d4ff;">▸</span>${l}</div>`).join('')}
+        </div>
+        <div style="padding:10px 14px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:8px;">References</div>${refsHtml}</div>
+      </div>
+      <div style="flex:1;padding:18px;">
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#12122a;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #00d4ff;">About Me</div><p style="font-size:11px;line-height:1.8;color:#3a3a4a;">${s.profileSummary}</p></div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#12122a;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #00d4ff;">Education</div>${eduHtml}</div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#12122a;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #00d4ff;">Work Experience</div>${workHtml}</div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#12122a;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #00d4ff;">Awards</div><p style="font-size:11px;color:#555;">${s.awards}</p></div>
+      </div>
+    </div>
+  </body></html>`;
+
+  // For templates 2-7, generate similar but with their color scheme
+  const colors = {
+    2:{bg:'#1a1a1a',acc:'#f97316',hbg:'#f8f8f8'},
+    3:{bg:'#4a4a4a',acc:'#8b1a4a',hbg:'#f5f5f5'},
+    4:{bg:'#1565c0',acc:'#90caf9',hbg:'white'},
+    5:{bg:'#1976d2',acc:'#1976d2',hbg:'#f5f8fc'},
+    6:{bg:'#1a2744',acc:'#f5a623',hbg:'white'},
+    7:{bg:'#2c3e50',acc:'#2c3e50',hbg:'#f3f4f8'},
+  };
+  const c = colors[tmpl]||colors[7];
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${printCSS}</head><body>
+    <div style="display:flex;width:216mm;min-height:356mm;background:white;">
+      <div style="width:32%;background:${c.bg};flex-shrink:0;padding:16px;color:white;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:90px;height:90px;border-radius:50%;border:3px solid ${c.acc};overflow:hidden;margin-bottom:12px;">${ph}</div>
+        <div style="font-size:14px;font-weight:900;text-align:center;margin-bottom:4px;">${p.firstName} ${p.lastName}</div>
+        <div style="font-size:8px;color:${c.acc};letter-spacing:2px;text-transform:uppercase;text-align:center;margin-bottom:14px;">${p.jobTitle}</div>
+        <div style="width:100%;margin-bottom:12px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};margin-bottom:8px;">Contact</div>
+          <div style="font-size:10px;opacity:.85;margin-bottom:4px;">📱 ${p.phone}</div>
+          <div style="font-size:10px;opacity:.85;margin-bottom:4px;">✉️ ${p.email}</div>
+          <div style="font-size:10px;opacity:.85;margin-bottom:4px;">📍 ${p.address}</div>
+          <div style="font-size:10px;opacity:.85;margin-bottom:4px;">🌏 ${p.nationality} · 💍 ${p.civilStatus}</div>
+        </div>
+        <div style="width:100%;margin-bottom:12px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};margin-bottom:8px;">Skills</div>
+          ${skills.map(sk=>`<div style="font-size:10px;opacity:.85;margin-bottom:4px;">▸ ${sk}</div>`).join('')}
+        </div>
+        <div style="width:100%;margin-bottom:12px;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};margin-bottom:8px;">Languages</div>
+          ${langs.map(l=>`<div style="font-size:10px;opacity:.85;margin-bottom:3px;">• ${l}</div>`).join('')}
+        </div>
+        <div style="width:100%;"><div style="font-size:8px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};margin-bottom:8px;">References</div>
+          ${refs.map(r=>`<div style="margin-bottom:8px;"><div style="font-size:11px;font-weight:700;color:${c.acc};">${r.name}</div><div style="font-size:10px;opacity:.6;">${r.position} · ${r.company}</div></div>`).join('')}
+        </div>
+      </div>
+      <div style="flex:1;padding:18px;background:white;">
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};border-bottom:2px solid ${c.acc};padding-bottom:5px;margin-bottom:8px;">About Me</div><p style="font-size:11px;line-height:1.8;color:#333;">${s.profileSummary}</p></div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};border-bottom:2px solid ${c.acc};padding-bottom:5px;margin-bottom:8px;">Education</div>
+          ${edu.map(e=>`<div style="margin-bottom:8px;padding-left:10px;border-left:3px solid ${c.acc}40;"><div style="font-size:13px;font-weight:800;color:#1a1a1a;">${e.school}</div><div style="font-size:11px;color:#555;">${e.degree}</div><div style="font-size:10px;color:${c.acc};">${e.yearStart} – ${e.yearGrad}</div>${e.honors?`<div style="font-size:10px;color:#555;">${e.honors}</div>`:''}</div>`).join('')}
+        </div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};border-bottom:2px solid ${c.acc};padding-bottom:5px;margin-bottom:8px;">Work Experience</div>
+          ${work.map(w=>`<div style="margin-bottom:8px;padding-left:10px;border-left:3px solid ${c.acc}40;"><div style="font-size:13px;font-weight:800;color:#1a1a1a;">${w.company}</div><div style="font-size:11px;color:#555;">${w.position}</div><div style="font-size:10px;color:${c.acc};">${w.dateStart} – ${w.dateEnd} · ${w.location}</div><div style="font-size:10px;color:#555;line-height:1.6;">${w.responsibilities}</div></div>`).join('')}
+        </div>
+        <div style="margin-bottom:14px;"><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};border-bottom:2px solid ${c.acc};padding-bottom:5px;margin-bottom:8px;">Hobbies</div><p style="font-size:11px;color:#555;">${s.hobbies}</p></div>
+        <div><div style="font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:${c.acc};border-bottom:2px solid ${c.acc};padding-bottom:5px;margin-bottom:8px;">Awards</div><p style="font-size:11px;color:#555;">${s.awards}</p></div>
+      </div>
+    </div>
+  </body></html>`;
+}
 
 // ─── NOTIF ────────────────────────────────────────────────────────────────────
 function showNotif(msg, isError = false) {
