@@ -636,32 +636,36 @@ function buildCVHtml(s,tmpl,mode){
         <span style="color:white;font-family:Inter,sans-serif;font-size:14px;font-weight:700;margin-right:8px;">Arroyo CV Builder</span>
         <button onclick="window.print()" style="background:#c8a84b;color:#1a2744;border:none;padding:9px 24px;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;">🖨 Print / Save as PDF</button>
         <button onclick="window.close()" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;">✕ Close</button>
-        <span style="color:rgba(255,255,255,.45);font-size:11px;">In print dialog: Margins → None · Background graphics → ON · Paper → A4</span>
-      </div><div style="height:46px;"></div>`
+        <span style="color:rgba(255,255,255,.45);font-size:11px;">In print dialog: Margins → None · Background graphics → ON</span>
+      </div>`
     :``;
 
   const printCSS=`<style>
     *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;width:100%;height:100%;}
+    .page{width:100%;min-height:100vh;display:flex;overflow:hidden;}
     @media print{
       .no-print{display:none!important;}
       @page{margin:0;size:auto;}
-      html,body{margin:0;padding:0;width:100%;height:100%;}
+      html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;}
       .page{
         width:100% !important;
-        min-height:unset !important;
         height:100vh !important;
-        page-break-after:avoid;
-        page-break-inside:avoid;
+        min-height:unset !important;
+        overflow:hidden !important;
+        page-break-after:avoid !important;
+        page-break-before:avoid !important;
+        page-break-inside:avoid !important;
+        break-after:avoid !important;
+        break-before:avoid !important;
+        break-inside:avoid !important;
       }
-      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    }
-    html,body{margin:0;padding:0;}
-    /* Auto-scale page to fit content */
-    .page{
-      width:100%;
-      min-height:100vh;
-      display:flex;
-      overflow:hidden;
+      body{
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
+        overflow:hidden !important;
+        height:100vh !important;
+      }
     }
   </style>`;
 
