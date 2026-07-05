@@ -316,7 +316,7 @@ const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'Arroyo2024!';
-const GEMINI_API_KEY = 'AQ.Ab8RN6KRveAui-YILhP7eoERwYocYe04UQfHtmQkjLNUBmZqog';
+
 
 let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 = '';
 
@@ -570,10 +570,9 @@ Awards: ${s.awards||'None'}
 Hobbies: ${s.hobbies||'Not specified'}
 Their own draft: ${s.profileSummary||'None'}`;
 
-    const geminiUrl2 = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const res=await fetch(geminiUrl2,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})});
+    const res=await fetch('https://text.pollinations.ai/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:[{role:'system',content:'You are a professional CV writer. Write impressive profile summaries.'},{role:'user',content:prompt}],seed:42,private:true})});
     const data=await res.json();
-    const gen=data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const gen=data?.choices?.[0]?.message?.content?.trim();
     if(gen) aiProfile=gen;
   }catch(e){console.error('AI profile error:',e);}
 
@@ -1115,7 +1114,7 @@ ${pb}
 </div></body></html>`;
 }
 
-// ── PROFILE SUMMARY via GEMINI ────────────────────────────────────────────────
+// ── PROFILE SUMMARY via Pollinations AI (no key needed) ──────────────────────
 async function generateProfileSummary(idx){
   const s = submissions[idx];
   const p = s.personal;
@@ -1136,7 +1135,7 @@ async function generateProfileSummary(idx){
       : 'No work experience (fresh graduate)';
     const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
 
-    const prompt = `You are a professional CV writer in the Philippines. Write a compelling, impressive, and personalized Profile/About Me paragraph for a Filipino professional's CV. Write 3-5 sentences in third person, professional and confident tone. Make it specific to their background. No generic filler. No labels or intro text - just the paragraph only.
+    const prompt = `You are a professional CV writer in the Philippines. Write a compelling, impressive, and personalized Profile/About Me paragraph for a Filipino professional CV. Write exactly 3-5 sentences in third person, professional and confident tone. Be specific to their background. No generic filler. No labels, no intro text, no explanation - output the paragraph only.
 
 Name: ${p.firstName} ${p.lastName}
 Applying for: ${p.jobTitle||'a professional role'}
@@ -1147,16 +1146,26 @@ Languages: ${(s.languages||[]).join(', ')||'Not specified'}
 Nationality: ${p.nationality||'Filipino'}
 Civil Status: ${p.civilStatus||'Not specified'}
 Awards: ${s.awards||'None'}
-Hobbies/Interests: ${s.hobbies||'Not specified'}`;
+Hobbies: ${s.hobbies||'Not specified'}`;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    const res = await fetch(geminiUrl, {
+    // Use Pollinations AI - free, no API key, works from browser
+    const res = await fetch('https://text.pollinations.ai/openai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      body: JSON.stringify({
+        model: 'openai',
+        messages: [
+          { role: 'system', content: 'You are a professional CV writer specializing in Filipino professionals. Write impressive, specific profile summaries.' },
+          { role: 'user', content: prompt }
+        ],
+        seed: 42,
+        private: true
+      })
     });
+
     const data = await res.json();
-    const generated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const generated = data?.choices?.[0]?.message?.content?.trim();
+
     if(generated){
       display.value = generated;
       submissions[idx].profileSummary = generated;
