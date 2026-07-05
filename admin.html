@@ -445,6 +445,7 @@ function renderSubmissions(){
         <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
         <button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>
         <button class="action-btn btn-status" onclick="cycleStatus(${ri})">⟳ Status</button>
+        <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})">🗑 Delete</button>
       </td></tr>`;
   }).join('');
 }
@@ -581,22 +582,24 @@ async function generateCV(){
     const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
     const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | '):'No work experience (fresh graduate)';
     const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
-    const prompt=`You are a professional CV writer in the Philippines. Write a compelling and impressive Profile/About Me paragraph for a Filipino professional CV. Write exactly 3 sentences in FIRST PERSON (use "I", "my", "me" — never mention the person's name). Professional, confident tone. Be specific to their background. No generic filler. No labels, no intro, no explanation — output only the paragraph.
+    const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
 
-Applying for: ${p.jobTitle||'a professional role'}
+Target Position: ${p.jobTitle||'a professional role'}
 Education: ${eduLevel} — ${eduSum||'Not specified'}
 Work Experience: ${workSum}
-Skills: ${(s.skills||[]).join(', ')||'Not specified'}
+Key Skills: ${(s.skills||[]).join(', ')||'Not specified'}
 Languages: ${(s.languages||[]).join(', ')||'Not specified'}
 Nationality: ${p.nationality||'Filipino'}
 Civil Status: ${p.civilStatus||'Not specified'}
 Awards: ${s.awards||'None'}
-Hobbies: ${s.hobbies||'Not specified'}`;
+Hobbies: ${s.hobbies||'Not specified'}
 
-    const res=await fetch('https://text.pollinations.ai/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:[{role:'system',content:'You are a professional CV writer. Write impressive profile summaries.'},{role:'user',content:prompt}],seed:42,private:true})});
-    const data=await res.json();
-    const gen=data?.choices?.[0]?.message?.content?.trim();
-    if(gen) aiProfile=gen;
+Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
+
+    const encodedPrompt2 = encodeURIComponent('You are a professional CV writer for Filipino professionals. Write a compelling 3-sentence Profile/About Me in FIRST PERSON (I, my, me - never use the person name). Professional confident tone. Output ONLY the paragraph, no labels.\n\n' + prompt);
+    const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}`,{method:'GET'});
+    const gen=await res.text();
+    if(gen && gen.length > 20) aiProfile=gen;
   }catch(e){console.error('AI profile error:',e);}
 
   btn.disabled=false; label.textContent='🖨️ Generate & Save as PDF'; spinner.style.display='none';
@@ -1151,6 +1154,110 @@ ${pb}
   </div>
 </div></body></html>`;}
 
+
+// ── DELETE SUBMISSION ────────────────────────────────────────────────────────
+async function deleteSubmission(idx){
+  const s = submissions[idx];
+  const name = `${s.personal.firstName} ${s.personal.lastName}`;
+  
+  // Confirm before deleting
+  if(!confirm(`Are you sure you want to delete the submission of ${name}? This cannot be undone.`)) return;
+
+  submissions.splice(idx, 1);
+
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif(`✅ ${name}'s submission deleted.`);
+    renderSubmissions();
+    renderDashboard();
+  } catch(e){
+    // Restore if failed
+    submissions.splice(idx, 0, s);
+    showNotif('Failed to delete: ' + e.message, true);
+  }
+}
+
+// ── PROFILE SUMMARY via POLLINATIONS AI ─────────────────────────────────────
+async function generateProfileSummary(idx){
+  const s = submissions[idx];
+  const p = s.personal;
+  const btn = document.getElementById('genProfileBtn');
+  const label = document.getElementById('genProfileLabel');
+  const spinner = document.getElementById('genProfileSpinner');
+  const display = document.getElementById('profileDisplay');
+
+  btn.disabled = true;
+  label.textContent = 'Generating...';
+  spinner.style.display = 'inline-block';
+  display.value = 'Writing your profile summary...';
+
+  try {
+    const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+    const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
+      ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}-${w.dateEnd}): ${w.responsibilities}`).join(' | ')
+      : 'No work experience (fresh graduate)';
+    const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
+
+    const prompt = `You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background and experience. Sound confident, professional, and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation, nothing else.
+
+Target Position: ${p.jobTitle||'a professional role'}
+Education: ${eduLevel} — ${eduSum||'Not specified'}
+Work Experience: ${workSum}
+Key Skills: ${(s.skills||[]).join(', ')||'Not specified'}
+Languages spoken: ${(s.languages||[]).join(', ')||'Not specified'}
+Nationality: ${p.nationality||'Filipino'}
+Civil Status: ${p.civilStatus||''}
+Awards/Achievements: ${s.awards||'None'}
+Interests/Hobbies: ${s.hobbies||'Not specified'}
+
+Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing the employer to hire them.`;
+
+    const encoded = encodeURIComponent(prompt);
+    const res = await fetch(`https://text.pollinations.ai/${encoded}?model=openai&seed=${Date.now()}`, { method: 'GET' });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const generated = (await res.text()).trim();
+
+    if (generated && generated.length > 30) {
+      display.value = generated;
+      submissions[idx].profileSummary = generated;
+      showNotif('✅ Profile summary generated!');
+    } else {
+      throw new Error('Empty response');
+    }
+  } catch(e) {
+    display.value = '';
+    showNotif('Generation failed: ' + e.message + '. Please try again.', true);
+    console.error('Generate error:', e);
+  }
+
+  btn.disabled = false;
+  label.textContent = '✨ Re-generate';
+  spinner.style.display = 'none';
+}
+
+async function saveProfileSummary(idx){
+  const display = document.getElementById('profileDisplay');
+  const text = display?.value?.trim();
+  if (!text) { showNotif('Please generate or type a profile summary first.', true); return; }
+  submissions[idx].profileSummary = text;
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif('✅ Profile summary saved!');
+  } catch(e) {
+    showNotif('Failed to save: ' + e.message, true);
+  }
+}
 
 // ── EDIT SUBMISSION ──────────────────────────────────────────────────────────
 function openEditModal(idx){
