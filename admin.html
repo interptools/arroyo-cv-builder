@@ -1147,6 +1147,126 @@ ${pb}
 </div></body></html>`;}
 
 
+// ── EDIT SUBMISSION ──────────────────────────────────────────────────────────
+function openEditModal(idx){
+  const s = submissions[idx];
+  const p = s.personal;
+
+  const field = (id, label, val, type='text') => `
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">${label}</label>
+      <input id="${id}" type="${type}" value="${(val||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>`;
+
+  const html = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    ${field('e_firstName','First Name',p.firstName)}
+    ${field('e_lastName','Last Name',p.lastName)}
+    ${field('e_jobTitle','Job Title / Position',p.jobTitle)}
+    ${field('e_phone','Phone',p.phone)}
+    ${field('e_email','Email',p.email,'email')}
+    ${field('e_nationality','Nationality',p.nationality)}
+    ${field('e_dob','Date of Birth',p.dob,'date')}
+
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Civil Status</label>
+      <select id="e_civilStatus" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <option ${p.civilStatus==='Single'?'selected':''}>Single</option>
+        <option ${p.civilStatus==='Married'?'selected':''}>Married</option>
+        <option ${p.civilStatus==='Widowed'?'selected':''}>Widowed</option>
+        <option ${p.civilStatus==='Separated'?'selected':''}>Separated</option>
+      </select>
+    </div>
+
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Gender</label>
+      <select id="e_gender" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <option ${p.gender==='Male'?'selected':''}>Male</option>
+        <option ${p.gender==='Female'?'selected':''}>Female</option>
+        <option ${p.gender==='Prefer not to say'?'selected':''}>Prefer not to say</option>
+      </select>
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Address</label>
+      <input id="e_address" value="${(p.address||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Social Media</label>
+      <input id="e_social" value="${(p.social||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Skills <span style="font-weight:400;color:var(--gray)">(comma separated)</span></label>
+      <input id="e_skills" value="${(s.skills||[]).join(', ')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Languages <span style="font-weight:400;color:var(--gray)">(comma separated)</span></label>
+      <input id="e_languages" value="${(s.languages||[]).join(', ')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Hobbies / Interests</label>
+      <input id="e_hobbies" value="${(s.hobbies||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Awards / Achievements</label>
+      <textarea id="e_awards" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;">${s.awards||''}</textarea>
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Profile Summary</label>
+      <textarea id="e_profile" rows="4" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;">${s.profileSummary||''}</textarea>
+    </div>
+
+    <div style="grid-column:1/-1;">
+      <button onclick="saveEdits(${idx})" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
+    </div>
+  </div>`;
+
+  document.getElementById('editModalBody').innerHTML = html;
+  document.getElementById('editModal').classList.add('open');
+}
+
+async function saveEdits(idx){
+  const g = id => document.getElementById(id)?.value?.trim() || '';
+  submissions[idx].personal.firstName = g('e_firstName');
+  submissions[idx].personal.lastName = g('e_lastName');
+  submissions[idx].personal.jobTitle = g('e_jobTitle');
+  submissions[idx].personal.phone = g('e_phone');
+  submissions[idx].personal.email = g('e_email');
+  submissions[idx].personal.address = g('e_address');
+  submissions[idx].personal.nationality = g('e_nationality');
+  submissions[idx].personal.civilStatus = g('e_civilStatus');
+  submissions[idx].personal.gender = g('e_gender');
+  submissions[idx].personal.dob = g('e_dob');
+  submissions[idx].personal.social = g('e_social');
+  submissions[idx].skills = g('e_skills').split(',').map(s=>s.trim()).filter(Boolean);
+  submissions[idx].languages = g('e_languages').split(',').map(s=>s.trim()).filter(Boolean);
+  submissions[idx].hobbies = g('e_hobbies');
+  submissions[idx].awards = g('e_awards');
+  submissions[idx].profileSummary = g('e_profile');
+
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif('✅ Changes saved successfully!');
+    closeModal('editModal');
+    closeModal('viewModal');
+    renderSubmissions();
+    renderDashboard();
+  } catch(e) {
+    showNotif('Failed to save: ' + e.message, true);
+  }
+}
+
 // ── GCASH ─────────────────────────────────────────────────────────────────────
 function previewQR(input){
   const file=input.files[0];if(!file)return;
