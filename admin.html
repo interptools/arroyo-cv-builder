@@ -450,6 +450,19 @@ function viewSubmission(idx){
   if(s.eduLevel!=='fresh'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Notes',s.specialInstructions||'—']]);
+  // Add generate profile button + display area at the bottom
+  html += `<div class="info-group" id="profileSection">
+    <h4>Profile Summary (Admin Generated)</h4>
+    <div id="profileDisplay" style="font-size:13px;line-height:1.8;color:#333;background:var(--off-white);border-radius:8px;padding:14px;min-height:60px;margin-bottom:12px;border:1.5px solid var(--gray-light);white-space:pre-wrap;">${s.profileSummary||'<span style="color:var(--gray);font-style:italic;">Click the button below to auto-generate an impressive profile summary.</span>'}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button onclick="generateProfileSummary(${submissions.indexOf(s)})" id="genProfileBtn" style="padding:10px 20px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span id="genProfileLabel">✨ Generate AI Profile Summary</span>
+        <span id="genProfileSpinner" style="display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;"></span>
+      </button>
+      <button onclick="saveProfileSummary(${submissions.indexOf(s)})" style="padding:10px 18px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Save to Submission</button>
+    </div>
+  </div>`;
+
   document.getElementById('modalTitle').textContent=`${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel]||''}`;
   document.getElementById('modalBody').innerHTML=html;
   document.getElementById('viewModal').classList.add('open');
@@ -1095,6 +1108,70 @@ ${pb}
     </div>
   </div>
 </div></body></html>`;
+}
+
+// ── GENERATE PROFILE SUMMARY ──────────────────────────────────────────────────
+async function generateProfileSummary(idx){
+  const s = submissions[idx];
+  const p = s.personal;
+  const btn = document.getElementById('genProfileBtn');
+  const label = document.getElementById('genProfileLabel');
+  const spinner = document.getElementById('genProfileSpinner');
+  const display = document.getElementById('profileDisplay');
+
+  btn.disabled = true;
+  label.textContent = 'Generating...';
+  spinner.style.display = 'inline-block';
+  display.innerHTML = '<span style="color:var(--gray);font-style:italic;">✨ Writing impressive profile summary...</span>';
+
+  try {
+    const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+    const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
+      ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | ')
+      : 'No work experience (fresh graduate)';
+    const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
+
+    const prompt = `You are a professional CV writer in the Philippines. Write a compelling, impressive, and personalized Profile/About Me paragraph for a Filipino professional's CV. 3–5 sentences, third person, professional and confident tone. Make it specific and impressive. No generic filler. No labels or intro — just the paragraph.
+
+Name: ${p.firstName} ${p.lastName}
+Applying for: ${p.jobTitle||'a professional role'}
+Education: ${eduLevel} — ${eduSum||'Not specified'}
+Work Experience: ${workSum}
+Skills: ${(s.skills||[]).join(', ')||'Not specified'}
+Languages: ${(s.languages||[]).join(', ')||'Not specified'}
+Nationality: ${p.nationality||'Filipino'}
+Civil Status: ${p.civilStatus||'Not specified'}
+Awards: ${s.awards||'None'}
+Hobbies/Interests: ${s.hobbies||'Not specified'}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data = await res.json();
+    const generated = data.content?.[0]?.text?.trim();
+    if(generated){
+      display.textContent = generated;
+      submissions[idx].profileSummary = generated;
+    } else {
+      display.innerHTML = '<span style="color:var(--error);">Generation failed. Try again.</span>';
+    }
+  } catch(e) {
+    display.innerHTML = '<span style="color:var(--error);">Error: ' + e.message + '</span>';
+  }
+
+  btn.disabled = false;
+  label.textContent = '✨ Re-generate Profile Summary';
+  spinner.style.display = 'none';
+}
+
+async function saveProfileSummary(idx){
+  const display = document.getElementById('profileDisplay');
+  const text = display.textContent?.trim();
+  if(!text || text.includes('Click the button') || text.includes('Writing impressive')){
+    showNotif('Generate a profile summary first.',true); return;
+  }
+  submissions[idx].profileSummary = text;
+  const ex = await getFullRecord();
+  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
+  showNotif('Profile summary saved to submission! ✅');
 }
 
 // ── GCASH ─────────────────────────────────────────────────────────────────────
