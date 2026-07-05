@@ -207,22 +207,25 @@ tr:hover td{background:rgba(247,248,252,.8);}
 
     <!-- GCASH -->
     <div class="admin-page" id="gcashPage">
-      <div class="topbar"><div><h2>GCash QR Code</h2><p>Upload your GCash QR — customers see it after submitting</p></div></div>
+      <div class="topbar"><div><h2>GCash / InstaPay QR Code</h2><p>Upload or change your QR — customers see it on the confirmation page</p></div></div>
       <div class="settings-card">
-        <h3>📲 Upload GCash QR Code</h3>
-        <p>Once uploaded, customers will see this QR on the confirmation page.</p>
+        <h3>📲 Upload / Change GCash QR Code</h3>
+        <p>Upload your GCash or InstaPay QR code. Customers will see it immediately after submitting the form. You can change it anytime.</p>
+
+        <div id="currentQRSection" style="display:none;margin-bottom:20px;padding:16px;background:var(--off-white);border-radius:12px;border:1.5px solid var(--gray-light);">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;">✅ Currently Active QR Code:</h4>
+          <img id="currentQRImg" alt="Current QR" style="max-width:180px;border-radius:8px;border:3px solid var(--gold);">
+          <p style="font-size:11px;color:var(--gray);margin-top:8px;">This is what customers currently see. Upload a new one below to replace it.</p>
+        </div>
+
         <div class="qr-upload-area" onclick="document.getElementById('qrInput').click()">
           <div class="qu-icon">🖼️</div>
-          <strong>Click to select QR image</strong>
-          <p style="font-size:12px;color:var(--gray);margin-top:4px;">JPG or PNG</p>
+          <strong>Click to select new QR image</strong>
+          <p style="font-size:12px;color:var(--gray);margin-top:4px;">JPG or PNG — GCash, InstaPay, or any payment QR</p>
           <img id="qrPreview" alt="QR Preview">
         </div>
         <input type="file" id="qrInput" accept="image/*" style="display:none" onchange="previewQR(this)">
-        <button class="save-btn" onclick="saveQR()">💾 Save & Publish QR Code</button>
-        <div class="current-qr" id="currentQRSection" style="display:none">
-          <h4>Currently Published:</h4>
-          <img id="currentQRImg" alt="Current GCash QR">
-        </div>
+        <button class="save-btn" onclick="saveQR()" style="margin-top:12px;">💾 Save & Publish New QR Code</button>
       </div>
     </div>
 
@@ -249,8 +252,19 @@ tr:hover td{background:rgba(247,248,252,.8);}
 <!-- VIEW MODAL -->
 <div class="modal-overlay" id="viewModal">
   <div class="modal">
-    <div class="modal-header"><h3 id="modalTitle">Submission Details</h3><button class="modal-close" onclick="closeModal('viewModal')">✕</button></div>
+    <div class="modal-header" id="modalHeader"><h3 id="modalTitle">Submission Details</h3><button class="modal-close" onclick="closeModal('viewModal')">✕</button></div>
     <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal" style="max-width:800px;">
+    <div class="modal-header">
+      <h3>✏️ Edit Customer Details</h3>
+      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="modal-body" id="editModalBody"></div>
   </div>
 </div>
 
@@ -469,6 +483,11 @@ function viewSubmission(idx){
 
   document.getElementById('modalTitle').textContent=`${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel]||''}`;
   document.getElementById('modalBody').innerHTML=html;
+
+  // Add Edit button to modal header
+  const editBtnHtml = `<button onclick="openEditModal(${submissions.indexOf(s)})" style="padding:8px 16px;background:var(--gold);color:var(--navy);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-right:8px;">✏️ Edit Details</button>`;
+  document.getElementById('modalHeader').insertAdjacentHTML('afterbegin', editBtnHtml);
+
   document.getElementById('viewModal').classList.add('open');
 }
 function grp(title,rows){return`<div class="info-group"><h4>${title}</h4>${rows.map(([l,v])=>v?`<div class="info-row"><span class="info-label">${l}</span><span>${v}</span></div>`:'').join('')}</div>`;}
@@ -557,18 +576,17 @@ async function generateCV(){
     const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
     const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | '):'No work experience (fresh graduate)';
     const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
-    const prompt=`You are a professional CV writer in the Philippines. Write a compelling, impressive, and personalized Profile/About Me paragraph for a Filipino professional's CV. 3–5 sentences, third person, professional and confident tone. Make it specific to their background. No generic filler. No labels or intro text — just the paragraph.
+    const prompt=`You are a professional CV writer in the Philippines. Write a compelling and impressive Profile/About Me paragraph for a Filipino professional CV. Write exactly 3 sentences in FIRST PERSON (use "I", "my", "me" — never mention the person's name). Professional, confident tone. Be specific to their background. No generic filler. No labels, no intro, no explanation — output only the paragraph.
 
-Name: ${p.firstName} ${p.lastName}
 Applying for: ${p.jobTitle||'a professional role'}
 Education: ${eduLevel} — ${eduSum||'Not specified'}
 Work Experience: ${workSum}
 Skills: ${(s.skills||[]).join(', ')||'Not specified'}
 Languages: ${(s.languages||[]).join(', ')||'Not specified'}
 Nationality: ${p.nationality||'Filipino'}
+Civil Status: ${p.civilStatus||'Not specified'}
 Awards: ${s.awards||'None'}
-Hobbies: ${s.hobbies||'Not specified'}
-Their own draft: ${s.profileSummary||'None'}`;
+Hobbies: ${s.hobbies||'Not specified'}`;
 
     const res=await fetch('https://text.pollinations.ai/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'openai',messages:[{role:'system',content:'You are a professional CV writer. Write impressive profile summaries.'},{role:'user',content:prompt}],seed:42,private:true})});
     const data=await res.json();
@@ -609,7 +627,30 @@ function buildCVHtml(s,tmpl,mode){
       </div><div style="height:46px;"></div>`
     :``;
 
-  const printCSS=`<style>@media print{.no-print{display:none!important;}@page{margin:0;size:A4;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>`;
+  const printCSS=`<style>
+    *{box-sizing:border-box;}
+    @media print{
+      .no-print{display:none!important;}
+      @page{margin:0;size:auto;}
+      html,body{margin:0;padding:0;width:100%;height:100%;}
+      .page{
+        width:100% !important;
+        min-height:unset !important;
+        height:100vh !important;
+        page-break-after:avoid;
+        page-break-inside:avoid;
+      }
+      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    }
+    html,body{margin:0;padding:0;}
+    /* Auto-scale page to fit content */
+    .page{
+      width:100%;
+      min-height:100vh;
+      display:flex;
+      overflow:hidden;
+    }
+  </style>`;
 
   if(tmpl===1) return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===2) return T2(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
@@ -621,188 +662,182 @@ function buildCVHtml(s,tmpl,mode){
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
+
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 1 — Dark Sidebar · Cyan Accents (like Image 1)
+// TEMPLATE 1 — Dark Sidebar · Cyan Accents
 // ══════════════════════════════════════════════════════════════════════════════
 function T1(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Raleway',sans-serif;background:#d0d0d0;display:flex;flex-direction:column;align-items:center;}
-.page{display:flex;width:794px;min-height:1123px;background:white;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.L{width:255px;background:#12122a;flex-shrink:0;display:flex;flex-direction:column;position:relative;}
-.photo-ring{width:138px;height:138px;border-radius:50%;border:3px solid rgba(0,212,255,.3);position:absolute;top:21px;left:58px;}
-.photo-wrap{width:120px;height:120px;border-radius:50%;border:3px solid #00d4ff;margin:28px auto 0;overflow:hidden;position:relative;z-index:1;flex-shrink:0;}
-.name-area{text-align:center;padding:12px 16px 16px;border-bottom:1px solid rgba(255,255,255,.07);}
-.name-area h1{font-size:16px;font-weight:900;color:white;letter-spacing:2px;text-transform:uppercase;line-height:1.35;}
-.name-area .title{color:#00d4ff;font-size:9.5px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-top:6px;}
-.ls{padding:12px 18px;}
-.ls-head{font-size:8.5px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#00d4ff;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid rgba(0,212,255,.2);}
-.ci{display:flex;align-items:flex-start;gap:7px;margin-bottom:7px;font-size:10.5px;color:rgba(255,255,255,.72);line-height:1.5;}
-.ci-ic{color:#00d4ff;flex-shrink:0;font-size:11px;margin-top:1px;}
-.sbar{margin-bottom:9px;}
-.sbar-label{font-size:10px;color:rgba(255,255,255,.7);margin-bottom:3px;}
+html,body{height:100%;width:100%;}
+body{font-family:'Raleway',sans-serif;background:#ccc;}
+.page{display:flex;width:100%;min-height:100vh;background:white;}
+.L{width:32%;background:#12122a;flex-shrink:0;display:flex;flex-direction:column;}
+.photo-wrap{width:90px;height:90px;border-radius:50%;border:3px solid #00d4ff;margin:18px auto 8px;overflow:hidden;flex-shrink:0;}
+.name-area{text-align:center;padding:6px 12px 10px;border-bottom:1px solid rgba(255,255,255,.07);}
+.name-area h1{font-size:16px;font-weight:900;color:white;letter-spacing:1px;text-transform:uppercase;line-height:1.3;}
+.name-area .ttl{color:#00d4ff;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.ls{padding:8px 14px;}
+.ls-head{font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid rgba(0,212,255,.2);}
+.ci{display:flex;align-items:flex-start;gap:5px;margin-bottom:5px;font-size:11px;color:rgba(255,255,255,.75);line-height:1.4;}
+.sbar{margin-bottom:6px;}
+.sbar-label{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:2px;}
 .sbar-bg{height:3px;background:rgba(255,255,255,.1);border-radius:2px;}
-.sbar-fill{height:3px;background:linear-gradient(90deg,#00d4ff,#0094b3);border-radius:2px;}
-.lang-li{font-size:10.5px;color:rgba(255,255,255,.72);margin-bottom:5px;padding-left:10px;position:relative;}
-.lang-li::before{content:'▸';color:#00d4ff;position:absolute;left:0;font-size:9px;top:1px;}
+.sbar-fill{height:3px;background:#00d4ff;border-radius:2px;}
+.lang-li{font-size:9px;color:rgba(255,255,255,.72);margin-bottom:4px;padding-left:8px;position:relative;}
+.lang-li::before{content:'▸';color:#00d4ff;position:absolute;left:0;}
 .ref-n{font-size:11px;font-weight:700;color:#00d4ff;}
 .ref-s{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px;}
-.R{flex:1;padding:28px 26px;}
-.sec{margin-bottom:20px;}
-.sec-head{font-size:9.5px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#12122a;margin-bottom:12px;padding-bottom:7px;border-bottom:3px solid #00d4ff;display:flex;align-items:center;gap:6px;}
-.sec-dot{width:7px;height:7px;background:#00d4ff;border-radius:50%;flex-shrink:0;}
-.about{font-size:11.5px;line-height:1.9;color:#3a3a4a;text-align:justify;}
-.item{margin-bottom:13px;padding-left:10px;border-left:2px solid rgba(0,212,255,.35);}
+.R{flex:1;padding:18px 18px 12px;}
+.sec{margin-bottom:12px;}
+.sec-head{font-size:9.5px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#12122a;margin-bottom:8px;padding-bottom:5px;border-bottom:2px solid #00d4ff;display:flex;align-items:center;gap:5px;}
+.sec-dot{width:5px;height:5px;background:#00d4ff;border-radius:50%;flex-shrink:0;}
+.about{font-size:11.5px;line-height:1.85;color:#3a3a4a;text-align:justify;}
+.item{margin-bottom:8px;padding-left:8px;border-left:2px solid rgba(0,212,255,.35);}
 .i-co{font-size:13px;font-weight:800;color:#12122a;}
-.i-pos{font-size:11px;font-weight:600;color:#555;margin-top:2px;}
-.i-date{font-size:9.5px;color:#00b4d8;font-weight:700;margin:3px 0;letter-spacing:.5px;}
-.i-desc{font-size:11px;color:#555;line-height:1.75;margin-top:4px;}
+.i-pos{font-size:11px;font-weight:600;color:#555;margin-top:1px;}
+.i-date{font-size:10px;color:#00b4d8;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
 </style></head><body>
 ${pb}
 <div class="page">
   <div class="L">
-    <div class="photo-ring"></div>
     <div class="photo-wrap">${ph}</div>
     <div class="name-area">
-      <h1>${p.firstName}<br>${p.lastName}</h1>
-      <div class="title">${p.jobTitle||''}</div>
+      <h1>${p.firstName} ${p.lastName}</h1>
+      <div class="ttl">${p.jobTitle||''}</div>
     </div>
-    <div class="ls"><div class="ls-head">Contact Me</div>
-      ${p.phone?`<div class="ci"><span class="ci-ic">📱</span>${p.phone}</div>`:''}
-      ${p.email?`<div class="ci"><span class="ci-ic">✉️</span>${p.email}</div>`:''}
-      ${p.address?`<div class="ci"><span class="ci-ic">📍</span>${p.address}</div>`:''}
-      ${p.social?`<div class="ci"><span class="ci-ic">🌐</span>${p.social}</div>`:''}
-      ${p.nationality?`<div class="ci"><span class="ci-ic">🌏</span>${p.nationality}</div>`:''}
-      ${p.civilStatus?`<div class="ci"><span class="ci-ic">💍</span>${p.civilStatus}</div>`:''}
-      ${p.dob?`<div class="ci"><span class="ci-ic">🎂</span>${p.dob}</div>`:''}
+    <div class="ls"><div class="ls-head">Contact</div>
+      ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
+      ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
+      ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
+      ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+      ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
-    ${(s.skills||[]).length?`<div class="ls"><div class="ls-head">Pro Skills</div>${(s.skills||[]).map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:${75+Math.random()*20|0}%"></div></div></div>`).join('')}</div>`:''}
-    ${(s.languages||[]).length?`<div class="ls"><div class="ls-head">Languages</div>${(s.languages||[]).map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
-    ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
-    ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:10.5px;color:rgba(255,255,255,.65);line-height:1.7;">${s.hobbies}</p></div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
+    ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:7px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+    ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;">${s.hobbies}</p></div>`:''}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${edu.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${!isFresh&&work.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.awards?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Awards & Achievements</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.8;">${s.awards}</p></div>`:''}
+    ${s.awards?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Awards</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 2 — Black & Orange (like Image 2)
+// TEMPLATE 2 — Black & Orange
 // ══════════════════════════════════════════════════════════════════════════════
 function T2(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Poppins',sans-serif;background:#d0d0d0;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.header{background:#1a1a1a;padding:0;display:flex;align-items:stretch;min-height:140px;}
-.header-left{width:180px;background:#f97316;flex-shrink:0;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,85% 0,100% 100%,0 100%);padding-right:20px;}
-.photo-circle{width:100px;height:100px;border-radius:50%;border:3px solid white;overflow:hidden;background:#333;flex-shrink:0;}
-.header-right{flex:1;padding:20px 28px;display:flex;flex-direction:column;justify-content:center;}
-.header-right h1{font-size:28px;font-weight:800;color:white;letter-spacing:1px;line-height:1.1;}
-.header-right .title{color:#f97316;font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;margin-top:6px;}
+html,body{height:100%;width:100%;}
+body{font-family:'Poppins',sans-serif;background:#ccc;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.header{background:#1a1a1a;padding:16px 24px;display:flex;align-items:center;gap:18px;flex-shrink:0;}
+.photo-circle{width:75px;height:75px;border-radius:50%;border:3px solid #f97316;overflow:hidden;background:#333;flex-shrink:0;}
+.header-text h1{font-size:20px;font-weight:800;color:white;letter-spacing:.5px;}
+.header-text .ttl{color:#f97316;font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;margin-top:3px;}
 .body{display:flex;flex:1;}
-.L{width:270px;background:#f8f8f8;padding:20px;flex-shrink:0;border-right:1px solid #eee;}
-.R{flex:1;padding:22px;}
-.ls-head{display:inline-block;font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:white;background:#1a1a1a;padding:4px 12px 4px 10px;margin-bottom:12px;border-radius:0 20px 20px 0;margin-left:-20px;padding-left:20px;}
-.ls{margin-bottom:18px;}
-.ci{display:flex;align-items:flex-start;gap:8px;font-size:11px;color:#333;margin-bottom:7px;line-height:1.5;}
-.ci-ic{color:#f97316;flex-shrink:0;font-size:12px;margin-top:1px;}
-.skill-li{font-size:11px;color:#333;margin-bottom:5px;padding-left:12px;position:relative;}
+.L{width:32%;background:#f8f8f8;padding:14px;flex-shrink:0;}
+.R{flex:1;padding:14px 16px;}
+.ls-head{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:white;background:#1a1a1a;padding:3px 10px 3px 14px;margin-bottom:10px;border-radius:0 20px 20px 0;margin-left:-14px;}
+.ls{margin-bottom:14px;}
+.ci{font-size:11px;color:#333;margin-bottom:5px;display:flex;gap:6px;align-items:flex-start;}
+.skill-li{font-size:11px;color:#333;margin-bottom:4px;padding-left:10px;position:relative;}
 .skill-li::before{content:'▸';color:#f97316;position:absolute;left:0;}
-.lang-li{font-size:11px;color:#333;margin-bottom:5px;}
-.ref-n{font-size:11.5px;font-weight:700;color:#f97316;}
-.ref-s{font-size:10.5px;color:#666;margin-top:1px;}
-.rs-head{display:inline-block;font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:white;background:#f97316;padding:4px 14px;border-radius:2px;margin-bottom:14px;}
-.rsec{margin-bottom:20px;}
-.about{font-size:11.5px;line-height:1.9;color:#333;text-align:justify;}
-.item{margin-bottom:14px;padding:10px 12px;background:#fafafa;border-left:3px solid #f97316;border-radius:0 6px 6px 0;}
+.rs-head{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:white;background:#f97316;padding:3px 12px;border-radius:2px;margin-bottom:10px;}
+.rsec{margin-bottom:14px;}
+.about{font-size:11.5px;line-height:1.85;color:#333;text-align:justify;}
+.item{margin-bottom:8px;padding:7px 10px;background:#fafafa;border-left:3px solid #f97316;border-radius:0 5px 5px 0;}
 .i-co{font-size:13px;font-weight:800;color:#1a1a1a;}
-.i-pos{font-size:11px;font-weight:600;color:#444;margin-top:2px;}
-.i-date{font-size:10px;color:#f97316;font-weight:700;margin:3px 0;}
-.i-desc{font-size:11px;color:#555;line-height:1.75;margin-top:4px;}
+.i-pos{font-size:9px;font-weight:600;color:#444;margin-top:1px;}
+.i-date{font-size:10px;color:#f97316;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
+.ref-n{font-size:11px;font-weight:700;color:#f97316;}
+.ref-s{font-size:10px;color:#666;}
 </style></head><body>
 ${pb}
 <div class="page">
   <div class="header">
-    <div class="header-left">
-      <div class="photo-circle">${ph}</div>
-    </div>
-    <div class="header-right">
-      <h1>${p.firstName}<br>${p.lastName}</h1>
-      <div class="title">${p.jobTitle||''}</div>
+    <div class="photo-circle">${ph}</div>
+    <div class="header-text">
+      <h1>${p.firstName} ${p.lastName}</h1>
+      <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
   <div class="body">
     <div class="L">
       <div class="ls"><div class="ls-head">Contact</div>
-        ${p.phone?`<div class="ci"><span class="ci-ic">📱</span>${p.phone}</div>`:''}
-        ${p.email?`<div class="ci"><span class="ci-ic">✉️</span>${p.email}</div>`:''}
-        ${p.address?`<div class="ci"><span class="ci-ic">📍</span>${p.address}</div>`:''}
-        ${p.social?`<div class="ci"><span class="ci-ic">🌐</span>${p.social}</div>`:''}
-        ${p.nationality?`<div class="ci"><span class="ci-ic">🌏</span>${p.nationality}</div>`:''}
-        ${p.civilStatus?`<div class="ci"><span class="ci-ic">💍</span>${p.civilStatus}</div>`:''}
+        ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
+        ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
+        ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
+        ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+        ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
-      ${(s.skills||[]).length?`<div class="ls"><div class="ls-head">Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
-      ${(s.languages||[]).length?`<div class="ls"><div class="ls-head">Languages</div>${(s.languages||[]).map(l=>`<div class="lang-li">● ${l}</div>`).join('')}</div>`:''}
+      ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
+      ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="ls"><div class="ls-head">Hobbies</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
-      ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+      ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     </div>
     <div class="R">
       ${s.profileSummary?`<div class="rsec"><div class="rs-head">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${edu.length?`<div class="rsec"><div class="rs-head">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${!isFresh&&work.length?`<div class="rsec"><div class="rs-head">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.awards?`<div class="rsec"><div class="rs-head">Awards</div><p style="font-size:11.5px;color:#333;line-height:1.8;">${s.awards}</p></div>`:''}
+      ${s.awards?`<div class="rsec"><div class="rs-head">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 3 — Gray Header · Maroon Accents (like Image 3)
+// TEMPLATE 3 — Gray Header · Maroon Accents
 // ══════════════════════════════════════════════════════════════════════════════
 function T3(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Lato',sans-serif;background:#c8c8c8;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.top{background:#4a4a4a;display:flex;align-items:stretch;}
-.photo-box{width:120px;height:120px;overflow:hidden;background:#3a3a3a;flex-shrink:0;border-right:5px solid #8b1a4a;}
+html,body{height:100%;width:100%;}
+body{font-family:'Lato',sans-serif;background:#c8c8c8;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.top{background:#4a4a4a;display:flex;align-items:stretch;flex-shrink:0;}
+.photo-box{width:100px;height:100px;overflow:hidden;background:#3a3a3a;flex-shrink:0;border-right:4px solid #8b1a4a;}
 .photo-box img,.photo-box div{width:100%;height:100%;object-fit:cover;}
-.top-text{padding:18px 24px;flex:1;display:flex;flex-direction:column;justify-content:center;}
-.top-text h1{font-size:30px;font-weight:900;color:white;letter-spacing:3px;text-transform:uppercase;line-height:1.1;}
-.top-text p{color:rgba(255,255,255,.55);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-top:5px;}
-.contact-bar{background:#8b1a4a;padding:9px 20px;display:flex;gap:24px;flex-wrap:wrap;}
-.cb-item{color:white;font-size:10.5px;display:flex;gap:6px;align-items:center;}
+.top-text{padding:14px 20px;flex:1;display:flex;flex-direction:column;justify-content:center;}
+.top-text h1{font-size:22px;font-weight:900;color:white;letter-spacing:2px;text-transform:uppercase;}
+.top-text p{color:rgba(255,255,255,.55);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.contact-bar{background:#8b1a4a;padding:7px 16px;display:flex;gap:20px;flex-wrap:wrap;flex-shrink:0;}
+.cb-item{color:white;font-size:9.5px;display:flex;gap:5px;align-items:center;}
 .body{display:flex;flex:1;}
-.L{width:250px;background:#f5f5f5;padding:20px;flex-shrink:0;}
-.R{flex:1;background:#4a4a4a;padding:22px;}
-.lh{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#8b1a4a;margin-bottom:10px;border-bottom:2px solid #8b1a4a;padding-bottom:5px;}
-.ls{margin-bottom:18px;}
-.sbar{margin-bottom:8px;}
-.sbar-label{font-size:11px;color:#333;margin-bottom:3px;}
-.sbar-bg{height:4px;background:#ddd;border-radius:2px;}
-.sbar-fill{height:4px;background:#8b1a4a;border-radius:2px;}
-.lang-li{font-size:11px;color:#444;margin-bottom:5px;}
-.rh{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#e8a0b8;margin-bottom:12px;border-bottom:2px solid rgba(139,26,74,.4);padding-bottom:5px;}
-.rsec{margin-bottom:18px;}
-.about{font-size:11.5px;line-height:1.9;color:rgba(255,255,255,.8);text-align:justify;}
-.item{margin-bottom:12px;padding:8px 10px;background:rgba(255,255,255,.05);border-left:3px solid #8b1a4a;border-radius:0 4px 4px 0;}
-.i-co{font-size:12.5px;font-weight:700;color:white;}
-.i-pos{font-size:11px;font-weight:400;color:rgba(255,255,255,.65);margin-top:2px;}
-.i-date{font-size:9.5px;color:#e8a0b8;font-weight:700;margin:3px 0;}
-.i-desc{font-size:10.5px;color:rgba(255,255,255,.6);line-height:1.7;margin-top:3px;}
-.ref-n{font-size:11.5px;font-weight:700;color:#8b1a4a;}
-.ref-s{font-size:10.5px;color:#666;margin-top:1px;}
+.L{width:30%;background:#f5f5f5;padding:14px;flex-shrink:0;}
+.R{flex:1;background:#4a4a4a;padding:14px 16px;}
+.lh{font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#8b1a4a;margin-bottom:8px;border-bottom:2px solid #8b1a4a;padding-bottom:4px;}
+.ls{margin-bottom:14px;}
+.sbar{margin-bottom:6px;}
+.sbar-label{font-size:11px;color:#333;margin-bottom:2px;}
+.sbar-bg{height:3px;background:#ddd;border-radius:2px;}
+.sbar-fill{height:3px;background:#8b1a4a;border-radius:2px;}
+.rh{font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#e8a0b8;margin-bottom:9px;border-bottom:2px solid rgba(139,26,74,.4);padding-bottom:4px;}
+.rsec{margin-bottom:14px;}
+.about{font-size:11.5px;line-height:1.85;color:rgba(255,255,255,.82);text-align:justify;}
+.item{margin-bottom:8px;padding:6px 8px;background:rgba(255,255,255,.05);border-left:3px solid #8b1a4a;border-radius:0 3px 3px 0;}
+.i-co{font-size:13px;font-weight:700;color:white;}
+.i-pos{font-size:11px;font-weight:400;color:rgba(255,255,255,.65);margin-top:1px;}
+.i-date{font-size:10px;color:#e8a0b8;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:rgba(255,255,255,.6);line-height:1.7;margin-top:3px;}
+.ref-n{font-size:11px;font-weight:700;color:#8b1a4a;}
+.ref-s{font-size:10px;color:#666;}
 </style></head><body>
 ${pb}
 <div class="page">
@@ -818,123 +853,125 @@ ${pb}
     ${p.email?`<div class="cb-item">✉️ ${p.email}</div>`:''}
     ${p.address?`<div class="cb-item">📍 ${p.address}</div>`:''}
     ${p.nationality?`<div class="cb-item">🌏 ${p.nationality}</div>`:''}
+    ${p.civilStatus?`<div class="cb-item">💍 ${p.civilStatus}</div>`:''}
   </div>
   <div class="body">
     <div class="L">
-      ${s.profileSummary?`<div class="ls"><div class="lh">About Me</div><p style="font-size:11px;line-height:1.8;color:#444;">${s.profileSummary}</p></div>`:''}
-      ${(s.skills||[]).length?`<div class="ls"><div class="lh">Pro Skills</div>${(s.skills||[]).map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:${78+Math.random()*18|0}%"></div></div></div>`).join('')}</div>`:''}
-      ${(s.languages||[]).length?`<div class="ls"><div class="lh">Language</div>${(s.languages||[]).map(l=>`<div class="lang-li">• ${l}</div>`).join('')}</div>`:''}
+      ${s.profileSummary?`<div class="ls"><div class="lh">About Me</div><p style="font-size:9px;line-height:1.7;color:#444;">${s.profileSummary}</p></div>`:''}
+      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+      ${langs.length?`<div class="ls"><div class="lh">Language</div>${langs.map(l=>`<div style="font-size:11px;color:#444;margin-bottom:4px;">• ${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="ls"><div class="lh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
-      ${refs.length?`<div class="ls"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+      ${refs.length?`<div class="ls"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     </div>
     <div class="R">
       ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${!isFresh&&work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.awards?`<div class="rsec"><div class="rh">Awards & Achievements</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.8;">${s.awards}</p></div>`:''}
+      ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 4 — Blue Professional with Circle Photo (like Image 4)
+// TEMPLATE 4 — Blue Professional
 // ══════════════════════════════════════════════════════════════════════════════
 function T4(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Open Sans',sans-serif;background:#cdd8e8;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.L{width:238px;background:#1565c0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:0;}
-.photo-circle{width:110px;height:110px;border-radius:50%;border:4px solid white;overflow:hidden;background:#1976d2;margin:28px auto 12px;}
-.l-name{color:white;font-size:16px;font-weight:800;text-align:center;padding:0 14px;letter-spacing:.5px;line-height:1.3;}
-.l-title{color:rgba(255,255,255,.65);font-size:9.5px;letter-spacing:2px;text-transform:uppercase;text-align:center;margin-top:5px;padding:0 12px;}
-.l-divider{width:80%;height:1px;background:rgba(255,255,255,.15);margin:14px auto;}
-.ls{width:100%;padding:0 18px 14px;}
-.ls-head{font-size:8.5px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#90caf9;margin-bottom:9px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:5px;}
-.ci{display:flex;align-items:flex-start;gap:8px;font-size:10.5px;color:rgba(255,255,255,.82);margin-bottom:7px;line-height:1.5;}
-.ci-ic{flex-shrink:0;font-size:11px;margin-top:1px;}
-.skill-li{font-size:10.5px;color:rgba(255,255,255,.82);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
-.skill-li::before{content:'●';color:#90caf9;font-size:7px;}
+html,body{height:100%;width:100%;}
+body{font-family:'Open Sans',sans-serif;background:#cdd8e8;}
+.page{width:100%;min-height:100vh;background:white;display:flex;}
+.L{width:30%;background:#1565c0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:0;}
+.photo-circle{width:90px;height:90px;border-radius:50%;border:3px solid white;overflow:hidden;background:#1976d2;margin:20px auto 10px;}
+.l-name{color:white;font-size:13px;font-weight:800;text-align:center;padding:0 10px;line-height:1.3;}
+.l-title{color:rgba(255,255,255,.65);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;text-align:center;margin-top:4px;padding:0 10px;}
+.l-div{width:80%;height:1px;background:rgba(255,255,255,.15);margin:10px auto;}
+.ls{width:100%;padding:0 14px 10px;}
+.ls-head{font-size:7.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#90caf9;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:4px;}
+.ci{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:rgba(255,255,255,.82);margin-bottom:6px;line-height:1.4;}
+.skill-li{font-size:11px;color:rgba(255,255,255,.82);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.skill-li::before{content:'●';color:#90caf9;font-size:6px;}
 .ref-n{font-size:11px;font-weight:700;color:#90caf9;}
 .ref-s{font-size:10px;color:rgba(255,255,255,.55);}
-.R{flex:1;padding:28px 24px;}
-.rsec{margin-bottom:22px;}
-.rh{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.rh-icon{width:26px;height:26px;border-radius:50%;background:#1565c0;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
-.rh-text{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#1565c0;}
+.R{flex:1;padding:18px 16px;}
+.rsec{margin-bottom:14px;}
+.rh{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.rh-icon{width:22px;height:22px;border-radius:50%;background:#1565c0;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.rh-text{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#1565c0;}
 .rh-line{flex:1;height:2px;background:#e3f2fd;}
-.about{font-size:11.5px;line-height:1.9;color:#333;text-align:justify;}
-.item{margin-bottom:13px;padding-left:12px;border-left:3px solid #bbdefb;}
+.about{font-size:11.5px;line-height:1.85;color:#333;text-align:justify;}
+.item{margin-bottom:8px;padding-left:10px;border-left:3px solid #bbdefb;}
 .i-co{font-size:13px;font-weight:700;color:#1565c0;}
-.i-pos{font-size:11.5px;font-weight:600;color:#333;margin-top:2px;}
-.i-date{font-size:10px;color:#1976d2;font-weight:700;margin:3px 0;}
-.i-desc{font-size:11px;color:#555;line-height:1.75;margin-top:4px;}
+.i-pos{font-size:11px;font-weight:600;color:#333;margin-top:1px;}
+.i-date{font-size:10px;color:#1976d2;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
 </style></head><body>
 ${pb}
 <div class="page">
   <div class="L">
     <div class="photo-circle">${ph}</div>
-    <div class="l-name">${p.firstName}<br>${p.lastName}</div>
+    <div class="l-name">${p.firstName} ${p.lastName}</div>
     <div class="l-title">${p.jobTitle||''}</div>
-    <div class="l-divider"></div>
+    <div class="l-div"></div>
     <div class="ls"><div class="ls-head">Contact</div>
-      ${p.email?`<div class="ci"><span class="ci-ic">✉️</span>${p.email}</div>`:''}
-      ${p.phone?`<div class="ci"><span class="ci-ic">📱</span>${p.phone}</div>`:''}
-      ${p.address?`<div class="ci"><span class="ci-ic">📍</span>${p.address}</div>`:''}
-      ${p.social?`<div class="ci"><span class="ci-ic">🌐</span>${p.social}</div>`:''}
-      ${p.nationality?`<div class="ci"><span class="ci-ic">🌏</span>${p.nationality}</div>`:''}
-      ${p.civilStatus?`<div class="ci"><span class="ci-ic">💍</span>${p.civilStatus}</div>`:''}
+      ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
+      ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
+      ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
+      ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+      ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
-    ${(s.skills||[]).length?`<div class="ls"><div class="ls-head">Qualifications</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
-    ${(s.languages||[]).length?`<div class="ls"><div class="ls-head">Languages</div>${(s.languages||[]).map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
-    ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:10.5px;color:rgba(255,255,255,.72);line-height:1.7;">${s.hobbies}</p></div>`:''}
-    ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
+    ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
+    ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:9px;color:rgba(255,255,255,.72);line-height:1.6;">${s.hobbies}</p></div>`:''}
+    ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div><div class="rh-text">Profile</div><div class="rh-line"></div></div><p class="about">${s.profileSummary}</p></div>`:''}
     ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div><div class="rh-text">Experience</div><div class="rh-line"></div></div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Education</div><div class="rh-line"></div></div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div><div class="rh-text">Awards</div><div class="rh-line"></div></div><p style="font-size:11.5px;color:#333;line-height:1.8;">${s.awards}</p></div>`:''}
+    ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div><div class="rh-text">Awards</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 5 — Modern Blue/White with Top-Right Photo (like Image 5)
+// TEMPLATE 5 — Modern Blue & White
 // ══════════════════════════════════════════════════════════════════════════════
 function T5(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Nunito',sans-serif;background:#cdd5e0;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.header{background:#1976d2;padding:24px 32px;display:flex;justify-content:space-between;align-items:center;}
-.h-left h1{font-size:28px;font-weight:900;color:white;letter-spacing:1px;line-height:1.1;}
-.h-left p{color:rgba(255,255,255,.7);font-size:12px;letter-spacing:1.5px;text-transform:uppercase;margin-top:5px;}
-.h-photo{width:96px;height:96px;border-radius:4px;overflow:hidden;background:#1565c0;border:3px solid rgba(255,255,255,.3);flex-shrink:0;}
+html,body{height:100%;width:100%;}
+body{font-family:'Nunito',sans-serif;background:#cdd5e0;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.header{background:#1976d2;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.h-left h1{font-size:22px;font-weight:900;color:white;letter-spacing:.5px;}
+.h-left p{color:rgba(255,255,255,.7);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.h-photo{width:75px;height:75px;border-radius:4px;overflow:hidden;background:#1565c0;border:2px solid rgba(255,255,255,.3);flex-shrink:0;}
 .h-photo img,.h-photo div{width:100%;height:100%;object-fit:cover;}
-.about-bar{background:#e3f2fd;padding:14px 32px;border-bottom:2px solid #bbdefb;}
-.about-bar p{font-size:11.5px;line-height:1.85;color:#1a3a5a;text-align:justify;}
+.about-bar{background:#e3f2fd;padding:10px 24px;border-bottom:2px solid #bbdefb;flex-shrink:0;}
+.about-bar p{font-size:9.5px;line-height:1.8;color:#1a3a5a;text-align:justify;}
 .body{display:flex;flex:1;}
-.L{flex:1;padding:22px 26px;}
-.R{width:226px;background:#f5f8fc;padding:20px;flex-shrink:0;border-left:1px solid #e3f2fd;}
-.lh{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#1976d2;border-bottom:2px solid #1976d2;padding-bottom:5px;margin-bottom:13px;display:flex;align-items:center;gap:6px;}
-.lh::before{content:'';width:5px;height:5px;background:#1976d2;border-radius:50%;}
-.lsec{margin-bottom:20px;}
-.item{margin-bottom:13px;padding-left:12px;border-left:3px solid #bbdefb;}
+.L{flex:1;padding:14px 18px;}
+.R{width:220px;background:#f5f8fc;padding:14px;flex-shrink:0;border-left:1px solid #e3f2fd;}
+.lh{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#1976d2;border-bottom:2px solid #1976d2;padding-bottom:4px;margin-bottom:10px;display:flex;align-items:center;gap:5px;}
+.lh::before{content:'';width:4px;height:4px;background:#1976d2;border-radius:50%;}
+.lsec{margin-bottom:14px;}
+.item{margin-bottom:8px;padding-left:10px;border-left:3px solid #bbdefb;}
 .i-co{font-size:13px;font-weight:800;color:#1a1a1a;}
-.i-pos{font-size:11.5px;font-weight:600;color:#444;margin-top:2px;}
-.i-date{font-size:10px;color:#1976d2;font-weight:700;margin:3px 0;}
-.i-desc{font-size:11px;color:#555;line-height:1.75;margin-top:4px;}
-.rh{font-size:9px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#333;margin-bottom:9px;}
-.rsec{margin-bottom:16px;}
-.ci{font-size:11px;color:#333;margin-bottom:6px;display:flex;gap:6px;align-items:flex-start;line-height:1.4;}
-.skill-tag{display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:10.5px;font-weight:700;margin:2px 2px;}
-.ref-n{font-weight:700;font-size:11.5px;color:#1976d2;}
-.ref-s{font-size:10.5px;color:#666;}
+.i-pos{font-size:11px;font-weight:600;color:#444;margin-top:1px;}
+.i-date{font-size:10px;color:#1976d2;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
+.rh{font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#333;margin-bottom:8px;}
+.rsec{margin-bottom:12px;}
+.ci{font-size:11px;color:#333;margin-bottom:5px;display:flex;gap:5px;align-items:flex-start;}
+.skill-tag{display:inline-block;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin:2px 2px;}
+.ref-n{font-weight:700;font-size:9.5px;color:#1976d2;}
+.ref-s{font-size:10px;color:#666;}
 </style></head><body>
 ${pb}
 <div class="page">
@@ -950,11 +987,11 @@ ${pb}
     <div class="L">
       ${!isFresh&&work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${(s.skills||[]).length?`<div class="lsec"><div class="lh">Skills</div><div>${(s.skills||[]).map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
-      ${s.awards?`<div class="lsec"><div class="lh">Awards & Achievements</div><p style="font-size:11.5px;color:#333;line-height:1.8;">${s.awards}</p></div>`:''}
+      ${skills.length?`<div class="lsec"><div class="lh">Skills</div><div>${skills.map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
+      ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
-      <div class="rsec"><div class="rh">Contact Me</div>
+      <div class="rsec"><div class="rh">Contact</div>
         ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
@@ -962,123 +999,119 @@ ${pb}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
-      ${(s.languages||[]).length?`<div class="rsec"><div class="rh">Language</div>${(s.languages||[]).map(l=>`<div style="font-size:11px;color:#333;margin-bottom:5px;">● ${l}</div>`).join('')}</div>`:''}
+      ${langs.length?`<div class="rsec"><div class="rh">Language</div>${langs.map(l=>`<div style="font-size:11px;color:#333;margin-bottom:4px;">● ${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="rsec"><div class="rh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
-      ${refs.length?`<div class="rsec"><div class="rh">Reference</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+      ${refs.length?`<div class="rsec"><div class="rh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     </div>
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 6 — Dark Navy & Gold/Yellow (like Image 6)
+// TEMPLATE 6 — Dark Navy & Gold
 // ══════════════════════════════════════════════════════════════════════════════
 function T6(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Montserrat',sans-serif;background:#c8c8c8;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.L{width:252px;background:#1a2744;flex-shrink:0;display:flex;flex-direction:column;}
-.photo-top{background:#f5a623;height:160px;display:flex;align-items:flex-end;justify-content:center;position:relative;flex-shrink:0;}
-.photo-circle{width:106px;height:106px;border-radius:50%;border:4px solid #1a2744;overflow:hidden;background:#2a3a5e;position:absolute;bottom:-53px;left:50%;transform:translateX(-50%);}
-.name-area{padding:62px 18px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
-.name-area h1{color:white;font-size:17px;font-weight:800;letter-spacing:.5px;line-height:1.3;}
-.name-area .ttl{color:#f5a623;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;margin-top:5px;}
-.ls{padding:14px 18px;}
-.ls-head{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:800;color:#f5a623;margin-bottom:11px;letter-spacing:1px;}
-.ls-head-icon{width:20px;height:20px;background:rgba(245,166,35,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
-.ci{margin-bottom:9px;}
-.ci-label{font-size:8.5px;color:rgba(255,255,255,.38);font-weight:700;letter-spacing:.8px;text-transform:uppercase;}
+html,body{height:100%;width:100%;}
+body{font-family:'Montserrat',sans-serif;background:#c8c8c8;}
+.page{width:100%;min-height:100vh;background:white;display:flex;}
+.L{width:30%;background:#1a2744;flex-shrink:0;display:flex;flex-direction:column;}
+.photo-top{background:#f5a623;height:120px;display:flex;align-items:flex-end;justify-content:center;position:relative;flex-shrink:0;}
+.photo-circle{width:84px;height:84px;border-radius:50%;border:3px solid #1a2744;overflow:hidden;background:#2a3a5e;position:absolute;bottom:-42px;left:50%;transform:translateX(-50%);}
+.name-area{padding:50px 14px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
+.name-area h1{color:white;font-size:16px;font-weight:800;line-height:1.3;}
+.name-area .ttl{color:#f5a623;font-size:7.5px;letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+.ls{padding:10px 14px;}
+.ls-head{display:flex;align-items:center;gap:6px;font-size:10px;font-weight:800;color:#f5a623;margin-bottom:9px;letter-spacing:.5px;}
+.ls-head-icon{width:16px;height:16px;background:rgba(245,166,35,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+.ci{margin-bottom:7px;}
+.ci-label{font-size:10px;color:rgba(255,255,255,.38);font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
 .ci-val{font-size:11px;color:rgba(255,255,255,.82);margin-top:1px;}
-.skill-li{font-size:10.5px;color:rgba(255,255,255,.78);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+.skill-li{font-size:9px;color:rgba(255,255,255,.78);margin-bottom:4px;display:flex;align-items:center;gap:5px;}
 .skill-li::before{content:'▸';color:#f5a623;}
-.int-li{font-size:10.5px;color:rgba(255,255,255,.7);margin-bottom:4px;display:flex;align-items:center;gap:6px;}
-.int-li::before{content:'❖';color:#f5a623;font-size:8px;}
-.R{flex:1;padding:28px 24px;}
-.rsec{margin-bottom:22px;}
-.rh{font-size:9.5px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#1a2744;border-bottom:3px solid #f5a623;padding-bottom:6px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-.rh-icon{font-size:16px;}
-.about{font-size:11.5px;line-height:1.95;color:#333;text-align:justify;}
-.item{margin-bottom:14px;padding-left:12px;border-left:3px solid #fde68a;}
+.int-li{font-size:11px;color:rgba(255,255,255,.7);margin-bottom:3px;display:flex;align-items:center;gap:5px;}
+.int-li::before{content:'❖';color:#f5a623;font-size:7px;}
+.R{flex:1;padding:18px 16px;}
+.rsec{margin-bottom:14px;}
+.rh{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#1a2744;border-bottom:3px solid #f5a623;padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.about{font-size:11.5px;line-height:1.85;color:#333;text-align:justify;}
+.item{margin-bottom:8px;padding-left:10px;border-left:3px solid #fde68a;}
 .i-co{font-size:13px;font-weight:800;color:#1a2744;}
-.i-pos{font-size:11.5px;font-weight:600;color:#444;margin-top:2px;}
-.i-date{font-size:10px;color:#f5a623;font-weight:700;margin:3px 0;}
-.i-desc{font-size:11px;color:#555;line-height:1.75;margin-top:4px;}
-.ref-n{font-weight:700;font-size:12px;color:#1a2744;}
-.ref-s{font-size:10.5px;color:#777;}
+.i-pos{font-size:11px;font-weight:600;color:#444;margin-top:1px;}
+.i-date{font-size:10px;color:#f5a623;font-weight:700;margin:2px 0;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:3px;}
+.ref-n{font-weight:700;font-size:9.5px;color:#1a2744;}
+.ref-s{font-size:10px;color:#777;}
 </style></head><body>
 ${pb}
 <div class="page">
   <div class="L">
-    <div class="photo-top">
-      <div class="photo-circle">${ph}</div>
-    </div>
+    <div class="photo-top"><div class="photo-circle">${ph}</div></div>
     <div class="name-area">
-      <h1>${p.firstName}<br>${p.lastName}</h1>
+      <h1>${p.firstName} ${p.lastName}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-head"><div class="ls-head-icon">📞</div>Contact</div>
       ${p.email?`<div class="ci"><div class="ci-label">Email</div><div class="ci-val">${p.email}</div></div>`:''}
       ${p.phone?`<div class="ci"><div class="ci-label">Phone</div><div class="ci-val">${p.phone}</div></div>`:''}
       ${p.address?`<div class="ci"><div class="ci-label">Address</div><div class="ci-val">${p.address}</div></div>`:''}
-      ${p.social?`<div class="ci"><div class="ci-label">Social</div><div class="ci-val">${p.social}</div></div>`:''}
       ${p.nationality?`<div class="ci"><div class="ci-label">Nationality</div><div class="ci-val">${p.nationality}</div></div>`:''}
       ${p.civilStatus?`<div class="ci"><div class="ci-label">Civil Status</div><div class="ci-val">${p.civilStatus}</div></div>`:''}
     </div>
-    ${(s.skills||[]).length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">⚡</div>Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
-    ${(s.languages||[]).length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">🌐</div>Languages</div>${(s.languages||[]).map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">⚡</div>Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
+    ${langs.length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">🌐</div>Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">❤️</div>Interests</div>${s.hobbies.split(',').map(h=>`<div class="int-li">${h.trim()}</div>`).join('')}</div>`:''}
   </div>
   <div class="R">
-    ${s.profileSummary?`<div class="rsec"><div class="rh"><span class="rh-icon">👤</span>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><span class="rh-icon">💼</span>Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-    ${edu.length?`<div class="rsec"><div class="rh"><span class="rh-icon">🎓</span>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${refs.length?`<div class="rsec"><div class="rh"><span class="rh-icon">🤝</span>References</div>${refs.map(r=>`<div style="margin-bottom:12px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
-    ${s.awards?`<div class="rsec"><div class="rh"><span class="rh-icon">🏆</span>Awards</div><p style="font-size:11.5px;color:#333;line-height:1.8;">${s.awards}</p></div>`:''}
+    ${s.profileSummary?`<div class="rsec"><div class="rh">👤 Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
+    ${!isFresh&&work.length?`<div class="rsec"><div class="rh">💼 Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${edu.length?`<div class="rsec"><div class="rh">🎓 Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+    ${refs.length?`<div class="rsec"><div class="rh">🤝 References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+    ${s.awards?`<div class="rsec"><div class="rh">🏆 Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 7 — Classic Navy, Clean Two-Column (like Image 7)
+// TEMPLATE 7 — Classic Navy, Clean Two-Column
 // ══════════════════════════════════════════════════════════════════════════════
 function T7(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
 return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Source Sans 3',sans-serif;background:#c5cdd8;display:flex;flex-direction:column;align-items:center;}
-.page{width:794px;min-height:1123px;background:white;display:flex;flex-direction:column;box-shadow:0 4px 24px rgba(0,0,0,.15);}
-.header{background:#2c3e50;padding:26px 32px;display:flex;gap:22px;align-items:center;}
-.header-photo{width:90px;height:90px;border-radius:50%;border:3px solid rgba(255,255,255,.25);overflow:hidden;background:#34495e;flex-shrink:0;}
+html,body{height:100%;width:100%;}
+body{font-family:'Source Sans 3',sans-serif;background:#c5cdd8;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.header{background:#2c3e50;padding:18px 26px;display:flex;gap:18px;align-items:center;flex-shrink:0;}
+.header-photo{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.25);overflow:hidden;background:#34495e;flex-shrink:0;}
 .header-photo img,.header-photo div{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-.header-text{flex:1;}
-.header-text h1{font-size:30px;font-weight:900;color:white;letter-spacing:3px;text-transform:uppercase;line-height:1.1;}
-.header-text p{color:rgba(255,255,255,.5);font-size:11px;font-weight:300;letter-spacing:2.5px;text-transform:uppercase;margin-top:5px;}
+.header-text h1{font-size:24px;font-weight:900;color:white;letter-spacing:2px;text-transform:uppercase;}
+.header-text p{color:rgba(255,255,255,.5);font-size:10px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
 .body{display:flex;flex:1;}
-.L{width:246px;background:#f3f4f8;padding:22px;flex-shrink:0;}
-.R{flex:1;padding:26px;}
-.lh{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#2c3e50;border-bottom:2px solid #2c3e50;padding-bottom:5px;margin-bottom:12px;}
-.lsec{margin-bottom:20px;}
-.ci{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:#333;margin-bottom:7px;line-height:1.4;}
-.skill-li{font-size:11.5px;color:#333;margin-bottom:5px;padding-left:12px;position:relative;}
+.L{width:28%;background:#f3f4f8;padding:16px;flex-shrink:0;}
+.R{flex:1;padding:18px 20px;}
+.lh{font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#2c3e50;border-bottom:2px solid #2c3e50;padding-bottom:4px;margin-bottom:10px;}
+.lsec{margin-bottom:16px;}
+.ci{display:flex;align-items:flex-start;gap:6px;font-size:11px;color:#333;margin-bottom:6px;line-height:1.4;}
+.skill-li{font-size:11px;color:#333;margin-bottom:4px;padding-left:10px;position:relative;}
 .skill-li::before{content:'•';position:absolute;left:0;color:#2c3e50;}
-.lang-li{font-size:11.5px;color:#333;margin-bottom:5px;}
-.ref-n{font-weight:700;font-size:12.5px;color:#2c3e50;}
-.ref-s{font-size:10.5px;color:#666;margin-top:1px;}
-.rsec{margin-bottom:22px;}
-.rh{font-size:9px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:#2c3e50;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-.rh-icon{width:20px;height:20px;background:#2c3e50;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
-.about{font-size:12px;line-height:1.9;color:#333;text-align:justify;}
-.item{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f0f0f0;}
+.ref-n{font-weight:700;font-size:10px;color:#2c3e50;}
+.ref-s{font-size:10px;color:#666;margin-top:1px;}
+.rsec{margin-bottom:16px;}
+.rh{font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#2c3e50;border-bottom:2px solid #e5e7eb;padding-bottom:4px;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.rh-icon{width:18px;height:18px;background:#2c3e50;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.about{font-size:11.5px;line-height:1.85;color:#333;text-align:justify;}
+.item{margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;}
 .item:last-child{border-bottom:none;padding-bottom:0;}
 .i-header{display:flex;justify-content:space-between;align-items:flex-start;}
-.i-co{font-size:13.5px;font-weight:700;color:#2c3e50;}
-.i-date-right{font-size:10px;color:#888;font-weight:600;text-align:right;flex-shrink:0;margin-left:10px;margin-top:2px;}
-.i-pos{font-size:11.5px;font-weight:400;color:#555;font-style:italic;margin-top:2px;}
-.i-desc{font-size:11.5px;color:#555;line-height:1.75;margin-top:5px;}
+.i-co{font-size:13px;font-weight:700;color:#2c3e50;}
+.i-date-r{font-size:10px;color:#888;font-weight:600;flex-shrink:0;margin-left:8px;margin-top:2px;}
+.i-pos{font-size:11px;font-weight:400;color:#555;font-style:italic;margin-top:1px;}
+.i-desc{font-size:11px;color:#555;line-height:1.7;margin-top:4px;}
 </style></head><body>
 ${pb}
 <div class="page">
@@ -1099,100 +1132,20 @@ ${pb}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
-      ${(s.skills||[]).length?`<div class="lsec"><div class="lh">Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
-      ${(s.languages||[]).length?`<div class="lsec"><div class="lh">Languages</div>${(s.languages||[]).map(l=>`<div class="lang-li">• ${l}</div>`).join('')}</div>`:''}
-      ${s.hobbies?`<div class="lsec"><div class="lh">Interests</div><p style="font-size:11.5px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
-      ${refs.length?`<div class="lsec"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:12px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+      ${skills.length?`<div class="lsec"><div class="lh">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
+      ${langs.length?`<div class="lsec"><div class="lh">Languages</div>${langs.map(l=>`<div style="font-size:11px;color:#333;margin-bottom:4px;">• ${l}</div>`).join('')}</div>`:''}
+      ${s.hobbies?`<div class="lsec"><div class="lh">Interests</div><p style="font-size:11px;color:#555;line-height:1.6;">${s.hobbies}</p></div>`:''}
+      ${refs.length?`<div class="lsec"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     </div>
     <div class="R">
       ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-right">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-      ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Education</div>${edu.map(e=>`<div class="item"><div class="i-header"><div class="i-co">${e.school}</div>${e.yearGrad||e.yearStart?`<div class="i-date-right">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div>Awards & Achievements</div><p style="font-size:12px;color:#333;line-height:1.85;">${s.awards}</p></div>`:''}
+      ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-r">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Education</div>${edu.map(e=>`<div class="item"><div class="i-header"><div class="i-co">${e.school}</div>${e.yearGrad||e.yearStart?`<div class="i-date-r">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div>Awards</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
-</div></body></html>`;
-}
+</div></body></html>`;}
 
-// ── PROFILE SUMMARY via Pollinations AI (no key needed) ──────────────────────
-async function generateProfileSummary(idx){
-  const s = submissions[idx];
-  const p = s.personal;
-  const btn = document.getElementById('genProfileBtn');
-  const label = document.getElementById('genProfileLabel');
-  const spinner = document.getElementById('genProfileSpinner');
-  const display = document.getElementById('profileDisplay');
-
-  btn.disabled = true;
-  label.textContent = 'Generating...';
-  spinner.style.display = 'inline-block';
-  display.value = 'Writing impressive profile summary...';
-
-  try {
-    const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
-    const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
-      ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}-${w.dateEnd}): ${w.responsibilities}`).join(' | ')
-      : 'No work experience (fresh graduate)';
-    const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
-
-    const prompt = `You are a professional CV writer in the Philippines. Write a compelling, impressive, and personalized Profile/About Me paragraph for a Filipino professional CV. Write exactly 3-5 sentences in third person, professional and confident tone. Be specific to their background. No generic filler. No labels, no intro text, no explanation - output the paragraph only.
-
-Name: ${p.firstName} ${p.lastName}
-Applying for: ${p.jobTitle||'a professional role'}
-Education: ${eduLevel} - ${eduSum||'Not specified'}
-Work Experience: ${workSum}
-Skills: ${(s.skills||[]).join(', ')||'Not specified'}
-Languages: ${(s.languages||[]).join(', ')||'Not specified'}
-Nationality: ${p.nationality||'Filipino'}
-Civil Status: ${p.civilStatus||'Not specified'}
-Awards: ${s.awards||'None'}
-Hobbies: ${s.hobbies||'Not specified'}`;
-
-    // Use Pollinations AI - free, no API key, works from browser
-    const res = await fetch('https://text.pollinations.ai/openai', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'openai',
-        messages: [
-          { role: 'system', content: 'You are a professional CV writer specializing in Filipino professionals. Write impressive, specific profile summaries.' },
-          { role: 'user', content: prompt }
-        ],
-        seed: 42,
-        private: true
-      })
-    });
-
-    const data = await res.json();
-    const generated = data?.choices?.[0]?.message?.content?.trim();
-
-    if(generated){
-      display.value = generated;
-      submissions[idx].profileSummary = generated;
-      showNotif('✅ Profile summary generated!');
-    } else {
-      display.value = '';
-      showNotif('Generation failed. Try again.', true);
-    }
-  } catch(e){
-    display.value = '';
-    showNotif('Error: ' + e.message, true);
-  }
-
-  btn.disabled = false;
-  label.textContent = '✨ Re-generate';
-  spinner.style.display = 'none';
-}
-
-async function saveProfileSummary(idx){
-  const display = document.getElementById('profileDisplay');
-  const text = display.value?.trim();
-  if(!text){ showNotif('Please generate or type a profile summary first.', true); return; }
-  submissions[idx].profileSummary = text;
-  const ex = await getFullRecord();
-  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
-  showNotif('Profile summary saved! ✅');
-}
 
 // ── GCASH ─────────────────────────────────────────────────────────────────────
 function previewQR(input){
