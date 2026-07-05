@@ -338,9 +338,21 @@ const ADMIN_PASS = 'Arroyo2024!';
 
 let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 = '';
 
-// ── PASSWORD ──────────────────────────────────────────────────────────────────
-function getCurrentPassword(){ return localStorage.getItem('adminPassword') || ADMIN_PASS; }
-function changePassword(){
+// ── PASSWORD (stored in JSONBin - works on ALL devices) ──────────────────────
+let currentPassword = ADMIN_PASS;
+
+async function loadPasswordFromCloud(){
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
+    const json = await res.json();
+    const saved = json?.record?.adminPassword;
+    if(saved) currentPassword = saved;
+  } catch(e){ console.warn('Could not load password:', e); }
+}
+
+function getCurrentPassword(){ return currentPassword; }
+
+async function changePassword(){
   const c=document.getElementById('currentPass').value;
   const n=document.getElementById('newPass').value;
   const cf=document.getElementById('confirmPass').value;
@@ -348,21 +360,36 @@ function changePassword(){
   if(c!==getCurrentPassword()){showNotif('Current password is incorrect.',true);return;}
   if(n.length<6){showNotif('Password must be at least 6 characters.',true);return;}
   if(n!==cf){showNotif('New passwords do not match.',true);return;}
-  localStorage.setItem('adminPassword',n);
-  showNotif('Password updated! Logging out...');
-  ['currentPass','newPass','confirmPass'].forEach(id=>document.getElementById(id).value='');
-  setTimeout(()=>doLogout(),2000);
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex,adminPassword:n})
+    });
+    currentPassword = n;
+    showNotif('✅ Password updated on all devices! Logging out...');
+    ['currentPass','newPass','confirmPass'].forEach(id=>document.getElementById(id).value='');
+    setTimeout(()=>doLogout(),2000);
+  } catch(e){ showNotif('Failed to save: '+e.message,true); }
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
+  if(!u||!p){document.getElementById('loginError').style.display='block';return;}
+
+  // Load cloud password first then check
+  await loadPasswordFromCloud();
+
   if(u===ADMIN_USER && p===getCurrentPassword()){
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('adminApp').style.display='block';
     loadData();
-  } else { document.getElementById('loginError').style.display='block'; }
+  } else {
+    document.getElementById('loginError').style.display='block';
+  }
 }
 function doLogout(){
   document.getElementById('loginOverlay').style.display='flex';
