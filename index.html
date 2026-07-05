@@ -883,10 +883,8 @@
         <h3>💳 InstaPay / GCash Payment</h3>
         <div class="gcash-qr-box">
           <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;">Scan QR Code to Pay</p>
-          <img src="gcash-qr.jpg" alt="GCash QR Code" style="max-width:240px;width:100%;border-radius:12px;display:block;margin:0 auto;border:3px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,.1);">
-          <div style="margin-top:14px;background:rgba(26,39,68,.05);border-radius:8px;padding:10px 16px;display:inline-block;">
-            <p style="font-size:13px;font-weight:700;color:var(--navy);">Amount: <span style="color:var(--gold);">₱25.00</span></p>
-          </div>
+          <img id="gcashQRDisplay" src="gcash-qr.jpg" alt="GCash QR Code" style="max-width:240px;width:100%;border-radius:12px;display:block;margin:0 auto;border:3px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,.1);">
+
         </div>
         <p style="font-size:11.5px;color:var(--gray);margin-top:12px;">After payment, send the screenshot to Reymar via the contact details above. 📸</p>
       </div>
@@ -921,8 +919,27 @@ window.onload = () => {
   addEduEntry();
   addWorkEntry();
   addRefEntry();
-
+  loadLatestQR();
 };
+
+// Load latest QR from JSONBin (in case admin updated it)
+async function loadLatestQR() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (res.ok) {
+      const json = await res.json();
+      const qr = json?.record?.gcashQR || json?.gcashQR;
+      if (qr && qr.startsWith('data:image')) {
+        const img = document.getElementById('gcashQRDisplay');
+        if (img) img.src = qr;
+      }
+    }
+  } catch(e) {
+    // Falls back to gcash-qr.jpg
+  }
+}
 
 // ─── EDUCATION TYPE ────────────────────────────────────────────────────────────
 function handleEduChange() {

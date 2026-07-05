@@ -1151,79 +1151,97 @@ ${pb}
 function openEditModal(idx){
   const s = submissions[idx];
   const p = s.personal;
+  const isFresh = s.eduLevel === 'fresh';
 
-  const field = (id, label, val, type='text') => `
-    <div>
+  const inp = (id,label,val,type='text',full=false) => `
+    <div style="grid-column:${full?'1/-1':'auto'};">
       <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">${label}</label>
-      <input id="${id}" type="${type}" value="${(val||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+      <input id="${id}" type="${type}" value="${(val||'').toString().replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+        style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
     </div>`;
 
+  const ta = (id,label,val,rows=2,full=true) => `
+    <div style="grid-column:${full?'1/-1':'auto'};">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">${label}</label>
+      <textarea id="${id}" rows="${rows}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;">${(val||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+    </div>`;
+
+  const sel = (id,label,options,val) => `
+    <div>
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">${label}</label>
+      <select id="${id}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        ${options.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>`;
+
+  const secHead = (title) => `
+    <div style="grid-column:1/-1;margin-top:10px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);background:var(--navy);padding:6px 14px;border-radius:6px;display:inline-block;">${title}</div>
+    </div>`;
+
+  // Education entries
+  const eduRows = (s.education||[]).map((e,i)=>`
+    ${secHead(`📚 Education #${i+1}`)}
+    ${inp(`e_edu_school_${i}`,'School / University',e.school,  'text',true)}
+    ${inp(`e_edu_degree_${i}`,'Degree / Course',e.degree)}
+    ${inp(`e_edu_yearStart_${i}`,'Year Started',e.yearStart)}
+    ${inp(`e_edu_yearGrad_${i}`,'Year Graduated',e.yearGrad)}
+    ${inp(`e_edu_honors_${i}`,'Honors / Awards',e.honors,  'text',false)}
+  `).join('');
+
+  // Work experience entries
+  const workRows = isFresh ? '' : (s.workExperience||[]).map((w,i)=>`
+    ${secHead(`💼 Work Experience #${i+1}`)}
+    ${inp(`e_work_company_${i}`,'Company / Employer',w.company,'text',true)}
+    ${inp(`e_work_position_${i}`,'Job Position / Title',w.position)}
+    ${inp(`e_work_dateStart_${i}`,'Date Started',w.dateStart)}
+    ${inp(`e_work_dateEnd_${i}`,'Date Ended',w.dateEnd)}
+    ${inp(`e_work_location_${i}`,'Location',w.location)}
+    ${ta(`e_work_resp_${i}`,'Responsibilities / Duties',w.responsibilities,2)}
+  `).join('');
+
+  // Reference entries
+  const refRows = (s.references||[]).map((r,i)=>`
+    ${secHead(`🤝 Reference #${i+1}`)}
+    ${inp(`e_ref_name_${i}`,'Full Name',r.name)}
+    ${inp(`e_ref_position_${i}`,'Position / Relationship',r.position)}
+    ${inp(`e_ref_company_${i}`,'Company / Organization',r.company)}
+    ${inp(`e_ref_contact_${i}`,'Contact Number',r.contact)}
+  `).join('');
+
   const html = `
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-    ${field('e_firstName','First Name',p.firstName)}
-    ${field('e_lastName','Last Name',p.lastName)}
-    ${field('e_jobTitle','Job Title / Position',p.jobTitle)}
-    ${field('e_phone','Phone',p.phone)}
-    ${field('e_email','Email',p.email,'email')}
-    ${field('e_nationality','Nationality',p.nationality)}
-    ${field('e_dob','Date of Birth',p.dob,'date')}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 
-    <div>
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Civil Status</label>
-      <select id="e_civilStatus" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-        <option ${p.civilStatus==='Single'?'selected':''}>Single</option>
-        <option ${p.civilStatus==='Married'?'selected':''}>Married</option>
-        <option ${p.civilStatus==='Widowed'?'selected':''}>Widowed</option>
-        <option ${p.civilStatus==='Separated'?'selected':''}>Separated</option>
-      </select>
-    </div>
+    ${secHead('👤 Personal Information')}
+    ${inp('e_firstName','First Name',p.firstName)}
+    ${inp('e_lastName','Last Name',p.lastName)}
+    ${inp('e_jobTitle','Job Title / Position',p.jobTitle,'text',true)}
+    ${inp('e_phone','Phone',p.phone)}
+    ${inp('e_email','Email',p.email,'email')}
+    ${inp('e_nationality','Nationality',p.nationality)}
+    ${inp('e_dob','Date of Birth',p.dob,'date')}
+    ${sel('e_civilStatus','Civil Status',['Single','Married','Widowed','Separated'],p.civilStatus)}
+    ${sel('e_gender','Gender',['Male','Female','Prefer not to say'],p.gender)}
+    ${inp('e_address','Address',p.address,'text',true)}
+    ${inp('e_social','Facebook / Social Media',p.social,'text',true)}
+    ${inp('e_linkedin','LinkedIn',p.linkedin,'text',true)}
 
-    <div>
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Gender</label>
-      <select id="e_gender" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-        <option ${p.gender==='Male'?'selected':''}>Male</option>
-        <option ${p.gender==='Female'?'selected':''}>Female</option>
-        <option ${p.gender==='Prefer not to say'?'selected':''}>Prefer not to say</option>
-      </select>
-    </div>
+    ${secHead('🎓 Skills & Languages')}
+    ${inp('e_skills','Skills (comma separated)',(s.skills||[]).join(', '),'text',true)}
+    ${inp('e_languages','Languages (comma separated)',(s.languages||[]).join(', '),'text',true)}
+    ${inp('e_hobbies','Hobbies / Interests',s.hobbies,'text',true)}
+    ${ta('e_awards','Awards / Achievements',s.awards,2)}
+    ${ta('e_profile','Profile Summary',s.profileSummary,4)}
 
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Address</label>
-      <input id="e_address" value="${(p.address||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-    </div>
+    ${eduRows}
+    ${workRows}
+    ${refRows}
 
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Social Media</label>
-      <input id="e_social" value="${(p.social||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Skills <span style="font-weight:400;color:var(--gray)">(comma separated)</span></label>
-      <input id="e_skills" value="${(s.skills||[]).join(', ')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Languages <span style="font-weight:400;color:var(--gray)">(comma separated)</span></label>
-      <input id="e_languages" value="${(s.languages||[]).join(', ')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Hobbies / Interests</label>
-      <input id="e_hobbies" value="${(s.hobbies||'').replace(/"/g,'&quot;')}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Awards / Achievements</label>
-      <textarea id="e_awards" rows="2" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;">${s.awards||''}</textarea>
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Profile Summary</label>
-      <textarea id="e_profile" rows="4" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;resize:vertical;">${s.profileSummary||''}</textarea>
-    </div>
-
-    <div style="grid-column:1/-1;">
-      <button onclick="saveEdits(${idx})" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">💾 Save Changes</button>
+    <div style="grid-column:1/-1;margin-top:8px;">
+      <button onclick="saveEdits(${idx})"
+        style="width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">
+        💾 Save All Changes
+      </button>
     </div>
   </div>`;
 
@@ -1232,23 +1250,58 @@ function openEditModal(idx){
 }
 
 async function saveEdits(idx){
-  const g = id => document.getElementById(id)?.value?.trim() || '';
-  submissions[idx].personal.firstName = g('e_firstName');
-  submissions[idx].personal.lastName = g('e_lastName');
-  submissions[idx].personal.jobTitle = g('e_jobTitle');
-  submissions[idx].personal.phone = g('e_phone');
-  submissions[idx].personal.email = g('e_email');
-  submissions[idx].personal.address = g('e_address');
-  submissions[idx].personal.nationality = g('e_nationality');
-  submissions[idx].personal.civilStatus = g('e_civilStatus');
-  submissions[idx].personal.gender = g('e_gender');
-  submissions[idx].personal.dob = g('e_dob');
-  submissions[idx].personal.social = g('e_social');
-  submissions[idx].skills = g('e_skills').split(',').map(s=>s.trim()).filter(Boolean);
-  submissions[idx].languages = g('e_languages').split(',').map(s=>s.trim()).filter(Boolean);
-  submissions[idx].hobbies = g('e_hobbies');
-  submissions[idx].awards = g('e_awards');
-  submissions[idx].profileSummary = g('e_profile');
+  const s = submissions[idx];
+  const g = id => { const el=document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  // Personal
+  s.personal.firstName   = g('e_firstName');
+  s.personal.lastName    = g('e_lastName');
+  s.personal.jobTitle    = g('e_jobTitle');
+  s.personal.phone       = g('e_phone');
+  s.personal.email       = g('e_email');
+  s.personal.address     = g('e_address');
+  s.personal.nationality = g('e_nationality');
+  s.personal.civilStatus = g('e_civilStatus');
+  s.personal.gender      = g('e_gender');
+  s.personal.dob         = g('e_dob');
+  s.personal.social      = g('e_social');
+  s.personal.linkedin    = g('e_linkedin');
+
+  // Skills & extra
+  s.skills    = g('e_skills').split(',').map(x=>x.trim()).filter(Boolean);
+  s.languages = g('e_languages').split(',').map(x=>x.trim()).filter(Boolean);
+  s.hobbies   = g('e_hobbies');
+  s.awards    = g('e_awards');
+  s.profileSummary = g('e_profile');
+
+  // Education
+  (s.education||[]).forEach((e,i)=>{
+    e.school    = g(`e_edu_school_${i}`);
+    e.degree    = g(`e_edu_degree_${i}`);
+    e.yearStart = g(`e_edu_yearStart_${i}`);
+    e.yearGrad  = g(`e_edu_yearGrad_${i}`);
+    e.honors    = g(`e_edu_honors_${i}`);
+  });
+
+  // Work experience
+  if(s.eduLevel !== 'fresh'){
+    (s.workExperience||[]).forEach((w,i)=>{
+      w.company         = g(`e_work_company_${i}`);
+      w.position        = g(`e_work_position_${i}`);
+      w.dateStart       = g(`e_work_dateStart_${i}`);
+      w.dateEnd         = g(`e_work_dateEnd_${i}`);
+      w.location        = g(`e_work_location_${i}`);
+      w.responsibilities= g(`e_work_resp_${i}`);
+    });
+  }
+
+  // References
+  (s.references||[]).forEach((r,i)=>{
+    r.name    = g(`e_ref_name_${i}`);
+    r.position= g(`e_ref_position_${i}`);
+    r.company = g(`e_ref_company_${i}`);
+    r.contact = g(`e_ref_contact_${i}`);
+  });
 
   try {
     const ex = await getFullRecord();
@@ -1257,12 +1310,12 @@ async function saveEdits(idx){
       headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
       body:JSON.stringify({...ex, submissions})
     });
-    showNotif('✅ Changes saved successfully!');
+    showNotif('✅ All changes saved successfully!');
     closeModal('editModal');
     closeModal('viewModal');
     renderSubmissions();
     renderDashboard();
-  } catch(e) {
+  } catch(e){
     showNotif('Failed to save: ' + e.message, true);
   }
 }
