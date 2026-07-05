@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard – Arroyo CV Builder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231a2744'/><rect x='25' y='20' width='50' height='60' rx='4' fill='white'/><rect x='32' y='32' width='20' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='40' width='36' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='48' width='36' height='3' rx='1.5' fill='%23c8a84b'/><rect x='32' y='56' width='28' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='64' width='32' height='3' rx='1.5' fill='%231a2744'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1a2744; --navy-light: #243358; --gold: #c8a84b; --gold-light: #e2c97e;
+  --white: #ffffff; --off-white: #f7f8fc; --gray: #6b7280; --gray-light: #e5e7eb;
+  --success: #10b981; --error: #ef4444; --warning: #f59e0b; --text: #1f2937;
+  --sidebar: 240px;
+}
+body { font-family: 'Inter', sans-serif; background: var(--off-white); color: var(--text); min-height: 100vh; }
+
+/* ── LOGIN ── */
+#loginOverlay {
+  position: fixed; inset: 0;
+  background: linear-gradient(135deg, var(--navy) 0%, #0f1a33 100%);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+}
+.login-box {
+  background: white; border-radius: 20px;
+  padding: 48px 40px; width: 100%; max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+  text-align: center;
+}
+.login-logo { font-size: 48px; margin-bottom: 16px; }
+.login-box h2 { font-family: 'Playfair Display', serif; color: var(--navy); font-size: 24px; margin-bottom: 6px; }
+.login-box p { color: var(--gray); font-size: 13px; margin-bottom: 28px; }
+.login-box input {
+  width: 100%; padding: 13px 16px;
+  border: 1.5px solid var(--gray-light); border-radius: 10px;
+  font-size: 14px; font-family: 'Inter', sans-serif;
+  outline: none; margin-bottom: 14px;
+  transition: border-color 0.2s;
+}
+.login-box input:focus { border-color: var(--navy); }
+.login-btn {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  color: white; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.login-btn:hover { opacity: 0.9; }
+.login-error { color: var(--error); font-size: 12px; margin-top: 10px; display: none; }
+
+/* ── LAYOUT ── */
+#adminApp { display: none; min-height: 100vh; }
+.layout { display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar); flex-shrink: 0;
+  background: linear-gradient(180deg, var(--navy) 0%, #0f1a33 100%);
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; height: 100vh;
+  z-index: 100;
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.sidebar-logo h1 {
+  font-family: 'Playfair Display', serif;
+  color: white; font-size: 17px; line-height: 1.3;
+}
+.sidebar-logo h1 span { color: var(--gold); }
+.sidebar-logo p { color: rgba(255,255,255,0.4); font-size: 10px; margin-top: 3px; letter-spacing: 1px; text-transform: uppercase; }
+.sidebar-nav { flex: 1; padding: 16px 10px; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 10px;
+  color: rgba(255,255,255,0.55); font-size: 13.5px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; margin-bottom: 4px;
+  border: none; background: none; width: 100%; text-align: left;
+}
+.nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+.nav-item.active { background: rgba(200,168,75,0.15); color: var(--gold); }
+.nav-item .ni-icon { font-size: 18px; width: 22px; text-align: center; }
+.sidebar-footer {
+  padding: 16px; border-top: 1px solid rgba(255,255,255,0.08);
+}
+.logout-btn {
+  width: 100%; padding: 10px; background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3); border-radius: 8px;
+  color: #fca5a5; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.logout-btn:hover { background: rgba(239,68,68,0.2); }
+
+/* ── MAIN CONTENT ── */
+.main-content {
+  margin-left: var(--sidebar);
+  flex: 1; padding: 28px;
+  min-height: 100vh;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.topbar h2 { font-size: 22px; font-weight: 700; color: var(--navy); }
+.topbar p { font-size: 13px; color: var(--gray); margin-top: 2px; }
+.badge-count {
+  background: var(--gold); color: var(--navy);
+  border-radius: 20px; padding: 3px 12px;
+  font-size: 12px; font-weight: 700;
+}
+
+/* ── STAT CARDS ── */
+.stats-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 16px; margin-bottom: 28px;
+}
+.stat-card {
+  background: white; border-radius: 12px;
+  padding: 18px; box-shadow: 0 2px 12px rgba(26,39,68,0.06);
+}
+.stat-card .sc-label { font-size: 11px; font-weight: 600; color: var(--gray); letter-spacing: 0.5px; text-transform: uppercase; }
+.stat-card .sc-value { font-size: 28px; font-weight: 700; color: var(--navy); margin: 6px 0 2px; }
+.stat-card .sc-sub { font-size: 12px; color: var(--gray); }
+
+/* ── TABLE ── */
+.table-card { background: white; border-radius: 14px; box-shadow: 0 2px 16px rgba(26,39,68,0.07); overflow: hidden; }
+.table-header {
+  padding: 18px 22px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--gray-light);
+}
+.table-header h3 { font-size: 15px; font-weight: 700; color: var(--navy); }
+.search-input {
+  padding: 8px 14px; border: 1.5px solid var(--gray-light);
+  border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif;
+  outline: none; width: 220px;
+}
+.search-input:focus { border-color: var(--navy); }
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: var(--off-white);
+  padding: 12px 16px;
+  font-size: 11px; font-weight: 700;
+  color: var(--gray); letter-spacing: 0.5px;
+  text-transform: uppercase; text-align: left;
+  border-bottom: 1px solid var(--gray-light);
+}
+td {
+  padding: 13px 16px; font-size: 13px;
+  border-bottom: 1px solid rgba(229,231,235,0.5);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(247,248,252,0.8); }
+.status-badge {
+  display: inline-block; padding: 3px 10px;
+  border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.status-New { background: #dbeafe; color: #1d4ed8; }
+.status-Processing { background: #fef3c7; color: #92400e; }
+.status-Done { background: #d1fae5; color: #065f46; }
+
+.action-btn {
+  padding: 6px 13px; border-radius: 7px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  border: none; margin-right: 4px; transition: opacity 0.2s;
+}
+.btn-view { background: var(--navy); color: white; }
+.btn-template { background: var(--gold); color: var(--navy); }
+.btn-status { background: var(--off-white); color: var(--navy); border: 1.5px solid var(--gray-light); }
+.action-btn:hover { opacity: 0.85; }
+
+/* ── PAGES ── */
+.admin-page { display: none; }
+.admin-page.active { display: block; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 9000; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: white; border-radius: 16px;
+  width: 100%; max-width: 700px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+}
+.modal-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--gray-light);
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; background: white; z-index: 1;
+}
+.modal-header h3 { font-size: 17px; font-weight: 700; color: var(--navy); }
+.modal-close {
+  background: none; border: none; font-size: 22px;
+  cursor: pointer; color: var(--gray); line-height: 1;
+}
+.modal-body { padding: 24px; }
+
+.info-group { margin-bottom: 20px; }
+.info-group h4 {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: var(--gold);
+  margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--gray-light);
+}
+.info-row {
+  display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px;
+}
+.info-label { font-weight: 600; color: var(--navy); min-width: 130px; flex-shrink: 0; }
+.info-value { color: var(--text); }
+
+/* ── TEMPLATE SELECTOR ── */
+.template-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 12px; margin-bottom: 20px;
+}
+.tmpl-card {
+  border: 2px solid var(--gray-light);
+  border-radius: 10px; padding: 14px;
+  cursor: pointer; transition: all 0.2s;
+  text-align: center;
+}
+.tmpl-card:hover { border-color: var(--navy); }
+.tmpl-card.selected { border-color: var(--gold); background: rgba(200,168,75,0.06); }
+.tmpl-card .tc-num {
+  font-size: 22px; margin-bottom: 4px;
+}
+.tmpl-card .tc-name { font-size: 11px; font-weight: 700; color: var(--navy); }
+.tmpl-card .tc-desc { font-size: 10px; color: var(--gray); margin-top: 2px; }
+
+.generate-btn {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+  color: white; border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.generate-btn:hover { opacity: 0.9; }
+
+/* ── GCASH PAGE ── */
+.gcash-admin {
+  background: white; border-radius: 14px;
+  padding: 32px; max-width: 500px;
+  box-shadow: 0 2px 16px rgba(26,39,68,0.07);
+}
+.gcash-admin h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 6px; }
+.gcash-admin p { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+.qr-upload-area {
+  border: 2px dashed var(--gray-light);
+  border-radius: 12px; padding: 32px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 16px;
+}
+.qr-upload-area:hover { border-color: var(--navy); background: rgba(26,39,68,0.02); }
+.qr-upload-area .qu-icon { font-size: 44px; margin-bottom: 10px; }
+.qr-upload-area p { font-size: 13px; color: var(--gray); }
+.qr-upload-area strong { color: var(--navy); }
+#qrPreview {
+  max-width: 200px; border-radius: 10px;
+  margin: 12px auto; display: none; border: 3px solid var(--gold);
+}
+.save-qr-btn {
+  width: 100%; padding: 13px;
+  background: var(--success); color: white;
+  border: none; border-radius: 10px;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.save-qr-btn:hover { opacity: 0.9; }
+.current-qr { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--gray-light); }
+.current-qr h4 { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+.current-qr img { max-width: 160px; border-radius: 8px; border: 2px solid var(--gray-light); }
+
+/* ── NOTIF ── */
+.notif {
+  position: fixed; top: 20px; right: 20px;
+  background: white; border-radius: 10px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; font-weight: 500; z-index: 99999;
+  transform: translateX(120%); transition: transform 0.3s ease;
+  max-width: 320px; border-left: 4px solid var(--success);
+}
+.notif.show { transform: translateX(0); }
+.notif.error { border-color: var(--error); }
+
+/* ── PRINT / CV STYLES ── */
+@media print {
+  body > *:not(#cvPrintFrame) { display: none !important; }
+  #cvPrintFrame { display: block !important; position: fixed; inset: 0; width: 100%; height: 100%; border: none; }
+}
+#cvPrintFrame { display: none; }
+
+.empty-state {
+  text-align: center; padding: 48px;
+  color: var(--gray);
+}
+.empty-state .es-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-logo">🔐</div>
+    <h2>Admin Dashboard</h2>
+    <p>Arroyo CV/Resume Builder — Secure Access</p>
+    <input type="text" id="loginUser" placeholder="Username" autocomplete="off">
+    <input type="password" id="loginPass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Incorrect username or password.</div>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp">
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Arroyo <span>CV</span><br>Builder</h1>
+      <p>Admin Panel</p>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showPage('dashPage', this)">
+        <span class="ni-icon">📊</span> Dashboard
+      </button>
+      <button class="nav-item" onclick="showPage('submissionsPage', this)">
+        <span class="ni-icon">📋</span> Submissions
+      </button>
+      <button class="nav-item" onclick="showPage('gcashPage', this)">
+        <span class="ni-icon">💳</span> GCash QR
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="admin-page active" id="dashPage">
+      <div class="topbar">
+        <div>
+          <h2>Dashboard</h2>
+          <p>Overview of all CV requests</p>
+        </div>
+      </div>
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="sc-label">Total Submissions</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub">All time</div></div>
+        <div class="stat-card"><div class="sc-label">New / Pending</div><div class="sc-value" id="statNew">—</div><div class="sc-sub">Awaiting action</div></div>
+        <div class="stat-card"><div class="sc-label">In Progress</div><div class="sc-value" id="statProc">—</div><div class="sc-sub">Being processed</div></div>
+        <div class="stat-card"><div class="sc-label">Completed</div><div class="sc-value" id="statDone">—</div><div class="sc-sub">Sent to client</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Recent Submissions</h3>
+        </div>
+        <div id="recentTableBody"></div>
+      </div>
+    </div>
+
+    <!-- SUBMISSIONS -->
+    <div class="admin-page" id="submissionsPage">
+      <div class="topbar">
+        <div>
+          <h2>All Submissions</h2>
+          <p>View, process, and generate CVs</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search by name..." oninput="renderSubmissions()">
+          <span class="badge-count" id="totalBadge">0</span>
+        </div>
+      </div>
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Position</th>
+              <th>Edu Level</th>
+              <th>Template Pref</th>
+              <th>Date Submitted</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="submissionsTableBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state hidden">
+          <div class="es-icon">📭</div>
+          <p>No submissions yet. Share the form link to start receiving requests.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- GCASH PAGE -->
+    <div class="admin-page" id="gcashPage">
+      <div class="topbar">
+        <div>
+          <h2>GCash QR Code</h2>
+          <p>Upload your GCash QR — it will show on the customer confirmation page after submission</p>
+        </div>
+      </div>
+      <div class="gcash-admin">
+        <h3>📲 Upload GCash QR Code</h3>
+        <p>Once uploaded, customers will see this QR code after they submit their form and contact you.</p>
+        <div class="qr-upload-area" onclick="document.getElementById('qrInput').click()">
+          <div class="qu-icon">🖼️</div>
+          <strong>Click to select QR image</strong>
+          <p>JPG or PNG, clear and scannable</p>
+          <img id="qrPreview" alt="QR Preview">
+        </div>
+        <input type="file" id="qrInput" accept="image/*" style="display:none" onchange="previewQR(this)">
+        <button class="save-qr-btn" onclick="saveQR()">💾 Save & Publish QR Code</button>
+        <div class="current-qr" id="currentQRSection" style="display:none">
+          <h4>Currently Published QR Code:</h4>
+          <img id="currentQRImg" alt="Current GCash QR">
+          <p style="font-size:11px;color:var(--gray);margin-top:8px;">This is what customers see on the confirmation page.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /layout -->
+</div><!-- /adminApp -->
+
+<!-- VIEW MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Submission Details</h3>
+      <button class="modal-close" onclick="closeModal('viewModal')">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- TEMPLATE MODAL -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Generate CV — Select Template</h3>
+      <button class="modal-close" onclick="closeModal('templateModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--gray);margin-bottom:16px;">Choose a template to generate the CV. It will open in a new tab — print or save as PDF from there.</p>
+      <div class="template-grid">
+        <div class="tmpl-card selected" onclick="selectTemplate(1, this)">
+          <div class="tc-num">🖤</div>
+          <div class="tc-name">Template 1</div>
+          <div class="tc-desc">Dark sidebar, cyan accents</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(2, this)">
+          <div class="tc-num">🟠</div>
+          <div class="tc-name">Template 2</div>
+          <div class="tc-desc">Black & orange curves</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(3, this)">
+          <div class="tc-num">🟣</div>
+          <div class="tc-name">Template 3</div>
+          <div class="tc-desc">Gray & maroon classic</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(4, this)">
+          <div class="tc-num">🔵</div>
+          <div class="tc-name">Template 4</div>
+          <div class="tc-desc">Blue professional</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(5, this)">
+          <div class="tc-num">💎</div>
+          <div class="tc-name">Template 5</div>
+          <div class="tc-desc">Modern blue & white</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(6, this)">
+          <div class="tc-num">⭐</div>
+          <div class="tc-name">Template 6</div>
+          <div class="tc-desc">Dark navy & gold/yellow</div>
+        </div>
+        <div class="tmpl-card" onclick="selectTemplate(7, this)">
+          <div class="tc-num">🏛️</div>
+          <div class="tc-name">Template 7</div>
+          <div class="tc-desc">Classic navy, clean columns</div>
+        </div>
+      </div>
+      <button class="generate-btn" onclick="generateCV()">🖨️ Generate & Open CV (Print / Save PDF)</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif">
+  <span id="notifIcon">✅</span>
+  <span id="notifMsg"></span>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
+const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'Arroyo2024!'; // Change this password!
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let submissions = [];
+let selectedTemplate = 1;
+let currentSubmission = null;
+let qrBase64 = '';
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('adminApp').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+function doLogout() {
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('adminApp').style.display = 'none';
+  document.getElementById('loginUser').value = '';
+  document.getElementById('loginPass').value = '';
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'submissionsPage') renderSubmissions();
+  if (id === 'gcashPage') loadCurrentQR();
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const json = await res.json();
+    submissions = json.record?.submissions || [];
+    renderDashboard();
+    renderSubmissions();
+  } catch (e) {
+    showNotif('Could not load data. Check your JSONBin config.', true);
+  }
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const total = submissions.length;
+  const newCount = submissions.filter(s => s.status === 'New').length;
+  const proc = submissions.filter(s => s.status === 'Processing').length;
+  const done = submissions.filter(s => s.status === 'Done').length;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statNew').textContent = newCount;
+  document.getElementById('statProc').textContent = proc;
+  document.getElementById('statDone').textContent = done;
+
+  const recent = [...submissions].reverse().slice(0, 5);
+  const body = document.getElementById('recentTableBody');
+
+  if (recent.length === 0) {
+    body.innerHTML = '<div class="empty-state"><div class="es-icon">📭</div><p>No submissions yet.</p></div>';
+    return;
+  }
+
+  body.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Name</th>
+          <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Position</th>
+          <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Date</th>
+          <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${recent.map(s => `
+          <tr>
+            <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,0.5);">${s.personal.firstName} ${s.personal.lastName}</td>
+            <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,0.5);">${s.personal.jobTitle || '—'}</td>
+            <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,0.5);">${formatDate(s.submittedAt)}</td>
+            <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,0.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ── SUBMISSIONS TABLE ─────────────────────────────────────────────────────────
+function renderSubmissions() {
+  const q = document.getElementById('searchInput')?.value.toLowerCase() || '';
+  const filtered = submissions.filter(s =>
+    `${s.personal.firstName} ${s.personal.lastName}`.toLowerCase().includes(q) ||
+    (s.personal.jobTitle || '').toLowerCase().includes(q)
+  );
+  document.getElementById('totalBadge').textContent = submissions.length;
+
+  const tbody = document.getElementById('submissionsTableBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('emptyState').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('emptyState').classList.add('hidden');
+
+  tbody.innerHTML = [...filtered].reverse().map((s, i) => {
+    const realIdx = submissions.indexOf(s);
+    const eduMap = { highschool: '🏫 High School', college: '🎓 College', fresh: '✨ Fresh Grad' };
+    return `<tr>
+      <td>${filtered.length - i}</td>
+      <td><strong>${s.personal.firstName} ${s.personal.lastName}</strong><br><span style="font-size:11px;color:var(--gray)">${s.personal.email}</span></td>
+      <td>${s.personal.jobTitle || '—'}</td>
+      <td>${eduMap[s.eduLevel] || s.eduLevel}</td>
+      <td>${s.templatePref ? 'Template ' + s.templatePref : '—'}</td>
+      <td>${formatDate(s.submittedAt)}</td>
+      <td><span class="status-badge status-${s.status}">${s.status}</span></td>
+      <td>
+        <button class="action-btn btn-view" onclick="viewSubmission(${realIdx})">👁 View</button>
+        <button class="action-btn btn-template" onclick="openTemplateModal(${realIdx})">🖨 CV</button>
+        <button class="action-btn btn-status" onclick="cycleStatus(${realIdx})">⟳ Status</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── STATUS CYCLE ──────────────────────────────────────────────────────────────
+async function cycleStatus(idx) {
+  const order = ['New', 'Processing', 'Done'];
+  const current = submissions[idx].status;
+  const next = order[(order.indexOf(current) + 1) % order.length];
+  submissions[idx].status = next;
+  await saveSubmissions();
+  renderSubmissions();
+  renderDashboard();
+  showNotif(`Status updated to "${next}"`);
+}
+
+async function saveSubmissions() {
+  const existing = await getFullRecord();
+  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+    body: JSON.stringify({ ...existing, submissions })
+  });
+}
+
+async function getFullRecord() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const json = await res.json();
+    return json.record || {};
+  } catch { return {}; }
+}
+
+// ── VIEW MODAL ────────────────────────────────────────────────────────────────
+function viewSubmission(idx) {
+  currentSubmission = idx;
+  const s = submissions[idx];
+  const p = s.personal;
+  const eduMap = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' };
+
+  let html = '';
+
+  // Photo
+  if (p.photo) {
+    html += `<div style="text-align:center;margin-bottom:20px;"><img src="${p.photo}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);"></div>`;
+  }
+
+  html += group('Personal Info', [
+    ['Full Name', `${p.firstName} ${p.lastName}`],
+    ['Job Title', p.jobTitle], ['Email', p.email], ['Phone', p.phone],
+    ['Address', p.address], ['DOB', p.dob], ['Civil Status', p.civilStatus],
+    ['Gender', p.gender], ['Nationality', p.nationality],
+    ['Social', p.social], ['LinkedIn', p.linkedin]
+  ]);
+
+  html += group('Education Level', [['Type', eduMap[s.eduLevel] || s.eduLevel]]);
+
+  html += `<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary || '—'}</p></div>`;
+
+  if (s.education?.length) {
+    html += `<div class="info-group"><h4>Education</h4>`;
+    s.education.forEach((e, i) => {
+      html += `<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;">
+        <strong style="font-size:13px">${e.school}</strong><br>
+        <span style="font-size:12px;color:var(--gray)">${e.degree} · ${e.yearStart}–${e.yearGrad} ${e.honors ? '· ' + e.honors : ''}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  if (s.workExperience?.length && s.eduLevel !== 'fresh') {
+    html += `<div class="info-group"><h4>Work Experience</h4>`;
+    s.workExperience.forEach(w => {
+      if (!w.company) return;
+      html += `<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;">
+        <strong style="font-size:13px">${w.company}</strong> — <span style="font-size:13px">${w.position}</span><br>
+        <span style="font-size:12px;color:var(--gray)">${w.dateStart} – ${w.dateEnd} · ${w.location}</span><br>
+        <span style="font-size:12px;line-height:1.6">${w.responsibilities}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  html += group('Skills & Languages', [
+    ['Skills', s.skills?.join(', ') || '—'],
+    ['Languages', s.languages?.join(', ') || '—']
+  ]);
+
+  if (s.references?.length) {
+    html += `<div class="info-group"><h4>References</h4>`;
+    s.references.forEach(r => {
+      if (!r.name) return;
+      html += `<div style="margin-bottom:8px;font-size:13px;"><strong>${r.name}</strong> · ${r.position} · ${r.company} · ${r.contact}</div>`;
+    });
+    html += '</div>';
+  }
+
+  html += group('Additional', [
+    ['Hobbies', s.hobbies || '—'], ['Awards', s.awards || '—'],
+    ['Template Pref', s.templatePref ? 'Template ' + s.templatePref : 'No preference'],
+    ['Special Notes', s.specialInstructions || '—']
+  ]);
+
+  document.getElementById('modalTitle').textContent = `${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel] || ''}`;
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('viewModal').classList.add('open');
+}
+
+function group(title, rows) {
+  return `<div class="info-group"><h4>${title}</h4>${rows.map(([l, v]) => v ? `<div class="info-row"><span class="info-label">${l}</span><span class="info-value">${v}</span></div>` : '').join('')}</div>`;
+}
+
+// ── TEMPLATE MODAL ────────────────────────────────────────────────────────────
+function openTemplateModal(idx) {
+  currentSubmission = idx;
+  const s = submissions[idx];
+  // Pre-select if they had a preference
+  if (s.templatePref) selectTemplate(parseInt(s.templatePref));
+  document.getElementById('templateModal').classList.add('open');
+}
+
+function selectTemplate(num, el) {
+  selectedTemplate = num;
+  document.querySelectorAll('.tmpl-card').forEach(c => c.classList.remove('selected'));
+  if (el) { el.classList.add('selected'); }
+  else {
+    const cards = document.querySelectorAll('.tmpl-card');
+    if (cards[num - 1]) cards[num - 1].classList.add('selected');
+  }
+}
+
+// ── CV GENERATION ─────────────────────────────────────────────────────────────
+async function generateCV() {
+  const s = submissions[currentSubmission];
+  const btn = document.querySelector('.generate-btn');
+  btn.disabled = true;
+  btn.textContent = '✨ Writing AI Profile Paragraph...';
+
+  let aiProfile = s.profileSummary || '';
+
+  try {
+    const eduLevel = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' }[s.eduLevel] || s.eduLevel;
+    const p = s.personal;
+
+    const workSummary = (s.eduLevel !== 'fresh' && s.workExperience?.length)
+      ? s.workExperience.filter(w => w.company).map(w => `${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | ')
+      : 'No work experience (fresh graduate)';
+
+    const eduSummary = (s.education || []).filter(e => e.school).map(e => `${e.degree || 'Graduate'} from ${e.school} (${e.yearGrad || ''})`).join(', ');
+
+    const prompt = `You are a professional CV writer. Write a compelling, impressive, and personalized Profile/About Me paragraph for a CV. It should be 3–5 sentences, written in third person, professional tone, and highlight the candidate's strengths based on their background. Do NOT use generic filler phrases. Make it specific and impressive.
+
+Candidate Details:
+- Name: ${p.firstName} ${p.lastName}
+- Applying for: ${p.jobTitle || 'a professional role'}
+- Education Level: ${eduLevel}
+- Education: ${eduSummary || 'Not specified'}
+- Work Experience: ${workSummary}
+- Skills: ${(s.skills || []).join(', ') || 'Not specified'}
+- Languages: ${(s.languages || []).join(', ') || 'Not specified'}
+- Nationality: ${p.nationality || 'Filipino'}
+- Hobbies/Interests: ${s.hobbies || 'Not specified'}
+- Awards: ${s.awards || 'None'}
+- Their own summary draft: ${s.profileSummary || 'None provided'}
+
+Write ONLY the profile paragraph. No labels, no intro text, just the paragraph itself.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const generated = data.content?.[0]?.text?.trim();
+    if (generated) aiProfile = generated;
+
+  } catch (e) {
+    // Fall back to original summary if API fails
+    console.error('AI profile generation failed:', e);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🖨️ Generate & Open CV (Print / Save PDF)';
+
+  // Build CV with AI-generated profile
+  const sWithAI = { ...submissions[currentSubmission], profileSummary: aiProfile };
+  const html = buildCVHtml(sWithAI, selectedTemplate);
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  closeModal('templateModal');
+}
+
+function buildCVHtml(s, tmpl) {
+  const p = s.personal;
+  const fullName = `${p.firstName} ${p.lastName}`.toUpperCase();
+  const isFresh = s.eduLevel === 'fresh';
+
+  const photoHtml = p.photo ? `<img src="${p.photo}" alt="Photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : '';
+  const photoSquare = p.photo ? `<img src="${p.photo}" alt="Photo" style="width:100%;height:100%;object-fit:cover;">` : '';
+
+  const skillsHtml = (s.skills || []).map(sk => `<li>${sk}</li>`).join('');
+  const langsHtml = (s.languages || []).map(l => `<li>${l}</li>`).join('');
+
+  const eduHtml = (s.education || []).filter(e => e.school).map(e => `
+    <div class="edu-item">
+      <div class="item-title">${e.school}</div>
+      <div class="item-sub">${e.degree || ''} ${e.yearStart && e.yearGrad ? `· ${e.yearStart}–${e.yearGrad}` : (e.yearGrad || '')}</div>
+      ${e.honors ? `<div class="item-sub">${e.honors}</div>` : ''}
+    </div>`).join('');
+
+  const workHtml = (!isFresh && s.workExperience?.length) ? s.workExperience.filter(w => w.company).map(w => `
+    <div class="work-item">
+      <div class="item-title">${w.company}</div>
+      <div class="item-pos">${w.position}</div>
+      <div class="item-sub">${w.dateStart} – ${w.dateEnd}${w.location ? ' · ' + w.location : ''}</div>
+      ${w.responsibilities ? `<p class="item-desc">${w.responsibilities}</p>` : ''}
+    </div>`).join('') : '';
+
+  const refsHtml = (s.references || []).filter(r => r.name).map(r => `
+    <div class="ref-item">
+      <div class="ref-name">${r.name}</div>
+      <div class="ref-pos">${r.position}${r.company ? ' · ' + r.company : ''}</div>
+      ${r.contact ? `<div class="ref-contact">${r.contact}</div>` : ''}
+    </div>`).join('');
+
+  const printBtn = `<div class="no-print" style="position:fixed;top:20px;right:20px;z-index:999;display:flex;gap:10px;">
+    <button onclick="window.print()" style="background:#1a2744;color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">🖨 Print / Save PDF</button>
+    <button onclick="window.close()" style="background:#e5e7eb;color:#374151;border:none;padding:10px 16px;border-radius:8px;font-size:14px;cursor:pointer;">✕ Close</button>
+  </div>`;
+
+  if (tmpl === 1) return cvTemplate1(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 2) return cvTemplate2(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 3) return cvTemplate3(s, p, fullName, photoSquare, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 4) return cvTemplate4(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 5) return cvTemplate5(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 6) return cvTemplate6(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  if (tmpl === 7) return cvTemplate7(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+  return cvTemplate1(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 1 – Dark sidebar, cyan/black
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate1(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;display:flex;min-height:100vh;background:#e8e8e8;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .sidebar{width:270px;background:#1a1a2e;flex-shrink:0;padding:0;color:white;display:flex;flex-direction:column;}
+    .photo-wrap{width:120px;height:120px;border-radius:50%;border:4px solid #00d4ff;margin:30px auto 16px;overflow:hidden;background:#2a2a4e;display:flex;align-items:center;justify-content:center;}
+    .name-block{text-align:center;padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.1);}
+    .name-block h1{font-size:18px;font-weight:700;letter-spacing:1px;line-height:1.3;}
+    .name-block p{color:#00d4ff;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+    .side-section{padding:18px 22px;}
+    .side-section h3{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#00d4ff;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(0,212,255,0.3);}
+    .contact-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:11.5px;color:rgba(255,255,255,0.8);line-height:1.4;}
+    .contact-icon{width:14px;flex-shrink:0;margin-top:1px;color:#00d4ff;}
+    .side-section ul{list-style:none;}
+    .side-section ul li{font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;padding-left:10px;position:relative;}
+    .side-section ul li::before{content:'▸';color:#00d4ff;position:absolute;left:0;}
+    .ref-item{margin-bottom:12px;}
+    .ref-name{font-size:12px;font-weight:600;color:#00d4ff;}
+    .ref-pos,.ref-contact{font-size:11px;color:rgba(255,255,255,0.65);}
+    .main{flex:1;background:white;padding:36px 36px 36px 32px;}
+    .section{margin-bottom:28px;}
+    .section-title{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a1a2e;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid #00d4ff;display:flex;align-items:center;gap:8px;}
+    .section-title::before{content:'';width:6px;height:6px;background:#00d4ff;border-radius:50%;flex-shrink:0;}
+    .about-text{font-size:13px;line-height:1.8;color:#444;}
+    .edu-item,.work-item{margin-bottom:14px;}
+    .item-title{font-size:14px;font-weight:700;color:#1a1a2e;}
+    .item-pos{font-size:13px;font-weight:600;color:#333;}
+    .item-sub{font-size:11.5px;color:#00d4ff;font-weight:600;margin-top:2px;}
+    .item-desc{font-size:12.5px;color:#555;margin-top:6px;line-height:1.7;}
+  </style></head><body>
+  ${printBtn}
+  <div class="sidebar">
+    <div class="photo-wrap">${photoHtml}</div>
+    <div class="name-block">
+      <h1>${p.firstName}<br>${p.lastName}</h1>
+      <p>${p.jobTitle || ''}</p>
+    </div>
+    <div class="side-section">
+      <h3>Contact Me</h3>
+      ${p.phone ? `<div class="contact-item"><span class="contact-icon">📱</span>${p.phone}</div>` : ''}
+      ${p.email ? `<div class="contact-item"><span class="contact-icon">✉️</span>${p.email}</div>` : ''}
+      ${p.address ? `<div class="contact-item"><span class="contact-icon">📍</span>${p.address}</div>` : ''}
+      ${p.social ? `<div class="contact-item"><span class="contact-icon">🌐</span>${p.social}</div>` : ''}
+    </div>
+    ${skillsHtml ? `<div class="side-section"><h3>Pro Skills</h3><ul>${skillsHtml}</ul></div>` : ''}
+    ${langsHtml ? `<div class="side-section"><h3>Languages</h3><ul>${langsHtml}</ul></div>` : ''}
+    ${refsHtml ? `<div class="side-section"><h3>Reference</h3>${refsHtml}</div>` : ''}
+  </div>
+  <div class="main">
+    ${s.profileSummary ? `<div class="section"><div class="section-title">About Me</div><p class="about-text">${s.profileSummary}</p></div>` : ''}
+    ${eduHtml ? `<div class="section"><div class="section-title">Education</div>${eduHtml}</div>` : ''}
+    ${!isFresh && workHtml ? `<div class="section"><div class="section-title">Work Experience</div>${workHtml}</div>` : ''}
+    ${s.hobbies ? `<div class="section"><div class="section-title">Interests</div><p style="font-size:13px;color:#555;">${s.hobbies}</p></div>` : ''}
+    ${s.awards ? `<div class="section"><div class="section-title">Awards & Achievements</div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+  </div>
+  </body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 2 – Black & Orange
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate2(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#e8e8e8;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;display:flex;flex-direction:column;min-height:1123px;}
+    .header{background:#1a1a1a;padding:30px;display:flex;gap:24px;align-items:center;}
+    .header-photo{width:90px;height:90px;border-radius:50%;border:3px solid #f97316;overflow:hidden;background:#333;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .header-text h1{font-size:28px;font-weight:700;color:white;letter-spacing:1px;}
+    .header-text p{color:#f97316;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+    .body-wrap{display:flex;flex:1;}
+    .left{width:300px;background:#f5f5f5;padding:24px;flex-shrink:0;}
+    .right{flex:1;padding:24px;}
+    .section-head{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#f97316;background:#1a1a1a;padding:6px 12px;border-radius:4px;margin-bottom:12px;display:inline-block;}
+    .section{margin-bottom:22px;}
+    .contact-row{font-size:12px;color:#333;margin-bottom:7px;display:flex;gap:8px;align-items:flex-start;}
+    .item-title{font-size:14px;font-weight:700;color:#1a1a1a;}
+    .item-pos{font-size:13px;font-weight:600;color:#555;}
+    .item-sub{font-size:11px;color:#f97316;font-weight:700;margin:2px 0;}
+    .item-desc{font-size:12px;color:#555;line-height:1.7;margin-top:4px;}
+    .edu-item,.work-item{margin-bottom:14px;}
+    .skill-bar-wrap{margin-bottom:8px;}
+    .skill-label{font-size:11.5px;color:#333;margin-bottom:3px;}
+    .skill-bar{height:5px;background:#ddd;border-radius:3px;}
+    .skill-fill{height:5px;background:#f97316;border-radius:3px;width:80%;}
+    .ref-item{margin-bottom:10px;}
+    .ref-name{font-size:12.5px;font-weight:700;color:#f97316;}
+    .ref-pos,.ref-contact{font-size:11px;color:#555;}
+    .about-text{font-size:13px;line-height:1.8;color:#444;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="header">
+      <div class="header-photo">${photoHtml}</div>
+      <div class="header-text">
+        <h1>${p.firstName} ${p.lastName}</h1>
+        <p>${p.jobTitle || ''}</p>
+      </div>
+    </div>
+    <div class="body-wrap">
+      <div class="left">
+        <div class="section">
+          <div class="section-head">Contact</div>
+          ${p.phone ? `<div class="contact-row">📱 ${p.phone}</div>` : ''}
+          ${p.email ? `<div class="contact-row">✉️ ${p.email}</div>` : ''}
+          ${p.address ? `<div class="contact-row">📍 ${p.address}</div>` : ''}
+          ${p.social ? `<div class="contact-row">🌐 ${p.social}</div>` : ''}
+        </div>
+        ${skillsHtml ? `<div class="section"><div class="section-head">Skills</div><ul style="list-style:none;">${(s.skills||[]).map(sk=>`<li style="font-size:12px;color:#333;margin-bottom:6px;padding-left:10px;position:relative;"><span style="position:absolute;left:0;color:#f97316;">▸</span>${sk}</li>`).join('')}</ul></div>` : ''}
+        ${langsHtml ? `<div class="section"><div class="section-head">Languages</div><ul style="list-style:none;">${(s.languages||[]).map(l=>`<li style="font-size:12px;color:#333;margin-bottom:6px;">${l}</li>`).join('')}</ul></div>` : ''}
+        ${refsHtml ? `<div class="section"><div class="section-head">References</div>${refsHtml}</div>` : ''}
+        ${s.hobbies ? `<div class="section"><div class="section-head">Hobbies</div><p style="font-size:12px;color:#555;">${s.hobbies}</p></div>` : ''}
+      </div>
+      <div class="right">
+        ${s.profileSummary ? `<div class="section"><div class="section-head">Profile</div><p class="about-text">${s.profileSummary}</p></div>` : ''}
+        ${eduHtml ? `<div class="section"><div class="section-head">Education</div>${eduHtml}</div>` : ''}
+        ${!isFresh && workHtml ? `<div class="section"><div class="section-head">Experience</div>${workHtml}</div>` : ''}
+        ${s.awards ? `<div class="section"><div class="section-head">Awards</div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+      </div>
+    </div>
+  </div></body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 3 – Gray & Maroon
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate3(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#e0e0e0;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;min-height:1123px;}
+    .top-header{background:#4a4a4a;display:flex;align-items:center;padding:0;}
+    .photo-wrap{width:130px;height:130px;background:#3a3a3a;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;border-right:4px solid #8b1a4a;}
+    .header-text{padding:20px 28px;flex:1;}
+    .header-text h1{font-size:32px;font-weight:700;color:white;letter-spacing:2px;}
+    .header-text p{color:#ccc;font-size:12px;margin-top:4px;letter-spacing:1px;}
+    .contact-bar{background:#8b1a4a;padding:12px 20px;display:flex;gap:30px;flex-wrap:wrap;}
+    .contact-bar-item{color:white;font-size:11.5px;display:flex;gap:6px;align-items:center;}
+    .body{display:flex;flex:1;}
+    .left{width:260px;background:#f0f0f0;padding:22px;flex-shrink:0;}
+    .right{flex:1;background:#4a4a4a;padding:22px;}
+    .left-section{margin-bottom:22px;}
+    .left-head{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8b1a4a;margin-bottom:12px;}
+    .skill-bar-row{margin-bottom:7px;}
+    .skill-name{font-size:11.5px;color:#333;margin-bottom:3px;}
+    .bar-bg{height:4px;background:#ddd;border-radius:2px;}
+    .bar-fill{height:4px;background:#8b1a4a;border-radius:2px;width:80%;}
+    .right-section{margin-bottom:22px;}
+    .right-head{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#8b1a4a;margin-bottom:12px;}
+    .item-title{font-size:13px;font-weight:700;color:white;}
+    .item-pos{font-size:12.5px;font-weight:600;color:#ccc;}
+    .item-sub{font-size:11px;color:#8b1a4a;font-weight:600;margin:2px 0;}
+    .item-desc{font-size:12px;color:#bbb;line-height:1.7;margin-top:4px;}
+    .edu-item,.work-item{margin-bottom:14px;}
+    .about-text{font-size:12.5px;line-height:1.8;color:#ddd;}
+    .lang-item{font-size:12px;color:#555;margin-bottom:5px;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="top-header">
+      <div class="photo-wrap">${photoHtml}</div>
+      <div class="header-text">
+        <h1>${p.firstName} ${p.lastName}</h1>
+        <p>${p.jobTitle || ''}</p>
+      </div>
+    </div>
+    <div class="contact-bar">
+      ${p.phone ? `<div class="contact-bar-item">📱 ${p.phone}</div>` : ''}
+      ${p.email ? `<div class="contact-bar-item">✉️ ${p.email}</div>` : ''}
+      ${p.address ? `<div class="contact-bar-item">📍 ${p.address}</div>` : ''}
+    </div>
+    <div class="body">
+      <div class="left">
+        ${s.profileSummary ? `<div class="left-section"><div class="left-head">About Me</div><p style="font-size:12px;line-height:1.7;color:#444;">${s.profileSummary}</p></div>` : ''}
+        ${skillsHtml ? `<div class="left-section"><div class="left-head">Pro Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-bar-row"><div class="skill-name">${sk}</div><div class="bar-bg"><div class="bar-fill"></div></div></div>`).join('')}</div>` : ''}
+        ${langsHtml ? `<div class="left-section"><div class="left-head">Language</div>${(s.languages||[]).map(l=>`<div class="lang-item">${l}</div>`).join('')}</div>` : ''}
+        ${s.hobbies ? `<div class="left-section"><div class="left-head">Interests</div><p style="font-size:12px;color:#555;">${s.hobbies}</p></div>` : ''}
+      </div>
+      <div class="right">
+        ${eduHtml ? `<div class="right-section"><div class="right-head">Education</div>${eduHtml}</div>` : ''}
+        ${!isFresh && workHtml ? `<div class="right-section"><div class="right-head">Experience</div>${workHtml}</div>` : ''}
+        ${refsHtml ? `<div class="right-section"><div class="right-head">References</div><div style="color:#ccc;font-size:12px;">${refsHtml}</div></div>` : ''}
+        ${s.awards ? `<div class="right-section"><div class="right-head">Awards</div><p style="font-size:12.5px;color:#ddd;">${s.awards}</p></div>` : ''}
+      </div>
+    </div>
+  </div></body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 4 – Blue Professional with Photo Circle
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate4(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#dde6f0;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;display:flex;min-height:1123px;}
+    .left{width:240px;background:#1565c0;padding:24px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;}
+    .photo-circle{width:100px;height:100px;border-radius:50%;border:4px solid white;overflow:hidden;background:#1976d2;margin-bottom:16px;display:flex;align-items:center;justify-content:center;}
+    .left-name{color:white;font-size:16px;font-weight:700;text-align:center;margin-bottom:4px;}
+    .left-title{color:rgba(255,255,255,0.7);font-size:11px;text-align:center;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;}
+    .left-section{width:100%;margin-bottom:20px;}
+    .left-head{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#90caf9;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:4px;}
+    .contact-row{display:flex;align-items:flex-start;gap:8px;font-size:11.5px;color:rgba(255,255,255,0.85);margin-bottom:8px;line-height:1.4;}
+    .skill-li{font-size:12px;color:rgba(255,255,255,0.85);margin-bottom:5px;display:flex;align-items:center;gap:6px;}
+    .skill-li::before{content:'•';color:#90caf9;}
+    .ref-name{color:#90caf9;font-size:12px;font-weight:700;}
+    .ref-sub{color:rgba(255,255,255,0.65);font-size:11px;}
+    .right{flex:1;padding:30px;}
+    .section{margin-bottom:24px;}
+    .section-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+    .section-icon{width:28px;height:28px;border-radius:50%;background:#1565c0;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .section-title{font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1565c0;}
+    .section-line{flex:1;height:2px;background:#e3f2fd;}
+    .about-text{font-size:13px;line-height:1.8;color:#444;}
+    .item-title{font-size:14px;font-weight:700;color:#1565c0;}
+    .item-pos{font-size:13px;font-weight:600;color:#333;}
+    .item-sub{font-size:11.5px;color:#1976d2;margin:2px 0;}
+    .item-desc{font-size:12.5px;color:#555;line-height:1.7;margin-top:4px;}
+    .edu-item,.work-item{margin-bottom:14px;padding-left:12px;border-left:3px solid #e3f2fd;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="left">
+      <div class="photo-circle">${photoHtml}</div>
+      <div class="left-name">${p.firstName} ${p.lastName}</div>
+      <div class="left-title">${p.jobTitle || ''}</div>
+      <div class="left-section">
+        <div class="left-head">Contact</div>
+        ${p.email ? `<div class="contact-row">✉️ ${p.email}</div>` : ''}
+        ${p.phone ? `<div class="contact-row">📱 ${p.phone}</div>` : ''}
+        ${p.address ? `<div class="contact-row">📍 ${p.address}</div>` : ''}
+        ${p.social ? `<div class="contact-row">🌐 ${p.social}</div>` : ''}
+      </div>
+      ${skillsHtml ? `<div class="left-section"><div class="left-head">Qualifications / Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>` : ''}
+      ${langsHtml ? `<div class="left-section"><div class="left-head">Languages</div>${(s.languages||[]).map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>` : ''}
+      ${refsHtml ? `<div class="left-section"><div class="left-head">References</div>${(s.references||[]).filter(r=>r.name).map(r=>`<div style="margin-bottom:10px;"><div class="ref-name">${r.name}</div><div class="ref-sub">${r.position}${r.company?' · '+r.company:''}</div><div class="ref-sub">${r.contact||''}</div></div>`).join('')}</div>` : ''}
+    </div>
+    <div class="right">
+      ${s.profileSummary ? `<div class="section"><div class="section-head"><div class="section-icon">👤</div><div class="section-title">Profile</div><div class="section-line"></div></div><p class="about-text">${s.profileSummary}</p></div>` : ''}
+      ${!isFresh && workHtml ? `<div class="section"><div class="section-head"><div class="section-icon">💼</div><div class="section-title">Experience</div><div class="section-line"></div></div>${workHtml}</div>` : ''}
+      ${eduHtml ? `<div class="section"><div class="section-head"><div class="section-icon">🎓</div><div class="section-title">Education</div><div class="section-line"></div></div>${eduHtml}</div>` : ''}
+      ${s.hobbies ? `<div class="section"><div class="section-head"><div class="section-icon">⭐</div><div class="section-title">Skills</div><div class="section-line"></div></div><p style="font-size:13px;color:#555;">${s.hobbies}</p></div>` : ''}
+      ${s.awards ? `<div class="section"><div class="section-head"><div class="section-icon">🏆</div><div class="section-title">Awards</div><div class="section-line"></div></div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+    </div>
+  </div></body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 5 – Modern Blue & White with Photo Top-Right
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate5(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#e0e8f0;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;min-height:1123px;display:flex;flex-direction:column;}
+    .top{background:#1976d2;padding:28px 36px;display:flex;justify-content:space-between;align-items:center;}
+    .top-text h1{font-size:30px;font-weight:700;color:white;letter-spacing:1px;}
+    .top-text p{color:rgba(255,255,255,0.8);font-size:13px;margin-top:4px;}
+    .top-photo{width:100px;height:100px;border-radius:0;overflow:hidden;background:#1565c0;border:3px solid white;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .about-banner{background:#e3f2fd;padding:16px 36px;}
+    .about-banner p{font-size:13px;line-height:1.7;color:#333;}
+    .body{display:flex;flex:1;}
+    .left{flex:1;padding:24px 30px;}
+    .right{width:240px;background:#f5f5f5;padding:24px;flex-shrink:0;}
+    .section{margin-bottom:24px;}
+    .left-head{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#1976d2;border-bottom:2px solid #1976d2;padding-bottom:6px;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+    .left-head::before{content:'';width:5px;height:5px;background:#1976d2;border-radius:50%;}
+    .right-head{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#333;margin-bottom:10px;}
+    .item-title{font-size:14px;font-weight:700;color:#1a1a1a;}
+    .item-pos{font-size:13px;color:#444;font-weight:600;}
+    .item-sub{font-size:11px;color:#1976d2;font-weight:700;margin:3px 0;}
+    .item-desc{font-size:12.5px;color:#555;line-height:1.7;margin-top:5px;}
+    .edu-item,.work-item{margin-bottom:16px;padding-left:14px;border-left:3px solid #bbdefb;}
+    .contact-row{font-size:12px;color:#333;margin-bottom:7px;display:flex;gap:6px;align-items:flex-start;}
+    .skill-tag{display:inline-block;background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin:3px 2px;}
+    .ref-name{font-weight:700;font-size:12px;color:#1565c0;}
+    .ref-sub{font-size:11px;color:#555;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="top">
+      <div class="top-text">
+        <h1>${p.firstName} ${p.lastName}</h1>
+        <p>${p.jobTitle || ''}</p>
+      </div>
+      <div class="top-photo">${photoHtml}</div>
+    </div>
+    ${s.profileSummary ? `<div class="about-banner"><p>${s.profileSummary}</p></div>` : ''}
+    <div class="body">
+      <div class="left">
+        ${!isFresh && workHtml ? `<div class="section"><div class="left-head">Experience</div>${workHtml}</div>` : ''}
+        ${eduHtml ? `<div class="section"><div class="left-head">Education</div>${eduHtml}</div>` : ''}
+        ${skillsHtml ? `<div class="section"><div class="left-head">Skills</div><div>${(s.skills||[]).map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>` : ''}
+        ${s.awards ? `<div class="section"><div class="left-head">Awards & Achievements</div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+      </div>
+      <div class="right">
+        <div class="section">
+          <div class="right-head">Contact Me</div>
+          ${p.phone ? `<div class="contact-row">📱 ${p.phone}</div>` : ''}
+          ${p.email ? `<div class="contact-row">✉️ ${p.email}</div>` : ''}
+          ${p.address ? `<div class="contact-row">📍 ${p.address}</div>` : ''}
+          ${p.social ? `<div class="contact-row">🌐 ${p.social}</div>` : ''}
+        </div>
+        ${langsHtml ? `<div class="section"><div class="right-head">Language</div>${(s.languages||[]).map(l=>`<div style="font-size:12px;color:#333;margin-bottom:5px;">${l}</div>`).join('')}</div>` : ''}
+        ${refsHtml ? `<div class="section"><div class="right-head">Reference</div>${(s.references||[]).filter(r=>r.name).map(r=>`<div style="margin-bottom:10px;"><div class="ref-name">${r.name}</div><div class="ref-sub">${r.position}${r.company?' · '+r.company:''}</div><div class="ref-sub">${r.contact||''}</div></div>`).join('')}</div>` : ''}
+        ${s.hobbies ? `<div class="section"><div class="right-head">Interests</div><p style="font-size:12px;color:#555;">${s.hobbies}</p></div>` : ''}
+      </div>
+    </div>
+  </div></body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 6 – Dark Navy & Gold/Yellow
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate6(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#e0e0e0;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;display:flex;min-height:1123px;}
+    .left{width:260px;background:#1a2744;flex-shrink:0;padding:0;display:flex;flex-direction:column;}
+    .photo-top{background:#f5a623;height:180px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:0;}
+    .photo-circle{width:110px;height:110px;border-radius:50%;border:4px solid #1a2744;overflow:hidden;background:#2a3a5e;margin-bottom:-55px;z-index:1;position:relative;display:flex;align-items:center;justify-content:center;}
+    .name-area{padding:65px 20px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.1);}
+    .name-area h1{color:white;font-size:20px;font-weight:700;}
+    .name-area p{color:#f5a623;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;}
+    .left-section{padding:16px 20px;}
+    .left-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#f5a623;margin-bottom:12px;}
+    .left-head .lh-icon{width:24px;height:24px;background:rgba(245,166,35,0.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;}
+    .contact-item{margin-bottom:9px;}
+    .contact-label{font-size:10px;color:rgba(255,255,255,0.45);font-weight:600;letter-spacing:0.5px;text-transform:uppercase;}
+    .contact-val{font-size:12px;color:rgba(255,255,255,0.85);}
+    .skill-li{font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+    .skill-li::before{content:'▸';color:#f5a623;}
+    .right{flex:1;padding:32px;}
+    .section{margin-bottom:26px;}
+    .right-head{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a2744;margin-bottom:14px;padding-bottom:8px;border-bottom:3px solid #f5a623;display:flex;align-items:center;gap:8px;}
+    .right-head .rh-icon{font-size:18px;}
+    .about-text{font-size:13px;line-height:1.8;color:#333;text-align:justify;}
+    .item-title{font-size:14px;font-weight:700;color:#1a2744;}
+    .item-pos{font-size:13px;color:#555;font-weight:600;}
+    .item-sub{font-size:11px;color:#f5a623;font-weight:700;margin:3px 0;}
+    .item-desc{font-size:12.5px;color:#555;line-height:1.7;margin-top:5px;}
+    .edu-item,.work-item{margin-bottom:14px;padding-left:14px;border-left:3px solid #fde68a;}
+    .ref-name{font-weight:700;font-size:12.5px;color:#1a2744;}
+    .ref-pos,.ref-contact{font-size:11px;color:#777;}
+    .interest-item{font-size:12.5px;color:#555;display:flex;align-items:center;gap:6px;}
+    .interest-item::before{content:'❖';color:#f5a623;font-size:9px;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="left">
+      <div class="photo-top">
+        <div class="photo-circle">${photoHtml}</div>
+      </div>
+      <div class="name-area">
+        <h1>${p.firstName}<br>${p.lastName}</h1>
+        <p>${p.jobTitle || ''}</p>
+      </div>
+      <div class="left-section">
+        <div class="left-head"><div class="lh-icon">📞</div> Contact</div>
+        ${p.email ? `<div class="contact-item"><div class="contact-label">Email</div><div class="contact-val">${p.email}</div></div>` : ''}
+        ${p.phone ? `<div class="contact-item"><div class="contact-label">Phone</div><div class="contact-val">${p.phone}</div></div>` : ''}
+        ${p.social ? `<div class="contact-item"><div class="contact-label">Website / Social</div><div class="contact-val">${p.social}</div></div>` : ''}
+      </div>
+      ${skillsHtml ? `<div class="left-section"><div class="left-head"><div class="lh-icon">⚡</div> Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>` : ''}
+      ${langsHtml ? `<div class="left-section"><div class="left-head"><div class="lh-icon">🌐</div> Languages</div>${(s.languages||[]).map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>` : ''}
+      ${s.hobbies ? `<div class="left-section"><div class="left-head"><div class="lh-icon">❤️</div> Interests</div>${s.hobbies.split(',').map(h=>`<div class="interest-item">${h.trim()}</div>`).join('')}</div>` : ''}
+    </div>
+    <div class="right">
+      ${s.profileSummary ? `<div class="section"><div class="right-head"><span class="rh-icon">👤</span> Profile</div><p class="about-text">${s.profileSummary}</p></div>` : ''}
+      ${!isFresh && workHtml ? `<div class="section"><div class="right-head"><span class="rh-icon">💼</span> Experience</div>${workHtml}</div>` : ''}
+      ${eduHtml ? `<div class="section"><div class="right-head"><span class="rh-icon">🎓</span> Education</div>${eduHtml}</div>` : ''}
+      ${refsHtml ? `<div class="section"><div class="right-head"><span class="rh-icon">🤝</span> References</div>${refsHtml}</div>` : ''}
+      ${s.awards ? `<div class="section"><div class="right-head"><span class="rh-icon">🏆</span> Awards</div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+    </div>
+  </div></body></html>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPLATE 7 – Classic Navy, Clean Two-Column
+// ─────────────────────────────────────────────────────────────────────────────
+function cvTemplate7(s, p, fullName, photoHtml, eduHtml, workHtml, skillsHtml, langsHtml, refsHtml, isFresh, printBtn) {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${fullName}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Inter',sans-serif;background:#ddd;}
+    @media print{body{background:white;}.no-print{display:none!important;}@page{margin:0;size:A4;}}
+    .page{background:white;max-width:794px;margin:auto;min-height:1123px;display:flex;flex-direction:column;}
+    .header{background:#1a2744;padding:28px 36px;display:flex;gap:24px;align-items:center;}
+    .photo-circle{width:90px;height:90px;border-radius:50%;border:3px solid rgba(255,255,255,0.3);overflow:hidden;background:#243358;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .header-text{flex:1;}
+    .header-text h1{font-size:30px;font-weight:700;color:white;letter-spacing:2px;}
+    .header-text p{color:rgba(255,255,255,0.6);font-size:12px;font-weight:400;letter-spacing:1.5px;text-transform:uppercase;margin-top:4px;}
+    .body{display:flex;flex:1;}
+    .left{width:250px;background:#f3f4f8;padding:24px;flex-shrink:0;}
+    .right{flex:1;padding:28px;}
+    .left-head{font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#1a2744;border-bottom:2px solid #1a2744;padding-bottom:6px;margin-bottom:12px;}
+    .left-section{margin-bottom:20px;}
+    .contact-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#333;margin-bottom:8px;line-height:1.4;}
+    .skill-li{font-size:12px;color:#333;margin-bottom:5px;padding-left:12px;position:relative;}
+    .skill-li::before{content:'•';position:absolute;left:0;color:#1a2744;}
+    .lang-li{font-size:12px;color:#333;margin-bottom:5px;}
+    .ref-name{font-size:12.5px;font-weight:700;color:#1a2744;}
+    .ref-pos,.ref-contact{font-size:11px;color:#666;}
+    .ref-item{margin-bottom:12px;}
+    .right-head{font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#1a2744;border-bottom:2px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+    .right-head-icon{width:22px;height:22px;border-radius:50%;background:#1a2744;display:flex;align-items:center;justify-content:center;font-size:12px;}
+    .right-section{margin-bottom:24px;}
+    .about-text{font-size:13px;line-height:1.8;color:#333;}
+    .item-title{font-size:14px;font-weight:700;color:#1a2744;}
+    .item-pos{font-size:13px;font-weight:500;color:#333;font-style:italic;}
+    .item-sub{font-size:11.5px;color:#1a2744;font-weight:600;margin:3px 0;opacity:0.6;}
+    .item-desc{font-size:12.5px;color:#555;line-height:1.7;margin-top:5px;}
+    .edu-item,.work-item{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f3f4f8;}
+    .edu-item:last-child,.work-item:last-child{border-bottom:none;}
+    .gpa{font-size:11.5px;color:#666;}
+  </style></head><body>
+  ${printBtn}
+  <div class="page">
+    <div class="header">
+      <div class="photo-circle">${photoHtml}</div>
+      <div class="header-text">
+        <h1>${p.firstName} ${p.lastName}</h1>
+        <p>${p.jobTitle || ''}</p>
+      </div>
+    </div>
+    <div class="body">
+      <div class="left">
+        <div class="left-section">
+          <div class="left-head">Contact</div>
+          ${p.phone ? `<div class="contact-row">📱 ${p.phone}</div>` : ''}
+          ${p.email ? `<div class="contact-row">✉️ ${p.email}</div>` : ''}
+          ${p.address ? `<div class="contact-row">📍 ${p.address}</div>` : ''}
+          ${p.social ? `<div class="contact-row">🌐 ${p.social}</div>` : ''}
+        </div>
+        ${skillsHtml ? `<div class="left-section"><div class="left-head">Skills</div>${(s.skills||[]).map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>` : ''}
+        ${langsHtml ? `<div class="left-section"><div class="left-head">Languages</div>${(s.languages||[]).map(l=>`<div class="lang-li">• ${l}</div>`).join('')}</div>` : ''}
+        ${s.hobbies ? `<div class="left-section"><div class="left-head">Interests</div><p style="font-size:12px;color:#555;">${s.hobbies}</p></div>` : ''}
+        ${refsHtml ? `<div class="left-section"><div class="left-head">Reference</div>${(s.references||[]).filter(r=>r.name).map(r=>`<div class="ref-item"><div class="ref-name">${r.name}</div><div class="ref-pos">${r.position}${r.company?' · '+r.company:''}</div><div class="ref-contact">${r.contact||''}</div></div>`).join('')}</div>` : ''}
+      </div>
+      <div class="right">
+        ${s.profileSummary ? `<div class="right-section"><div class="right-head"><div class="right-head-icon">👤</div> Profile</div><p class="about-text">${s.profileSummary}</p></div>` : ''}
+        ${!isFresh && workHtml ? `<div class="right-section"><div class="right-head"><div class="right-head-icon">💼</div> Work Experience</div>${workHtml}</div>` : ''}
+        ${eduHtml ? `<div class="right-section"><div class="right-head"><div class="right-head-icon">🎓</div> Education</div>${eduHtml}</div>` : ''}
+        ${s.awards ? `<div class="right-section"><div class="right-head"><div class="right-head-icon">🏆</div> Awards & Achievements</div><p style="font-size:13px;color:#555;">${s.awards}</p></div>` : ''}
+      </div>
+    </div>
+  </div></body></html>`;
+}
+
+// ── GCASH QR ──────────────────────────────────────────────────────────────────
+function previewQR(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    qrBase64 = e.target.result;
+    const img = document.getElementById('qrPreview');
+    img.src = qrBase64;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveQR() {
+  if (!qrBase64) { showNotif('Please select a QR image first.', true); return; }
+  try {
+    const existing = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify({ ...existing, gcashQR: qrBase64 })
+    });
+    showNotif('GCash QR saved! Customers will now see it on the confirmation page.');
+    loadCurrentQR();
+  } catch { showNotif('Failed to save. Check your connection.', true); }
+}
+
+async function loadCurrentQR() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const json = await res.json();
+    const qr = json.record?.gcashQR;
+    const section = document.getElementById('currentQRSection');
+    if (qr) {
+      document.getElementById('currentQRImg').src = qr;
+      section.style.display = 'block';
+    } else { section.style.display = 'none'; }
+  } catch {}
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-PH', { year:'numeric', month:'short', day:'numeric' });
+}
+function showNotif(msg, isError = false) {
+  const n = document.getElementById('notif');
+  document.getElementById('notifMsg').textContent = msg;
+  document.getElementById('notifIcon').textContent = isError ? '❌' : '✅';
+  n.className = 'notif' + (isError ? ' error' : '') + ' show';
+  setTimeout(() => { n.className = 'notif' + (isError ? ' error' : ''); }, 4000);
+}
+window.onclick = e => {
+  if (e.target.classList.contains('modal-overlay')) {
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+  }
+};
+</script>
+</body>
+</html>

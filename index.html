@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arroyo CV/Resume Builder</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231a2744'/><rect x='25' y='20' width='50' height='60' rx='4' fill='white'/><rect x='32' y='32' width='20' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='40' width='36' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='48' width='36' height='3' rx='1.5' fill='%23c8a84b'/><rect x='32' y='56' width='28' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='64' width='32' height='3' rx='1.5' fill='%231a2744'/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1a2744;
+    --navy-light: #243358;
+    --gold: #c8a84b;
+    --gold-light: #e2c97e;
+    --white: #ffffff;
+    --off-white: #f7f8fc;
+    --gray: #6b7280;
+    --gray-light: #e5e7eb;
+    --success: #10b981;
+    --error: #ef4444;
+    --text: #1f2937;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--off-white);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    padding: 28px 24px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    border: 2px solid rgba(200,168,75,0.2);
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: -30px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    border: 2px solid rgba(200,168,75,0.1);
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(200,168,75,0.15);
+    color: var(--gold-light);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(200,168,75,0.3);
+    margin-bottom: 12px;
+  }
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 5vw, 38px);
+    color: var(--white);
+    letter-spacing: -0.5px;
+  }
+  header h1 span { color: var(--gold); }
+  header p {
+    color: rgba(255,255,255,0.65);
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 300;
+  }
+
+  /* STEPS */
+  .steps-bar {
+    background: var(--white);
+    border-bottom: 1px solid var(--gray-light);
+    padding: 14px 24px;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--gray);
+  }
+  .step.active { color: var(--navy); }
+  .step.done { color: var(--success); }
+  .step-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--gray-light);
+    color: var(--gray);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step.active .step-num { background: var(--navy); color: white; }
+  .step.done .step-num { background: var(--success); color: white; }
+  .step-line {
+    width: 40px; height: 2px;
+    background: var(--gray-light);
+    margin: 0 6px;
+  }
+  .step-line.done { background: var(--success); }
+
+  /* MAIN */
+  main {
+    max-width: 760px;
+    margin: 32px auto;
+    padding: 0 16px 60px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* FORM CARD */
+  .card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(26,39,68,0.08);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .card-header {
+    background: linear-gradient(90deg, var(--navy) 0%, var(--navy-light) 100%);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-icon {
+    width: 36px; height: 36px;
+    background: rgba(200,168,75,0.2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .card-header h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--white);
+  }
+  .card-header p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    margin-top: 2px;
+  }
+  .card-body { padding: 24px; }
+
+  /* FORM FIELDS */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .field-row.full { grid-template-columns: 1fr; }
+  .field-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+  @media (max-width: 540px) {
+    .field-row, .field-row.triple { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy);
+    letter-spacing: 0.3px;
+  }
+  .field label .req { color: var(--gold); margin-left: 2px; }
+  .field input, .field select, .field textarea {
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-size: 13.5px;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    background: var(--white);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(26,39,68,0.08);
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+  .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+
+  .field-hint { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  /* EXPERIENCE ENTRY */
+  .exp-entry {
+    border: 1.5px solid var(--gray-light);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+    position: relative;
+    background: var(--off-white);
+  }
+  .exp-entry-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .remove-btn {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: none;
+    border: 1.5px solid #fca5a5;
+    color: var(--error);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .remove-btn:hover { background: #fef2f2; }
+
+  .add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1.5px dashed var(--navy);
+    color: var(--navy);
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    justify-content: center;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+  .add-btn:hover { background: rgba(26,39,68,0.04); }
+
+  /* SUBMIT BTN */
+  .submit-btn {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: opacity 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+  .submit-btn:active { transform: translateY(0); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 6px 0 18px;
+  }
+  .section-divider span {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--gray);
+    white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--gray-light);
+  }
+
+  /* EDUCATION TYPE SELECTOR */
+  .edu-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 0;
+  }
+  @media (max-width: 480px) { .edu-selector { grid-template-columns: 1fr; } }
+  .edu-option {
+    border: 2px solid var(--gray-light);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .edu-option:hover { border-color: var(--navy); }
+  .edu-option.selected { border-color: var(--navy); background: rgba(26,39,68,0.04); }
+  .edu-option input[type=radio] { display: none; }
+  .edu-option .edu-icon { font-size: 26px; margin-bottom: 6px; }
+  .edu-option .edu-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  .edu-option .edu-sub {
+    font-size: 10.5px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  .edu-option.selected .edu-label { color: var(--navy); }
+
+  /* CONFIRMATION PAGE */
+  .confirm-card {
+    background: var(--white);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(26,39,68,0.08);
+    padding: 40px 32px;
+    text-align: center;
+  }
+  .confirm-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px;
+    margin: 0 auto 20px;
+  }
+  .confirm-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--navy);
+    margin-bottom: 10px;
+  }
+  .confirm-card > p {
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 28px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .contact-box {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-light) 100%);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .contact-box h3 {
+    color: var(--gold);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .contact-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .contact-item .ci-icon {
+    width: 36px; height: 36px;
+    background: rgba(200,168,75,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .contact-item .ci-label { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .contact-item .ci-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .gcash-section { margin-top: 24px; }
+  .gcash-section h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-bottom: 14px;
+  }
+  .gcash-qr-box {
+    border: 2px dashed var(--gray-light);
+    border-radius: 12px;
+    padding: 30px;
+    background: var(--off-white);
+  }
+  .gcash-qr-box img {
+    max-width: 220px;
+    width: 100%;
+    border-radius: 8px;
+    display: block;
+    margin: 0 auto;
+  }
+  .gcash-placeholder {
+    color: var(--gray);
+    font-size: 13px;
+    text-align: center;
+    padding: 20px;
+  }
+  .gcash-placeholder .gp-icon { font-size: 40px; margin-bottom: 8px; }
+
+  .new-submission-btn {
+    margin-top: 20px;
+    background: none;
+    border: 1.5px solid var(--gray-light);
+    color: var(--gray);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .new-submission-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+  /* NOTIFICATION */
+  .notif {
+    position: fixed;
+    top: 20px; right: 20px;
+    background: var(--white);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 9999;
+    transform: translateX(120%);
+    transition: transform 0.3s ease;
+    max-width: 320px;
+    border-left: 4px solid var(--success);
+  }
+  .notif.show { transform: translateX(0); }
+  .notif.error { border-color: var(--error); }
+
+  /* SPINNER */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* PHOTO UPLOAD */
+  .photo-upload-area {
+    border: 2px dashed var(--gray-light);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .photo-upload-area:hover { border-color: var(--navy); background: rgba(26,39,68,0.02); }
+  .photo-upload-area .pu-icon { font-size: 32px; margin-bottom: 6px; }
+  .photo-upload-area p { font-size: 12px; color: var(--gray); }
+  .photo-upload-area strong { font-size: 13px; color: var(--navy); }
+  #photoPreview {
+    max-width: 120px;
+    max-height: 120px;
+    border-radius: 8px;
+    margin: 10px auto 0;
+    display: none;
+    object-fit: cover;
+  }
+
+  .hidden { display: none !important; }
+
+  /* SKILLS TAGS */
+  .tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .tag {
+    background: rgba(26,39,68,0.08);
+    color: var(--navy);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tag-remove {
+    cursor: pointer;
+    color: var(--gray);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .tag-remove:hover { color: var(--error); }
+  .tag-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .tag-input-row input {
+    flex: 1;
+    border: 1.5px solid var(--gray-light);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+  .tag-input-row input:focus { border-color: var(--navy); }
+  .tag-add-btn {
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--gray);
+    margin-top: 24px;
+    padding: 0 16px;
+    line-height: 1.6;
+  }
+  .footer-note strong { color: var(--navy); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-badge">Professional CV Service</div>
+  <h1>Arroyo <span>CV</span>/Resume Builder</h1>
+  <p>Fill out the form below — we'll craft your professional resume for you</p>
+</header>
+
+<div class="steps-bar" id="stepsBar">
+  <div class="step active" id="step1">
+    <div class="step-num">1</div>
+    <span>Your Info</span>
+  </div>
+  <div class="step-line" id="line1"></div>
+  <div class="step" id="step2">
+    <div class="step-num">2</div>
+    <span>Submitted</span>
+  </div>
+  <div class="step-line" id="line2"></div>
+  <div class="step" id="step3">
+    <div class="step-num">3</div>
+    <span>Payment</span>
+  </div>
+</div>
+
+<main>
+
+  <!-- PAGE 1: FORM -->
+  <div class="page active" id="formPage">
+
+    <!-- EDUCATION TYPE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎓</div>
+        <div>
+          <h2>Education Level</h2>
+          <p>This determines which sections appear on your form</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="edu-selector">
+          <label class="edu-option selected" id="eduOpt1">
+            <input type="radio" name="eduLevel" value="highschool" checked onchange="handleEduChange()">
+            <div class="edu-icon">🏫</div>
+            <div class="edu-label">High School</div>
+            <div class="edu-sub">Graduate</div>
+          </label>
+          <label class="edu-option" id="eduOpt2">
+            <input type="radio" name="eduLevel" value="college" onchange="handleEduChange()">
+            <div class="edu-icon">🎓</div>
+            <div class="edu-label">College</div>
+            <div class="edu-sub">Graduate</div>
+          </label>
+          <label class="edu-option" id="eduOpt3">
+            <input type="radio" name="eduLevel" value="fresh" onchange="handleEduChange()">
+            <div class="edu-icon">✨</div>
+            <div class="edu-label">Fresh</div>
+            <div class="edu-sub">Graduate</div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSONAL INFO -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div>
+          <h2>Personal Information</h2>
+          <p>Basic details that appear at the top of your CV</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- PHOTO UPLOAD -->
+        <div class="field-row full" style="margin-bottom:20px;">
+          <div class="field">
+            <label>Profile Photo <span style="color:var(--gray);font-weight:400">(optional)</span></label>
+            <div class="photo-upload-area" onclick="document.getElementById('photoInput').click()">
+              <div class="pu-icon">📷</div>
+              <strong>Click to upload photo</strong>
+              <p>JPG, PNG accepted</p>
+              <img id="photoPreview" alt="Preview">
+            </div>
+            <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>First Name <span class="req">*</span></label>
+            <input type="text" id="firstName" placeholder="Juan" required>
+          </div>
+          <div class="field">
+            <label>Last Name <span class="req">*</span></label>
+            <input type="text" id="lastName" placeholder="dela Cruz" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Job Title / Position Applying For <span class="req">*</span></label>
+            <input type="text" id="jobTitle" placeholder="e.g. Customer Service Representative">
+          </div>
+          <div class="field">
+            <label>Nationality</label>
+            <input type="text" id="nationality" placeholder="e.g. Filipino">
+          </div>
+        </div>
+        <div class="field-row triple">
+          <div class="field">
+            <label>Date of Birth</label>
+            <input type="date" id="dob">
+          </div>
+          <div class="field">
+            <label>Civil Status</label>
+            <select id="civilStatus">
+              <option value="">Select...</option>
+              <option>Single</option>
+              <option>Married</option>
+              <option>Widowed</option>
+              <option>Separated</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Gender</label>
+            <select id="gender">
+              <option value="">Select...</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>Home Address <span class="req">*</span></label>
+            <input type="text" id="address" placeholder="Street, Barangay, City, Province">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Phone Number <span class="req">*</span></label>
+            <input type="tel" id="phone" placeholder="09XX-XXX-XXXX">
+          </div>
+          <div class="field">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="email" placeholder="juan@email.com">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Facebook / Social Media</label>
+            <input type="text" id="social" placeholder="facebook.com/yourname">
+          </div>
+          <div class="field">
+            <label>LinkedIn (optional)</label>
+            <input type="text" id="linkedin" placeholder="linkedin.com/in/yourname">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABOUT ME -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📝</div>
+        <div>
+          <h2>About Me / Profile Summary</h2>
+          <p>A short paragraph about yourself</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row full">
+          <div class="field">
+            <label>Profile Summary <span class="req">*</span></label>
+            <textarea id="profileSummary" rows="4" placeholder="Write 2–4 sentences about your background, strengths, and career goals..."></textarea>
+            <span class="field-hint">Tip: Mention your years of experience, key strengths, and what you are looking for.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDUCATION -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📚</div>
+        <div>
+          <h2>Education Background</h2>
+          <p>Most recent first</p>
+        </div>
+      </div>
+      <div class="card-body" id="eduBody">
+        <div id="eduEntries"></div>
+        <button class="add-btn" onclick="addEduEntry()">＋ Add Education</button>
+      </div>
+    </div>
+
+    <!-- WORK EXPERIENCE (hidden for fresh grad) -->
+    <div class="card" id="workCard">
+      <div class="card-header">
+        <div class="card-icon">💼</div>
+        <div>
+          <h2>Work Experience</h2>
+          <p>Most recent first</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="workEntries"></div>
+        <button class="add-btn" onclick="addWorkEntry()">＋ Add Work Experience</button>
+      </div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">⚡</div>
+        <div>
+          <h2>Skills</h2>
+          <p>Professional and technical skills</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <label style="font-size:12px;font-weight:600;color:var(--navy);">Add Skills</label>
+        <div class="tag-input-row">
+          <input type="text" id="skillInput" placeholder="e.g. Microsoft Office, Communication..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('skill');}">
+          <button class="tag-add-btn" onclick="addTag('skill')">Add</button>
+        </div>
+        <div class="tags-container" id="skillTags"></div>
+        <span class="field-hint" style="margin-top:8px;display:block;">Press Enter or click Add after each skill</span>
+
+        <div style="margin-top:20px;">
+          <label style="font-size:12px;font-weight:600;color:var(--navy);">Languages</label>
+          <div class="tag-input-row">
+            <input type="text" id="langInput" placeholder="e.g. English, Filipino, Bisaya..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('lang');}">
+            <button class="tag-add-btn" onclick="addTag('lang')">Add</button>
+          </div>
+          <div class="tags-container" id="langTags"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REFERENCES -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🤝</div>
+        <div>
+          <h2>Character References</h2>
+          <p>People who can vouch for your character (not family)</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="refEntries"></div>
+        <button class="add-btn" onclick="addRefEntry()">＋ Add Reference</button>
+      </div>
+    </div>
+
+    <!-- ADDITIONAL -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">✏️</div>
+        <div>
+          <h2>Additional Information</h2>
+          <p>Optional extras</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row full">
+          <div class="field">
+            <label>Hobbies / Interests</label>
+            <input type="text" id="hobbies" placeholder="e.g. Reading, Basketball, Cooking">
+          </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>Awards / Achievements</label>
+            <textarea id="awards" rows="3" placeholder="Any recognition, honors, or achievements..."></textarea>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Preferred Template Style</label>
+            <select id="templatePref">
+              <option value="">No preference (admin will choose)</option>
+              <option value="1">Template 1 – Dark sidebar, cyan accents</option>
+              <option value="2">Template 2 – Black & orange</option>
+              <option value="3">Template 3 – Gray & maroon</option>
+              <option value="4">Template 4 – Blue professional</option>
+              <option value="5">Template 5 – Modern blue/white</option>
+              <option value="6">Template 6 – Dark navy & gold/yellow</option>
+              <option value="7">Template 7 – Classic navy, clean columns</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Any Special Instructions</label>
+            <input type="text" id="specialInstructions" placeholder="e.g. Add OJT experience, specific format...">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+      <span id="submitLabel">Submit My Information</span>
+      <span id="submitSpinner" class="spinner hidden"></span>
+    </button>
+
+    <p class="footer-note">
+      By submitting, you agree that your information will be used solely to create your CV.<br>
+      <strong>Contact: Reymar Arroyo</strong> · 09063964052 · areymar36@gmail.com
+    </p>
+  </div>
+
+  <!-- PAGE 2: CONFIRMATION -->
+  <div class="page" id="confirmPage">
+    <div class="confirm-card">
+      <div class="confirm-icon">✅</div>
+      <h2>Form Submitted!</h2>
+      <p>Thank you! Your information has been received. Please contact <strong>Reymar Arroyo</strong> to process your CV request and proceed with payment.</p>
+
+      <div class="contact-box">
+        <h3>📞 Contact Details</h3>
+        <div class="contact-item">
+          <div class="ci-icon">📱</div>
+          <div>
+            <div class="ci-label">Phone / Viber / WhatsApp</div>
+            <div class="ci-value">09063964052</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="ci-icon">✉️</div>
+          <div>
+            <div class="ci-label">Email Address</div>
+            <div class="ci-value">areymar36@gmail.com</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gcash-section">
+        <h3>💳 GCash Payment</h3>
+        <div class="gcash-qr-box" id="gcashBox">
+          <div class="gcash-placeholder" id="gcashPlaceholder">
+            <div class="gp-icon">📲</div>
+            <p>GCash QR code will be available after you contact Reymar to confirm your order.</p>
+          </div>
+          <img id="gcashQrImg" style="display:none;max-width:220px;width:100%;border-radius:8px;margin:0 auto;display:none;">
+        </div>
+        <p style="font-size:11.5px;color:var(--gray);margin-top:10px;">Send payment screenshot to the contact details above after paying.</p>
+      </div>
+
+      <button class="new-submission-btn" onclick="resetForm()">Submit Another Form</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- NOTIFICATION -->
+<div class="notif" id="notif">
+  <span id="notifIcon">✅</span>
+  <span id="notifMsg"></span>
+</div>
+
+<script>
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
+const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
+const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let skills = [];
+let languages = [];
+let eduCount = 0;
+let workCount = 0;
+let refCount = 0;
+let photoBase64 = '';
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.onload = () => {
+  addEduEntry();
+  addWorkEntry();
+  addRefEntry();
+  loadGcashQR();
+};
+
+// ─── EDUCATION TYPE ────────────────────────────────────────────────────────────
+function handleEduChange() {
+  const val = document.querySelector('input[name="eduLevel"]:checked').value;
+  document.querySelectorAll('.edu-option').forEach(el => el.classList.remove('selected'));
+  document.querySelector(`input[name="eduLevel"]:checked`).closest('.edu-option').classList.add('selected');
+
+  const workCard = document.getElementById('workCard');
+  if (val === 'fresh') {
+    workCard.classList.add('hidden');
+  } else {
+    workCard.classList.remove('hidden');
+  }
+}
+
+// ─── EDUCATION ENTRIES ─────────────────────────────────────────────────────────
+function addEduEntry() {
+  eduCount++;
+  const container = document.getElementById('eduEntries');
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `edu-${eduCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Education #${eduCount}</div>
+    ${eduCount > 1 ? `<button class="remove-btn" onclick="removeEntry('edu-${eduCount}')">✕ Remove</button>` : ''}
+    <div class="field-row full">
+      <div class="field">
+        <label>School / University Name <span class="req">*</span></label>
+        <input type="text" placeholder="e.g. University of the Philippines">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Degree / Course</label>
+        <input type="text" placeholder="e.g. Bachelor of Science in Nursing">
+      </div>
+      <div class="field">
+        <label>Year Graduated / Year Level</label>
+        <input type="text" placeholder="e.g. 2022 or 3rd Year">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Year Started</label>
+        <input type="text" placeholder="e.g. 2018">
+      </div>
+      <div class="field">
+        <label>Honors / Awards (if any)</label>
+        <input type="text" placeholder="e.g. Cum Laude, With Honors">
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+// ─── WORK ENTRIES ──────────────────────────────────────────────────────────────
+function addWorkEntry() {
+  workCount++;
+  const container = document.getElementById('workEntries');
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `work-${workCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Work Experience #${workCount}</div>
+    ${workCount > 1 ? `<button class="remove-btn" onclick="removeEntry('work-${workCount}')">✕ Remove</button>` : ''}
+    <div class="field-row">
+      <div class="field">
+        <label>Company / Employer Name <span class="req">*</span></label>
+        <input type="text" placeholder="e.g. SM Supermalls Inc.">
+      </div>
+      <div class="field">
+        <label>Job Position / Title <span class="req">*</span></label>
+        <input type="text" placeholder="e.g. Sales Associate">
+      </div>
+    </div>
+    <div class="field-row triple">
+      <div class="field">
+        <label>Date Started</label>
+        <input type="text" placeholder="e.g. June 2020">
+      </div>
+      <div class="field">
+        <label>Date Ended</label>
+        <input type="text" placeholder="e.g. March 2023 or Present">
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <input type="text" placeholder="e.g. Cebu City">
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>Key Responsibilities / Duties</label>
+        <textarea rows="3" placeholder="Describe your main tasks and achievements in this role..."></textarea>
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+// ─── REFERENCE ENTRIES ─────────────────────────────────────────────────────────
+function addRefEntry() {
+  refCount++;
+  const container = document.getElementById('refEntries');
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `ref-${refCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Reference #${refCount}</div>
+    ${refCount > 1 ? `<button class="remove-btn" onclick="removeEntry('ref-${refCount}')">✕ Remove</button>` : ''}
+    <div class="field-row">
+      <div class="field">
+        <label>Full Name</label>
+        <input type="text" placeholder="e.g. Maria Santos">
+      </div>
+      <div class="field">
+        <label>Position / Relationship</label>
+        <input type="text" placeholder="e.g. Former Supervisor">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Company / Organization</label>
+        <input type="text" placeholder="e.g. BDO Unibank">
+      </div>
+      <div class="field">
+        <label>Contact Number</label>
+        <input type="tel" placeholder="09XX-XXX-XXXX">
+      </div>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function removeEntry(id) {
+  document.getElementById(id)?.remove();
+}
+
+// ─── TAGS ─────────────────────────────────────────────────────────────────────
+function addTag(type) {
+  const input = document.getElementById(type === 'skill' ? 'skillInput' : 'langInput');
+  const container = document.getElementById(type === 'skill' ? 'skillTags' : 'langTags');
+  const arr = type === 'skill' ? skills : languages;
+  const val = input.value.trim();
+  if (!val || arr.includes(val)) { input.value = ''; return; }
+  arr.push(val);
+  const tag = document.createElement('div');
+  tag.className = 'tag';
+  tag.innerHTML = `${val} <span class="tag-remove" onclick="removeTag(this, '${type}', '${val}')">×</span>`;
+  container.appendChild(tag);
+  input.value = '';
+}
+function removeTag(el, type, val) {
+  const arr = type === 'skill' ? skills : languages;
+  const i = arr.indexOf(val);
+  if (i > -1) arr.splice(i, 1);
+  el.parentElement.remove();
+}
+
+// ─── PHOTO PREVIEW ─────────────────────────────────────────────────────────────
+function previewPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoBase64 = e.target.result;
+    const preview = document.getElementById('photoPreview');
+    preview.src = photoBase64;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ─── COLLECT FORM DATA ─────────────────────────────────────────────────────────
+function collectFormData() {
+  const eduLevel = document.querySelector('input[name="eduLevel"]:checked').value;
+
+  // Education
+  const eduData = [];
+  document.querySelectorAll('#eduEntries .exp-entry').forEach(entry => {
+    const inputs = entry.querySelectorAll('input');
+    eduData.push({
+      school: inputs[0]?.value || '',
+      degree: inputs[1]?.value || '',
+      yearGrad: inputs[2]?.value || '',
+      yearStart: inputs[3]?.value || '',
+      honors: inputs[4]?.value || ''
+    });
+  });
+
+  // Work
+  const workData = [];
+  if (eduLevel !== 'fresh') {
+    document.querySelectorAll('#workEntries .exp-entry').forEach(entry => {
+      const inputs = entry.querySelectorAll('input');
+      const textarea = entry.querySelector('textarea');
+      workData.push({
+        company: inputs[0]?.value || '',
+        position: inputs[1]?.value || '',
+        dateStart: inputs[2]?.value || '',
+        dateEnd: inputs[3]?.value || '',
+        location: inputs[4]?.value || '',
+        responsibilities: textarea?.value || ''
+      });
+    });
+  }
+
+  // References
+  const refData = [];
+  document.querySelectorAll('#refEntries .exp-entry').forEach(entry => {
+    const inputs = entry.querySelectorAll('input');
+    refData.push({
+      name: inputs[0]?.value || '',
+      position: inputs[1]?.value || '',
+      company: inputs[2]?.value || '',
+      contact: inputs[3]?.value || ''
+    });
+  });
+
+  return {
+    submittedAt: new Date().toISOString(),
+    status: 'New',
+    eduLevel,
+    personal: {
+      firstName: document.getElementById('firstName').value.trim(),
+      lastName: document.getElementById('lastName').value.trim(),
+      jobTitle: document.getElementById('jobTitle').value.trim(),
+      nationality: document.getElementById('nationality').value.trim(),
+      dob: document.getElementById('dob').value,
+      civilStatus: document.getElementById('civilStatus').value,
+      gender: document.getElementById('gender').value,
+      address: document.getElementById('address').value.trim(),
+      phone: document.getElementById('phone').value.trim(),
+      email: document.getElementById('email').value.trim(),
+      social: document.getElementById('social').value.trim(),
+      linkedin: document.getElementById('linkedin').value.trim(),
+      photo: photoBase64
+    },
+    profileSummary: document.getElementById('profileSummary').value.trim(),
+    education: eduData,
+    workExperience: workData,
+    skills,
+    languages,
+    references: refData,
+    hobbies: document.getElementById('hobbies').value.trim(),
+    awards: document.getElementById('awards').value.trim(),
+    templatePref: document.getElementById('templatePref').value,
+    specialInstructions: document.getElementById('specialInstructions').value.trim()
+  };
+}
+
+// ─── VALIDATE ─────────────────────────────────────────────────────────────────
+function validate(data) {
+  if (!data.personal.firstName) return 'Please enter your first name.';
+  if (!data.personal.lastName) return 'Please enter your last name.';
+  if (!data.personal.jobTitle) return 'Please enter the position you are applying for.';
+  if (!data.personal.phone) return 'Please enter your phone number.';
+  if (!data.personal.email) return 'Please enter your email address.';
+  if (!data.personal.address) return 'Please enter your address.';
+  if (!data.profileSummary) return 'Please write a short profile summary.';
+  if (!data.education[0]?.school) return 'Please enter at least one school/university.';
+  return null;
+}
+
+// ─── SUBMIT ───────────────────────────────────────────────────────────────────
+async function submitForm() {
+  const data = collectFormData();
+  const err = validate(data);
+  if (err) { showNotif(err, true); return; }
+
+  const btn = document.getElementById('submitBtn');
+  const label = document.getElementById('submitLabel');
+  const spinner = document.getElementById('submitSpinner');
+  btn.disabled = true;
+  label.textContent = 'Submitting...';
+  spinner.classList.remove('hidden');
+
+  try {
+    // Load existing submissions
+    let submissions = [];
+    try {
+      const getRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+      });
+      const json = await getRes.json();
+      submissions = json.record?.submissions || [];
+    } catch {}
+
+    submissions.push(data);
+
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY
+      },
+      body: JSON.stringify({ submissions })
+    });
+
+    // Update steps
+    document.getElementById('step1').className = 'step done';
+    document.getElementById('step1').querySelector('.step-num').textContent = '✓';
+    document.getElementById('line1').className = 'step-line done';
+    document.getElementById('step2').className = 'step active';
+
+    document.getElementById('formPage').classList.remove('active');
+    document.getElementById('confirmPage').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (e) {
+    showNotif('Submission failed. Please check your connection and try again.', true);
+    btn.disabled = false;
+    label.textContent = 'Submit My Information';
+    spinner.classList.add('hidden');
+  }
+}
+
+// ─── RESET ────────────────────────────────────────────────────────────────────
+function resetForm() {
+  location.reload();
+}
+
+// ─── LOAD GCASH QR ────────────────────────────────────────────────────────────
+async function loadGcashQR() {
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    const json = await res.json();
+    const qr = json.record?.gcashQR;
+    if (qr) {
+      const img = document.getElementById('gcashQrImg');
+      img.src = qr;
+      img.style.display = 'block';
+      document.getElementById('gcashPlaceholder').style.display = 'none';
+    }
+  } catch {}
+}
+
+// ─── NOTIF ────────────────────────────────────────────────────────────────────
+function showNotif(msg, isError = false) {
+  const notif = document.getElementById('notif');
+  document.getElementById('notifMsg').textContent = msg;
+  document.getElementById('notifIcon').textContent = isError ? '❌' : '✅';
+  notif.className = 'notif' + (isError ? ' error' : '') + ' show';
+  setTimeout(() => { notif.className = 'notif' + (isError ? ' error' : ''); }, 4000);
+}
+</script>
+</body>
+</html>
