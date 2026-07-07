@@ -661,14 +661,21 @@
         <!-- PHOTO UPLOAD -->
         <div class="field-row full" style="margin-bottom:20px;">
           <div class="field">
-            <label>Profile Photo <span style="color:var(--gray);font-weight:400">(optional)</span></label>
-            <div class="photo-upload-area" onclick="document.getElementById('photoInput').click()">
+            <label>Profile Photo <span class="req">*</span></label>
+            <div class="photo-upload-area" onclick="document.getElementById('photoInput').click()" id="photoUploadArea">
               <div class="pu-icon">📷</div>
-              <strong>Click to upload photo</strong>
+              <strong>Click to upload your photo</strong>
               <p>JPG, PNG accepted</p>
               <img id="photoPreview" alt="Preview">
             </div>
             <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="previewPhoto(this)">
+            <div style="margin-top:8px;background:linear-gradient(135deg,rgba(26,39,68,0.06),rgba(26,39,68,0.03));border:1.5px solid rgba(26,39,68,0.15);border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;">
+              <span style="font-size:18px;flex-shrink:0;">👔</span>
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:3px;">Photo Attire Requirement</div>
+                <div style="font-size:12px;color:var(--gray);line-height:1.6;">Please wear <strong style="color:var(--navy);">Casual or Formal attire</strong> in your photo. Avoid selfies, group photos, or photos with busy backgrounds. A plain or simple background is preferred for a professional look. 📸</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1161,6 +1168,9 @@ function previewPhoto(input) {
     const preview = document.getElementById('photoPreview');
     preview.src = photoBase64;
     preview.style.display = 'block';
+    // Remove required indicator once photo uploaded
+    const area = document.getElementById('photoUploadArea');
+    if(area) area.style.borderColor = 'var(--success)';
   };
   reader.readAsDataURL(file);
 }
@@ -1245,13 +1255,13 @@ function collectFormData() {
 
 // ─── VALIDATE ─────────────────────────────────────────────────────────────────
 function validate(data) {
+  if (!data.personal.photo) return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
   if (!data.personal.firstName) return 'Please enter your first name.';
   if (!data.personal.lastName) return 'Please enter your last name.';
   if (!data.personal.jobTitle) return 'Please enter the position you are applying for.';
   if (!data.personal.phone) return 'Please enter your phone number.';
   if (!data.personal.email) return 'Please enter your email address.';
   if (!data.personal.address) return 'Please enter your address.';
-
   if (!data.education[0]?.school) return 'Please enter at least one school/university.';
   return null;
 }
