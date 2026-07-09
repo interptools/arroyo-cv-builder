@@ -63,6 +63,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .status-New{background:#dbeafe;color:#1d4ed8;}
 .status-Processing{background:#fef3c7;color:#92400e;}
 .status-Done{background:#d1fae5;color:#065f46;}
+.status-Delivered{background:#f0fdf4;color:#166534;border:1px solid #86efac;}
 .action-btn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:none;margin-right:4px;transition:opacity .2s;}
 .btn-view{background:var(--navy);color:white;}
 .btn-template{background:var(--gold);color:var(--navy);}
@@ -108,6 +109,18 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .empty-state{text-align:center;padding:48px;color:var(--gray);}
 .empty-state .es-icon{font-size:48px;margin-bottom:12px;}
 .hidden{display:none!important;}
+.cl-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#1a2744;color:#e2c97e;border:1px solid #c8a84b;margin-left:6px;vertical-align:middle;}
+.stat-card.revenue .sc-value{color:#10b981;}
+.filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-light);background:white;color:var(--gray);transition:all .2s;}
+.filter-btn.active{background:var(--navy);color:var(--gold-light);border-color:var(--navy);}
+.notes-area{width:100%;padding:10px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-family:Inter,sans-serif;font-size:12px;resize:vertical;min-height:70px;outline:none;transition:border-color .2s;}
+.notes-area:focus{border-color:var(--navy);}
+.cl-info-box{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-top:4px;}
+.cl-info-box h5{font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.cl-info-row{display:flex;gap:8px;margin-bottom:5px;font-size:12px;}
+.cl-info-lbl{font-weight:600;color:#854d0e;min-width:110px;flex-shrink:0;}
+.cl-info-val{color:#1f2937;}
+.status-Delivered{background:#f0fdf4;color:#166534;border:1px solid #86efac;}
 
 /* TEMPLATE OVERLAY - Full Screen Preview */
 #templateOverlay{position:fixed;inset:0;background:#0f1422;z-index:9500;display:none;flex-direction:column;}
@@ -175,11 +188,10 @@ tr:hover td{background:rgba(247,248,252,.8);}
     <!-- DASHBOARD -->
     <div class="admin-page active" id="dashPage">
       <div class="topbar"><div><h2>Dashboard</h2><p>Overview of all CV requests</p></div></div>
-      <div class="stats-row">
-        <div class="stat-card"><div class="sc-label">Total</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub">All submissions</div></div>
-        <div class="stat-card"><div class="sc-label">New</div><div class="sc-value" id="statNew">—</div><div class="sc-sub">Awaiting action</div></div>
-        <div class="stat-card"><div class="sc-label">Processing</div><div class="sc-value" id="statProc">—</div><div class="sc-sub">In progress</div></div>
-        <div class="stat-card"><div class="sc-label">Done</div><div class="sc-value" id="statDone">—</div><div class="sc-sub">Completed</div></div>
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="sc-label">Total Orders</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"><span style="color:#1d4ed8" id="statNew">—</span> new &nbsp;·&nbsp; <span style="color:#92400e" id="statProc">—</span> in progress &nbsp;·&nbsp; <span style="color:#065f46" id="statDone">—</span> done</div></div>
+        <div class="stat-card revenue"><div class="sc-label">Total Revenue</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span id="statCLCount">0</span> cover letter orders · ₱75 each</div></div>
+        <div class="stat-card"><div class="sc-label">Cover Letters</div><div class="sc-value" id="statCLOnly">—</div><div class="sc-sub">Add-on requested</div></div>
       </div>
       <div class="table-card">
         <div class="table-header"><h3>Recent Submissions</h3></div>
@@ -196,9 +208,16 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <span class="badge-count" id="totalBadge">0</span>
         </div>
       </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('New',this)">🔵 New</button>
+        <button class="filter-btn" onclick="setFilter('Processing',this)">🟡 In Progress</button>
+        <button class="filter-btn" onclick="setFilter('Done',this)">🟢 Done</button>
+        <button class="filter-btn" onclick="setFilter('coverLetter',this)">📝 With Cover Letter</button>
+      </div>
       <div class="table-card">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Edu Level</th><th>Template Pref</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Template</th><th>Date</th><th>Status</th><th>Add-on</th><th>Actions</th></tr></thead>
           <tbody id="submissionsTableBody"></tbody>
         </table>
         <div id="emptyState" class="empty-state hidden"><div class="es-icon">📭</div><p>No submissions yet.</p></div>
@@ -429,10 +448,15 @@ async function getFullRecord(){
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
+  const clOrders=submissions.filter(s=>s.coverLetter?.requested);
+  const revenue=submissions.reduce((t,s)=>t+(s.coverLetter?.requested?100:25),0);
   document.getElementById('statTotal').textContent=submissions.length;
   document.getElementById('statNew').textContent=submissions.filter(s=>s.status==='New').length;
   document.getElementById('statProc').textContent=submissions.filter(s=>s.status==='Processing').length;
   document.getElementById('statDone').textContent=submissions.filter(s=>s.status==='Done').length;
+  document.getElementById('statRevenue').textContent='₱'+revenue.toLocaleString();
+  document.getElementById('statCLCount').textContent=clOrders.length;
+  document.getElementById('statCLOnly').textContent=clOrders.length;
   const recent=[...submissions].reverse().slice(0,5);
   const body=document.getElementById('recentTableBody');
   if(!recent.length){body.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>No submissions yet.</p></div>';return;}
@@ -442,7 +466,7 @@ function renderDashboard(){
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Date</th>
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
   </tr></thead><tbody>${recent.map(s=>`<tr>
-    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${s.personal.firstName} ${s.personal.lastName}</strong></td>
+    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${s.personal.firstName} ${s.personal.lastName}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${s.personal.jobTitle||'—'}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${formatDate(s.submittedAt)}</td>
     <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
@@ -450,35 +474,49 @@ function renderDashboard(){
 }
 
 // ── SUBMISSIONS ───────────────────────────────────────────────────────────────
+let currentFilter='all';
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderSubmissions();
+}
 function renderSubmissions(){
   const q=document.getElementById('searchInput')?.value.toLowerCase()||'';
-  const filtered=submissions.filter(s=>`${s.personal.firstName} ${s.personal.lastName}`.toLowerCase().includes(q)||(s.personal.jobTitle||'').toLowerCase().includes(q));
+  let filtered=submissions.filter(s=>{
+    const nameMatch=`${s.personal.firstName} ${s.personal.lastName}`.toLowerCase().includes(q)||(s.personal.jobTitle||'').toLowerCase().includes(q);
+    if(!nameMatch)return false;
+    if(currentFilter==='all')return true;
+    if(currentFilter==='coverLetter')return s.coverLetter?.requested;
+    return s.status===currentFilter;
+  });
   document.getElementById('totalBadge').textContent=submissions.length;
   const tbody=document.getElementById('submissionsTableBody');
   if(!filtered.length){tbody.innerHTML='';document.getElementById('emptyState').classList.remove('hidden');return;}
   document.getElementById('emptyState').classList.add('hidden');
-  const eduMap={highschool:'🏫 HS Grad',college:'🎓 College',fresh:'✨ Fresh Grad'};
   tbody.innerHTML=[...filtered].reverse().map((s,i)=>{
     const ri=submissions.indexOf(s);
+    const hasCL=s.coverLetter?.requested;
+    const total=hasCL?'₱100':'₱25';
     return`<tr>
       <td>${filtered.length-i}</td>
       <td><strong>${s.personal.firstName} ${s.personal.lastName}</strong><br><span style="font-size:11px;color:var(--gray)">${s.personal.email}</span></td>
       <td>${s.personal.jobTitle||'—'}</td>
-      <td>${eduMap[s.eduLevel]||s.eduLevel}</td>
-      <td>${s.templatePref?'Template '+s.templatePref:'—'}</td>
-      <td>${formatDate(s.submittedAt)}</td>
+      <td style="font-size:12px;">${s.templatePref?'T'+s.templatePref:'—'}</td>
+      <td style="font-size:12px;">${formatDate(s.submittedAt)}</td>
       <td><span class="status-badge status-${s.status}">${s.status}</span></td>
+      <td>${hasCL?'<span class="cl-badge">📝 +CL</span><br><span style="font-size:10px;color:#854d0e;font-weight:700">'+total+'</span>':'<span style="font-size:12px;color:var(--gray)">CV only<br>₱25</span>'}</td>
       <td>
         <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
         <button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>
         <button class="action-btn btn-status" onclick="cycleStatus(${ri})">⟳ Status</button>
-        <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})">🗑 Delete</button>
+        <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})">🗑</button>
       </td></tr>`;
   }).join('');
 }
 
 async function cycleStatus(idx){
-  const order=['New','Processing','Done'];
+  const order=['New','Processing','Done','Delivered'];
   submissions[idx].status=order[(order.indexOf(submissions[idx].status)+1)%order.length];
   const ex=await getFullRecord();
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
@@ -491,14 +529,70 @@ function viewSubmission(idx){
   const s=submissions[idx]; const p=s.personal;
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
   let html='';
-  if(p.photo) html+=`<div style="text-align:center;margin-bottom:20px;"><img src="${p.photo}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);"></div>`;
+  const hasCL=s.coverLetter?.requested;
+  const totalPrice=hasCL?'₱100 (CV ₱25 + Cover Letter ₱75)':'₱25 (CV only)';
+  if(p.photo) html+=`<div style="text-align:center;margin-bottom:20px;"><img src="${p.photo}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>`;
+  html+=`<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+    <span class="status-badge status-${s.status}">${s.status}</span>
+    ${hasCL?'<span class="cl-badge">📝 Cover Letter Add-on</span>':''}
+    <span style="font-size:12px;font-weight:700;color:#10b981;background:#f0fdf4;padding:3px 10px;border-radius:20px;border:1px solid #86efac;">${totalPrice}</span>
+  </div>
+  ${s.dataConsent?.agreed
+    ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:18px;flex-shrink:0;">✅</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:3px;">Data Privacy Agreement — Accepted</div>
+          <div style="font-size:11px;color:#15803d;line-height:1.6;">Customer agreed to the Data Privacy Terms at time of submission.<br>
+          <strong>Agreed at:</strong> ${new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})} (PHT)</div>
+        </div>
+      </div>`
+    : `<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#9a3412;">
+        ⚠️ No consent record — this submission was made before the Data Privacy Terms were added.
+      </div>`
+  }`;
   html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['DOB',p.dob],['Civil Status',p.civilStatus],['Gender',p.gender],['Nationality',p.nationality],['Social',p.social]]);
   html+=grp('Education Level',[['Type',eduMap[s.eduLevel]]]);
   html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary||'—'}</p></div>`;
   if(s.education?.length){html+=`<div class="info-group"><h4>Education</h4>`;s.education.forEach(e=>{if(e.school)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${e.school}</strong><br><span style="color:var(--gray)">${e.degree||''} · ${e.yearStart||''}–${e.yearGrad||''} ${e.honors?'· '+e.honors:''}</span></div>`;});html+='</div>';}
   if(s.eduLevel!=='fresh'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
-  html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Notes',s.specialInstructions||'—']]);
+  html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
+  // Cover letter details + generator
+  if(s.coverLetter?.requested){
+    html+=`<div class="info-group"><h4>📝 Cover Letter Add-on</h4>
+    <div class="cl-info-box">
+      <div class="cl-info-row"><span class="cl-info-lbl">Target Position:</span><span class="cl-info-val">${s.coverLetter.position||'—'}</span></div>
+      <div class="cl-info-row"><span class="cl-info-lbl">Target Company:</span><span class="cl-info-val">${s.coverLetter.company||'—'}</span></div>
+      <div class="cl-info-row"><span class="cl-info-lbl">Why this job:</span><span class="cl-info-val">${s.coverLetter.reason||'—'}</span></div>
+      <div class="cl-info-row"><span class="cl-info-lbl">Strengths:</span><span class="cl-info-val">${s.coverLetter.strengths||'—'}</span></div>
+      <div class="cl-info-row"><span class="cl-info-lbl">Tone / Style:</span><span class="cl-info-val">${s.coverLetter.tone||'—'}</span></div>
+    </div>
+    <div style="margin-top:12px;">
+      <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate Cover Letter</strong> — AI will write a full professional letter based on the details above. Edit if needed, then save or copy.</p>
+      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <button onclick="generateCoverLetter(${si})" id="genCLBtn" style="padding:9px 16px;background:linear-gradient(135deg,#1a2744,#243358);color:var(--gold-light);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
+          <span id="genCLLabel">✨ Generate Cover Letter</span>
+          <span id="genCLSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;"></span>
+        </button>
+        <button onclick="copyCoverLetter()" id="copyCLBtn" style="display:none;padding:9px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copy Text</button>
+      </div>
+      <textarea id="coverLetterDisplay" rows="14" placeholder="Cover letter will appear here after generating..." style="width:100%;font-size:12px;line-height:1.9;color:#1f2937;background:#fafafa;border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:Inter,sans-serif;resize:vertical;">${s.coverLetter.generated||''}</textarea>
+      <button onclick="saveCoverLetter(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Cover Letter</button>
+    </div>
+    </div>`;
+  }
+  // Admin notes
+  html+=`<div class="info-group"><h4>🗒️ Admin Notes</h4>
+    <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
+    <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
+  </div>`;
+  // Email customer button
+  html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📤 CV is Ready — Request Payment</button>
+      <button onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ CV Delivered</button>
+    </div>
+  </div>`;
   const si = submissions.indexOf(s);
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
@@ -735,7 +829,7 @@ html,body{height:100%;width:100%;}
 body{font-family:'Raleway',sans-serif;background:#ccc;}
 .page{display:flex;width:100%;min-height:100vh;background:white;}
 .L{width:32%;background:#12122a;flex-shrink:0;display:flex;flex-direction:column;}
-.photo-wrap{width:90px;height:90px;border-radius:50%;border:3px solid #00d4ff;margin:18px auto 8px;overflow:hidden;flex-shrink:0;}
+.photo-wrap{width:130px;height:130px;border-radius:50%;border:3px solid #00d4ff;margin:18px auto 10px;overflow:hidden;flex-shrink:0;}
 .name-area{text-align:center;padding:6px 12px 10px;border-bottom:1px solid rgba(255,255,255,.07);}
 .name-area h1{font-size:16px;font-weight:900;color:white;letter-spacing:1px;text-transform:uppercase;line-height:1.3;}
 .name-area .ttl{color:#00d4ff;font-size:8px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
@@ -803,7 +897,7 @@ html,body{height:100%;width:100%;}
 body{font-family:'Poppins',sans-serif;background:#ccc;}
 .page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
 .header{background:#1a1a1a;padding:16px 24px;display:flex;align-items:center;gap:18px;flex-shrink:0;}
-.photo-circle{width:75px;height:75px;border-radius:50%;border:3px solid #f97316;overflow:hidden;background:#333;flex-shrink:0;}
+.photo-circle{width:120px;height:120px;border-radius:50%;border:3px solid #f97316;overflow:hidden;background:#333;flex-shrink:0;}
 .header-text h1{font-size:20px;font-weight:800;color:white;letter-spacing:.5px;}
 .header-text .ttl{color:#f97316;font-size:9px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;margin-top:3px;}
 .body{display:flex;flex:1;}
@@ -871,7 +965,7 @@ html,body{height:100%;width:100%;}
 body{font-family:'Lato',sans-serif;background:#c8c8c8;}
 .page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
 .top{background:#4a4a4a;display:flex;align-items:stretch;flex-shrink:0;}
-.photo-box{width:100px;height:100px;overflow:hidden;background:#3a3a3a;flex-shrink:0;border-right:4px solid #8b1a4a;}
+.photo-box{width:140px;height:140px;overflow:hidden;background:#3a3a3a;flex-shrink:0;border-right:4px solid #8b1a4a;}
 .photo-box img,.photo-box div{width:100%;height:100%;object-fit:cover;}
 .top-text{padding:14px 20px;flex:1;display:flex;flex-direction:column;justify-content:center;}
 .top-text h1{font-size:22px;font-weight:900;color:white;letter-spacing:2px;text-transform:uppercase;}
@@ -943,7 +1037,7 @@ html,body{height:100%;width:100%;}
 body{font-family:'Open Sans',sans-serif;background:#cdd8e8;}
 .page{width:100%;min-height:100vh;background:white;display:flex;}
 .L{width:30%;background:#1565c0;flex-shrink:0;display:flex;flex-direction:column;align-items:center;padding:0;}
-.photo-circle{width:90px;height:90px;border-radius:50%;border:3px solid white;overflow:hidden;background:#1976d2;margin:20px auto 10px;}
+.photo-circle{width:130px;height:130px;border-radius:50%;border:3px solid white;overflow:hidden;background:#1976d2;margin:20px auto 12px;}
 .l-name{color:white;font-size:13px;font-weight:800;text-align:center;padding:0 10px;line-height:1.3;}
 .l-title{color:rgba(255,255,255,.65);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;text-align:center;margin-top:4px;padding:0 10px;}
 .l-div{width:80%;height:1px;background:rgba(255,255,255,.15);margin:10px auto;}
@@ -1010,7 +1104,7 @@ body{font-family:'Nunito',sans-serif;background:#cdd5e0;}
 .header{background:#1976d2;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
 .h-left h1{font-size:22px;font-weight:900;color:white;letter-spacing:.5px;}
 .h-left p{color:rgba(255,255,255,.7);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
-.h-photo{width:75px;height:75px;border-radius:4px;overflow:hidden;background:#1565c0;border:2px solid rgba(255,255,255,.3);flex-shrink:0;}
+.h-photo{width:120px;height:120px;border-radius:4px;overflow:hidden;background:#1565c0;border:2px solid rgba(255,255,255,.3);flex-shrink:0;}
 .h-photo img,.h-photo div{width:100%;height:100%;object-fit:cover;}
 .about-bar{background:#e3f2fd;padding:10px 24px;border-bottom:2px solid #bbdefb;flex-shrink:0;}
 .about-bar p{font-size:9.5px;line-height:1.8;color:#1a3a5a;text-align:justify;}
@@ -1078,9 +1172,9 @@ html,body{height:100%;width:100%;}
 body{font-family:'Montserrat',sans-serif;background:#c8c8c8;}
 .page{width:100%;min-height:100vh;background:white;display:flex;}
 .L{width:30%;background:#1a2744;flex-shrink:0;display:flex;flex-direction:column;}
-.photo-top{background:#f5a623;height:120px;display:flex;align-items:flex-end;justify-content:center;position:relative;flex-shrink:0;}
-.photo-circle{width:84px;height:84px;border-radius:50%;border:3px solid #1a2744;overflow:hidden;background:#2a3a5e;position:absolute;bottom:-42px;left:50%;transform:translateX(-50%);}
-.name-area{padding:50px 14px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
+.photo-top{background:#f5a623;height:130px;display:flex;align-items:flex-end;justify-content:center;position:relative;flex-shrink:0;}
+.photo-circle{width:120px;height:120px;border-radius:50%;border:3px solid #1a2744;overflow:hidden;background:#2a3a5e;position:absolute;bottom:-60px;left:50%;transform:translateX(-50%);}
+.name-area{padding:72px 14px 12px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08);}
 .name-area h1{color:white;font-size:16px;font-weight:800;line-height:1.3;}
 .name-area .ttl{color:#f5a623;font-size:7.5px;letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
 .ls{padding:10px 14px;}
@@ -1146,7 +1240,7 @@ html,body{height:100%;width:100%;}
 body{font-family:'Source Sans 3',sans-serif;background:#c5cdd8;}
 .page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
 .header{background:#2c3e50;padding:18px 26px;display:flex;gap:18px;align-items:center;flex-shrink:0;}
-.header-photo{width:80px;height:80px;border-radius:50%;border:3px solid rgba(255,255,255,.25);overflow:hidden;background:#34495e;flex-shrink:0;}
+.header-photo{width:120px;height:120px;border-radius:50%;border:3px solid rgba(255,255,255,.25);overflow:hidden;background:#34495e;flex-shrink:0;}
 .header-photo img,.header-photo div{width:100%;height:100%;object-fit:cover;border-radius:50%;}
 .header-text h1{font-size:24px;font-weight:900;color:white;letter-spacing:2px;text-transform:uppercase;}
 .header-text p{color:rgba(255,255,255,.5);font-size:10px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
@@ -1516,6 +1610,180 @@ async function saveEdits(idx){
   } catch(e){
     showNotif('Failed to save: ' + e.message, true);
   }
+}
+
+// ── COVER LETTER GENERATOR ───────────────────────────────────────────────────
+async function generateCoverLetter(idx){
+  const s=submissions[idx]; const p=s.personal; const cl=s.coverLetter||{};
+  const btn=document.getElementById('genCLBtn');
+  const label=document.getElementById('genCLLabel');
+  const spinner=document.getElementById('genCLSpinner');
+  const display=document.getElementById('coverLetterDisplay');
+  const copyBtn=document.getElementById('copyCLBtn');
+
+  btn.disabled=true;
+  label.textContent='Generating...';
+  spinner.style.display='inline-block';
+  display.value='Writing your cover letter...';
+  if(copyBtn) copyBtn.style.display='none';
+
+  const toneMap={
+    professional:'formal, professional, and respectful',
+    friendly:'warm, friendly, and enthusiastic',
+    confident:'confident, assertive, and direct',
+    creative:'creative, expressive, and memorable'
+  };
+  const toneDesc=toneMap[cl.tone]||'professional and formal';
+  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+  const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length
+    ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd})`).join(', ')
+    :'No prior work experience';
+  const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ');
+
+  const prompt=`Write a complete professional cover letter for a job application. Use a ${toneDesc} tone.
+
+Applicant Details:
+- Name: ${p.firstName} ${p.lastName}
+- Applying for: ${cl.position||p.jobTitle||'the position'}
+- Target Company: ${cl.company||'the company'}
+- Education: ${eduLevel} — ${eduSum||'Not specified'}
+- Work Experience: ${workSum}
+- Key Strengths/Skills: ${cl.strengths||((s.skills||[]).join(', '))||'Not specified'}
+- Why they want this job: ${cl.reason||'Passionate about contributing to the company'}
+- Nationality: ${p.nationality||'Filipino'}
+
+FORMAT: Write a complete cover letter with:
+1. Date line (use today's date)
+2. Hiring Manager salutation
+3. Opening paragraph — state the position and express strong interest
+4. Body paragraph 1 — highlight education and most relevant experience
+5. Body paragraph 2 — highlight strengths, skills, and why they are a great fit for ${cl.company||'the company'}
+6. Closing paragraph — thank them and state availability for interview
+7. Professional sign-off with applicant's full name
+
+RULES:
+- Write in FIRST PERSON as the applicant
+- Do NOT use placeholder brackets like [Company Name] — use the actual values given above
+- Keep it to one page (350–420 words)
+- Sound ${toneDesc}
+- Output ONLY the cover letter text — no explanation, no labels`;
+
+  let generated='';
+  try{
+    const encoded=encodeURIComponent(prompt);
+    const r1=await fetch(`https://text.pollinations.ai/${encoded}?model=openai`,{method:'GET'});
+    if(r1.ok){
+      const t=(await r1.text()).trim();
+      if(t&&t.length>100&&!t.toLowerCase().includes('error'))generated=t;
+    }
+  }catch(e1){console.warn('Pollinations failed:',e1);}
+
+  if(!generated){
+    try{
+      const r2=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer gsk_free'},
+        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:prompt}],max_tokens:700})
+      });
+      const d2=await r2.json();
+      const t2=d2?.choices?.[0]?.message?.content?.trim();
+      if(t2&&t2.length>100)generated=t2;
+    }catch(e2){console.warn('Groq failed:',e2);}
+  }
+
+  if(generated&&generated.length>100){
+    display.value=generated;
+    if(copyBtn)copyBtn.style.display='inline-flex';
+    showNotif('✅ Cover letter generated!');
+  }else{
+    display.value='';
+    showNotif('Generation failed. Please try again.',true);
+  }
+
+  btn.disabled=false;
+  label.textContent='✨ Re-generate';
+  spinner.style.display='none';
+}
+
+async function saveCoverLetter(idx){
+  const text=document.getElementById('coverLetterDisplay')?.value?.trim();
+  if(!text){showNotif('Please generate a cover letter first.',true);return;}
+  if(!submissions[idx].coverLetter)submissions[idx].coverLetter={};
+  submissions[idx].coverLetter.generated=text;
+  try{
+    const ex=await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
+    showNotif('✅ Cover letter saved!');
+  }catch(e){showNotif('Failed to save: '+e.message,true);}
+}
+
+function copyCoverLetter(){
+  const text=document.getElementById('coverLetterDisplay')?.value;
+  if(!text)return;
+  navigator.clipboard.writeText(text).then(()=>showNotif('✅ Copied to clipboard!')).catch(()=>{
+    document.getElementById('coverLetterDisplay').select();
+    document.execCommand('copy');
+    showNotif('✅ Copied!');
+  });
+}
+
+// ── SAVE NOTES ───────────────────────────────────────────────────────────────
+async function saveNotes(idx){
+  const notes=document.getElementById('adminNotesArea')?.value||'';
+  submissions[idx].adminNotes=notes;
+  try{
+    const ex=await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
+    showNotif('Notes saved!');
+  }catch(e){showNotif('Failed to save notes.',true);}
+}
+
+// ── DELETE SUBMISSION ─────────────────────────────────────────────────────────
+async function deleteSubmission(idx){
+  const s=submissions[idx];
+  if(!confirm(`Delete submission from ${s.personal.firstName} ${s.personal.lastName}? This cannot be undone.`))return;
+  submissions.splice(idx,1);
+  try{
+    const ex=await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
+    showNotif('Submission deleted.');
+    renderSubmissions(); renderDashboard();
+  }catch(e){showNotif('Failed to delete.',true);}
+}
+
+// ── EMAIL CUSTOMER ────────────────────────────────────────────────────────────
+function emailCustomer(idx, type){
+  const s=submissions[idx]; const p=s.personal;
+  const hasCL=s.coverLetter?.requested;
+  const total=hasCL?'₱100':'₱25';
+  let subject,body;
+  if(type==='ready'){
+    subject=`Your CV is Ready — Please Send Payment (${total})`;
+    body=`Hi ${p.firstName},
+
+Your professional CV${hasCL?' and cover letter':''} is ready!
+
+Please send payment of ${total} via GCash to proceed with delivery.
+
+GCash: 09063964052 (Reymar Arroyo)
+
+After payment, send your GCash screenshot to this email or via Messenger/Viber.
+
+Thank you!
+Arroyo CV Builder`;
+  } else {
+    subject=`Your CV${hasCL?' and Cover Letter':''} Has Been Delivered!`;
+    body=`Hi ${p.firstName},
+
+Your professional CV${hasCL?' and cover letter':''} has been delivered! Please check your email/Messenger.
+
+Thank you for choosing Arroyo CV Builder. We wish you all the best in your job search!
+
+Arroyo CV Builder
+09063964052`;
+  }
+  const mailto=`mailto:${p.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(mailto);
 }
 
 // ── GCASH ─────────────────────────────────────────────────────────────────────

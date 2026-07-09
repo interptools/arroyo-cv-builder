@@ -876,13 +876,69 @@
       </div>
     </div>
 
-    <!-- DATA CONSENT -->
+    <!-- COVER LETTER ADD-ON -->
+    <div style="margin-bottom:16px">
+      <div style="background:#1a2744;border-radius:12px 12px 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleCoverLetter()" id="cl-toggle-hdr">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="background:rgba(200,168,75,0.2);border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" fill="none" stroke="#c8a84b" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div>
+            <div style="color:#e2c97e;font-size:14px;font-weight:700">Add a Cover Letter</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px">Stand out more — professionally written for your target job</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="text-align:right">
+            <div style="color:#c8a84b;font-size:16px;font-weight:800">+₱75</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:10px;text-decoration:line-through">₱100</div>
+          </div>
+          <div id="cl-check-circle" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(200,168,75,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0">
+            <svg id="cl-check-icon" width="14" height="14" fill="none" stroke="rgba(200,168,75,0.3)" stroke-width="2.5" viewBox="0 0 24 24" style="transition:all .2s"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cover letter fields — hidden until selected -->
+      <div id="cl-fields" style="display:none;background:#fff;border:1.5px solid #c8a84b;border-top:none;border-radius:0 0 12px 12px;padding:18px">
+        <p style="font-size:12px;color:#6b7280;margin-bottom:14px;line-height:1.6">We'll write a professional cover letter tailored to your target job. Just fill in the details below and we'll take care of the rest.</p>
+        <div style="display:grid;gap:12px">
+          <div class="field">
+            <label>Target Position / Job Title <span style="color:#ef4444">*</span></label>
+            <input type="text" id="cl-position" placeholder="e.g. Customer Service Representative, Nurse, Engineer">
+          </div>
+          <div class="field">
+            <label>Target Company Name <span style="color:#ef4444">*</span></label>
+            <input type="text" id="cl-company" placeholder="e.g. Accenture, St. Luke's Medical Center, SM Retail">
+          </div>
+          <div class="field">
+            <label>Why do you want this job? <span style="color:#ef4444">*</span></label>
+            <textarea id="cl-reason" rows="3" style="width:100%;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:Inter,sans-serif;font-size:13px;resize:vertical" placeholder="e.g. I am passionate about customer service and want to grow with a global company..."></textarea>
+          </div>
+          <div class="field">
+            <label>Your top 2–3 strengths or skills</label>
+            <input type="text" id="cl-strengths" placeholder="e.g. Communication, Teamwork, Fast learner, 3 years BPO experience">
+          </div>
+          <div class="field">
+            <label>Tone / Style</label>
+            <select id="cl-tone">
+              <option value="professional">Professional & Formal</option>
+              <option value="friendly">Friendly & Enthusiastic</option>
+              <option value="confident">Confident & Direct</option>
+              <option value="creative">Creative & Expressive</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;line-height:1.6">
+          <strong>What you'll receive:</strong> A 1-page cover letter in Word/PDF format, personalized for your target job, delivered together with your CV. Total payment: <strong id="cl-total-label">₱100 (CV ₱25 + Cover Letter ₱75)</strong>
+        </div>
+      </div>
+    </div>
     <label id="cv-consent-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <input type="checkbox" id="cv-consent-check" onchange="onCVConsentChange()" style="width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
       <div style="font-size:12px;color:#1a2744;line-height:1.7;font-family:Inter,sans-serif">
         <strong style="font-size:13px">I agree to the Data Privacy Terms</strong><br>
-        I hereby give my consent to <strong>Arroyo CV Builder</strong> to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.<br><br>
-        <span style="color:#92400e;font-size:11px">&#12371;&#12398;&#12501;&#12457;&#12540;&#12512;&#12395;&#25제&#20986;&#12377;&#12427;&#20491;&#20154;&#24773;&#22577;&#12399;&#12289;CV&#20316;&#25104;&#30446;&#30340;&#12398;&#12415;&#12395;&#20351;&#29992;&#12373;&#12428;&#12289;&#31532;&#19977;&#32773;&#12408;&#12398;&#25प्र&#20449;&#12399;&#12375;&#12414;&#12379;&#12435;&#12290;</span>
+        I hereby give my consent to <strong>Arroyo CV Builder</strong> to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.
       </div>
     </label>
 
@@ -902,7 +958,24 @@
     <div class="confirm-card">
       <div class="confirm-icon">✅</div>
       <h2>Form Submitted!</h2>
-      <p>Thank you! Your information has been received. Please contact <strong>Reymar Arroyo</strong> to process your CV request and proceed with payment.</p>
+      <p id="confirm-msg">Thank you! Your information has been received. Please contact <strong>Reymar Arroyo</strong> to process your CV request and proceed with payment.</p>
+
+      <!-- Dynamic order summary -->
+      <div id="order-summary" style="background:#f7f8fc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:left">
+        <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#6b7280">Professional CV / Resume</span>
+          <span style="font-weight:600;color:#1a2744">₱25</span>
+        </div>
+        <div id="cl-summary-row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#6b7280">Cover Letter Add-on</span>
+          <span style="font-weight:600;color:#1a2744">₱75</span>
+        </div>
+        <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
+          <span style="font-weight:700;color:#1a2744">Total</span>
+          <span id="confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱25</span>
+        </div>
+      </div>
 
       <div class="contact-box">
         <h3>📞 Contact Details</h3>
@@ -925,9 +998,8 @@
       <div class="gcash-section">
         <h3>💳 InstaPay / GCash Payment</h3>
         <div class="gcash-qr-box">
-          <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;">Scan QR Code to Pay</p>
+          <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;">Scan QR Code to Pay <span id="confirm-gcash-amount" style="color:#c8a84b"></span></p>
           <img id="gcashQRDisplay" src="gcash-qr.jpg" alt="GCash QR Code" style="max-width:240px;width:100%;border-radius:12px;display:block;margin:0 auto;border:3px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,.1);">
-
         </div>
         <p style="font-size:11.5px;color:var(--gray);margin-top:12px;">After payment, send the screenshot to Reymar via the contact details above. 📸</p>
       </div>
@@ -983,6 +1055,7 @@ let eduCount = 0;
 let workCount = 0;
 let refCount = 0;
 let photoBase64 = '';
+let coverLetterSelected = false;
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -1234,6 +1307,11 @@ function collectFormData() {
   return {
     submittedAt: new Date().toISOString(),
     status: 'New',
+    dataConsent: {
+      agreed: true,
+      agreedAt: new Date().toISOString(),
+      ipNote: 'Agreed via checkbox on submission form'
+    },
     eduLevel,
     personal: {
       firstName: document.getElementById('firstName').value.trim(),
@@ -1259,7 +1337,16 @@ function collectFormData() {
     hobbies: document.getElementById('hobbies').value.trim(),
     awards: document.getElementById('awards').value.trim(),
     templatePref: document.getElementById('templatePref').value,
-    specialInstructions: document.getElementById('specialInstructions').value.trim()
+    specialInstructions: document.getElementById('specialInstructions').value.trim(),
+    coverLetter: coverLetterSelected ? {
+      requested: true,
+      position: document.getElementById('cl-position').value.trim(),
+      company: document.getElementById('cl-company').value.trim(),
+      reason: document.getElementById('cl-reason').value.trim(),
+      strengths: document.getElementById('cl-strengths').value.trim(),
+      tone: document.getElementById('cl-tone').value,
+      addOnFee: 75
+    } : { requested: false }
   };
 }
 
@@ -1297,6 +1384,29 @@ function compressPhoto(base64) {
   });
 }
 
+function updateConfirmPage() {
+  var total = coverLetterSelected ? 100 : 25;
+  var clRow = document.getElementById('cl-summary-row');
+  var totalEl = document.getElementById('confirm-total');
+  var amountEl = document.getElementById('confirm-gcash-amount');
+  if (clRow) clRow.style.display = coverLetterSelected ? 'flex' : 'none';
+  if (totalEl) totalEl.textContent = '₱' + total;
+  if (amountEl) amountEl.textContent = '— ₱' + total;
+}
+
+function toggleCoverLetter() {
+  coverLetterSelected = !coverLetterSelected;
+  var fields = document.getElementById('cl-fields');
+  var circle = document.getElementById('cl-check-circle');
+  var icon = document.getElementById('cl-check-icon');
+  var hdr = document.getElementById('cl-toggle-hdr');
+  fields.style.display = coverLetterSelected ? 'block' : 'none';
+  circle.style.background = coverLetterSelected ? '#c8a84b' : 'transparent';
+  circle.style.borderColor = coverLetterSelected ? '#c8a84b' : 'rgba(200,168,75,0.4)';
+  icon.setAttribute('stroke', coverLetterSelected ? '#1a2744' : 'rgba(200,168,75,0.3)');
+  hdr.style.borderRadius = coverLetterSelected ? '12px 12px 0 0' : '12px';
+}
+
 function onCVConsentChange() {
   const checked = document.getElementById('cv-consent-check').checked;
   const btn = document.getElementById('submitBtn');
@@ -1314,6 +1424,11 @@ async function submitForm() {
   if (!document.getElementById('cv-consent-check').checked) {
     showNotif('Please agree to the Data Privacy Terms before submitting.', true);
     return;
+  }
+  if (coverLetterSelected) {
+    if (!document.getElementById('cl-position').value.trim()) { showNotif('Please enter your target position for the cover letter.', true); return; }
+    if (!document.getElementById('cl-company').value.trim()) { showNotif('Please enter the target company name for the cover letter.', true); return; }
+    if (!document.getElementById('cl-reason').value.trim()) { showNotif('Please tell us why you want this job for the cover letter.', true); return; }
   }
   const data = collectFormData();
   const err = validate(data);
@@ -1369,6 +1484,7 @@ async function submitForm() {
 
     document.getElementById('formPage').classList.remove('active');
     document.getElementById('confirmPage').classList.add('active');
+    updateConfirmPage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
   } catch (e) {
