@@ -538,6 +538,7 @@ async function cycleStatus(idx){
 
 // ── VIEW MODAL ────────────────────────────────────────────────────────────────
 function viewSubmission(idx){
+  currentSubmission=idx;
   const s=submissions[idx]; const p=s.personal;
   const si=idx; // declare early so all inline onclick handlers have the correct index
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
@@ -1793,6 +1794,8 @@ function printCoverLetter(){
   const p=s.personal||{};
   const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'Applicant';
   const company=(document.getElementById('clCompany')?.value||'').trim()||'The Company';
+  // Debug photo
+  console.log('Photo available:', !!p.photo, p.photo ? p.photo.substring(0,30) : 'none');
 
   // Split body (skip date line and greeting if AI included them, keep paragraphs)
   const allLines=text.split(/\n/).map(l=>l.trim()).filter(l=>l);
@@ -1824,8 +1827,9 @@ function printCoverLetter(){
   const parasHtml=bodyParas.map(para=>`<p>${para.replace(/\n/g,'<br>')}</p>`).join('');
 
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const photoHtml=p.photo
-    ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+  const photoSrc=p.photo&&p.photo.length>100?p.photo:'';
+  const photoHtml=photoSrc
+    ?`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
     :`<div style="width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#1a2744;font-family:Inter,sans-serif;">${(p.firstName||'?')[0]}${(p.lastName||'?')[0]}</div>`;
 
   const win=window.open('','_blank');
@@ -1897,12 +1901,12 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       <hr class="contact-divider">
       ${p.email?`<div class="contact-item"><div class="contact-icon">&#9993;</div><div class="contact-text">${p.email}</div></div>`:''}
       ${p.phone?`<div class="contact-item"><div class="contact-icon">&#128222;</div><div class="contact-text">${p.phone}</div></div>`:''}
+      ${p.address?`<div class="contact-item"><div class="contact-icon">&#128205;</div><div class="contact-text">${p.address}</div></div>`:''}
       ${(p.social||p.linkedin)?`<div class="contact-item"><div class="contact-icon">&#127760;</div><div class="contact-text">${p.social||p.linkedin}</div></div>`:''}
       <div class="to-block">
-        <div class="to-label">To</div>
+        <div class="to-label">Applying To</div>
         <div class="to-name">Hiring Manager</div>
         <div class="to-detail">${company}</div>
-        ${p.address?`<div class="sender-address">${p.address}</div>`:''}
       </div>
     </div>
   </div>
