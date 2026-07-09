@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard – Arroyo CV Builder</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231a2744'/><rect x='25' y='20' width='50' height='60' rx='4' fill='white'/><rect x='32' y='32' width='20' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='40' width='36' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='48' width='36' height='3' rx='1.5' fill='%23c8a84b'/><rect x='32' y='56' width='28' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='64' width='32' height='3' rx='1.5' fill='%231a2744'/></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -349,6 +350,10 @@ tr:hover td{background:rgba(247,248,252,.8);}
 <div class="notif" id="notif"><span id="notifIcon">✅</span><span id="notifMsg"></span></div>
 
 <script>
+const EMAILJS_SVC='service_wog8mwj';
+const EMAILJS_TPL='template_5l2krhk';
+const EMAILJS_KEY='XDm2wGz_tn8DOjWPw';
+const ADMIN_CC='areymar36@gmail.com';
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 const ADMIN_USER = 'admin';
@@ -517,46 +522,55 @@ function renderSubmissions(){
 
 async function cycleStatus(idx){
   const order=['New','Processing','Done','Delivered'];
-  submissions[idx].status=order[(order.indexOf(submissions[idx].status)+1)%order.length];
+  const newStatus=order[(order.indexOf(submissions[idx].status)+1)%order.length];
+  submissions[idx].status=newStatus;
   const ex=await getFullRecord();
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
   renderSubmissions(); renderDashboard();
-  showNotif(`Status → "${submissions[idx].status}"`);
+  showNotif(`Status → "${newStatus}"`);
+  // Auto-send email when marked Done
+  if(newStatus==='Done') await sendDoneEmail(idx);
 }
 
 // ── VIEW MODAL ────────────────────────────────────────────────────────────────
 function viewSubmission(idx){
   const s=submissions[idx]; const p=s.personal;
+  const si=idx; // declare early so all inline onclick handlers have the correct index
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
   let html='';
   const hasCL=s.coverLetter?.requested;
   const totalPrice=hasCL?'₱100 (CV ₱25 + Cover Letter ₱75)':'₱25 (CV only)';
-  if(p.photo) html+=`<div style="text-align:center;margin-bottom:20px;"><img src="${p.photo}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>`;
-  html+=`<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-    <span class="status-badge status-${s.status}">${s.status}</span>
-    ${hasCL?'<span class="cl-badge">📝 Cover Letter Add-on</span>':''}
-    <span style="font-size:12px;font-weight:700;color:#10b981;background:#f0fdf4;padding:3px 10px;border-radius:20px;border:1px solid #86efac;">${totalPrice}</span>
-  </div>
-  ${s.dataConsent?.agreed
-    ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
-        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:${s.dataConsent.consentText?'10px':'0'}">
-          <span style="font-size:18px;flex-shrink:0;">✅</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:4px;">Data Privacy Agreement — Accepted</div>
-            <div style="font-size:11px;color:#15803d;line-height:1.7;">
-              <strong>Agreed at:</strong> ${new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})} (PHT)<br>
-              <strong>Method:</strong> ${s.dataConsent.method||'Checkbox on submission form'}<br>
-              <strong>Version:</strong> ${s.dataConsent.consentVersion||'1.0'}<br>
-              <strong>Service:</strong> ${s.dataConsent.serviceUrl||'—'}
-            </div>
-          </div>
-        </div>
-        ${s.dataConsent.consentText?`<div style="background:#dcfce7;border-radius:6px;padding:8px 10px;font-size:10.5px;color:#166534;line-height:1.6;border-left:3px solid #16a34a;font-style:italic;"><strong style="font-style:normal;display:block;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Exact text agreed to:</strong>${s.dataConsent.consentText}</div>`:''}
-      </div>`
-    : `<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#9a3412;">
-        ⚠️ No consent record — this submission was made before the Data Privacy Terms were added.
-      </div>`
-  }`;
+  if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
+  html+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
+  html+='<span class="status-badge status-'+s.status+'">'+s.status+'</span>';
+  if(hasCL) html+='<span class="cl-badge">📝 Cover Letter Add-on</span>';
+  html+='<span style="font-size:12px;font-weight:700;color:#10b981;background:#f0fdf4;padding:3px 10px;border-radius:20px;border:1px solid #86efac;">'+totalPrice+'</span>';
+  html+='</div>';
+  // Consent badge — fully safe, no crashes on missing fields
+  try {
+    if(s.dataConsent && s.dataConsent.agreed){
+      var agreedAtStr='—';
+      try{ agreedAtStr=new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})+' (PHT)'; }catch(e){}
+      html+='<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:16px;">';
+      html+='<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:'+(s.dataConsent.consentText?'10px':'0')+'">';
+      html+='<span style="font-size:18px;flex-shrink:0;">✅</span><div>';
+      html+='<div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:4px;">Data Privacy Agreement — Accepted</div>';
+      html+='<div style="font-size:11px;color:#15803d;line-height:1.7;">';
+      html+='<strong>Agreed at:</strong> '+agreedAtStr+'<br>';
+      html+='<strong>Method:</strong> '+(s.dataConsent.method||'Checkbox on submission form')+'<br>';
+      html+='<strong>Version:</strong> '+(s.dataConsent.consentVersion||'1.0')+'<br>';
+      html+='<strong>Service:</strong> '+(s.dataConsent.serviceUrl||'—');
+      html+='</div></div></div>';
+      if(s.dataConsent.consentText){
+        html+='<div style="background:#dcfce7;border-radius:6px;padding:8px 10px;font-size:10.5px;color:#166534;line-height:1.6;border-left:3px solid #16a34a;font-style:italic;">';
+        html+='<strong style="font-style:normal;display:block;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Exact text agreed to:</strong>';
+        html+=s.dataConsent.consentText+'</div>';
+      }
+      html+='</div>';
+    } else {
+      html+='<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#9a3412;">⚠️ No consent record — this submission was made before the Data Privacy Terms were added.</div>';
+    }
+  } catch(e){ console.warn('Consent badge error:',e); }
   html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['DOB',p.dob],['Civil Status',p.civilStatus],['Gender',p.gender],['Nationality',p.nationality],['Social',p.social]]);
   html+=grp('Education Level',[['Type',eduMap[s.eduLevel]]]);
   html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary||'—'}</p></div>`;
@@ -600,7 +614,6 @@ function viewSubmission(idx){
       <button onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ CV Delivered</button>
     </div>
   </div>`;
-  const si = submissions.indexOf(s);
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
     <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate with Google AI</strong> — auto-generates an impressive profile. Edit if needed, then Save.</p>
@@ -614,7 +627,7 @@ function viewSubmission(idx){
     <button onclick="saveProfileSummary(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Profile Summary</button>
   </div>`;
 
-  const ri = submissions.indexOf(s);
+  const ri = si;
   document.getElementById('modalTitle').textContent=`${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel]||''}`;
   document.getElementById('modalBody').innerHTML=html;
 
@@ -1759,6 +1772,114 @@ async function deleteSubmission(idx){
 }
 
 // ── EMAIL CUSTOMER ────────────────────────────────────────────────────────────
+async function sendDoneEmail(idx){
+  const s=submissions[idx]; const p=s.personal;
+  if(!p.email){ showNotif('No email on file — skipping auto email.',true); return; }
+  const hasCL=s.coverLetter?.requested;
+  const total=hasCL?'₱100':'₱25';
+  const docLabel=hasCL?'CV and Cover Letter':'CV';
+
+  // ── HTML body ──────────────────────────────────────────────
+  var htmlBody=
+    '<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;">'+
+
+    '<div style="background:#1a2744;padding:24px 28px;">'+
+      '<h1 style="color:#e2c97e;margin:0;font-size:20px;letter-spacing:.5px;">Arroyo CV Builder</h1>'+
+      '<p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Professional CV &amp; Resume Service</p>'+
+    '</div>'+
+
+    '<div style="background:#f7f8fc;padding:24px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">'+
+      '<p style="font-size:15px;margin:0 0 8px;">Dear <strong>'+p.firstName+'</strong>,</p>'+
+      '<p style="font-size:13px;line-height:1.8;color:#374151;margin:0 0 20px;">'+
+        'Great news! Your professional <strong>'+docLabel+'</strong> is now complete and ready for delivery. '+
+        'Please see the details below.' +
+      '</p>'+
+
+      '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;">'+
+        '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
+        '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
+          '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Reference No.</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+s.id+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+p.firstName+' '+p.lastName+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;">Amount</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+total+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;">Status</td><td style="padding:5px 0;">'+
+            '<span style="background:#d1fae5;color:#065f46;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">✅ Done — Ready for Delivery</span>'+
+          '</td></tr>'+
+        '</table>'+
+      '</div>'+
+
+      '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px;">📎 Your '+docLabel+' File</div>'+
+        '<p style="font-size:12px;color:#166534;margin:0;line-height:1.75;">'+
+          'Your completed <strong>'+docLabel+'</strong> will be sent to you shortly via '+
+          '<strong>reply to this email</strong>, <strong>Messenger</strong>, or <strong>Viber</strong>. '+
+          'Please watch for it. If you do not receive it within 24 hours, just reply here.' +
+        '</p>'+
+      '</div>'+
+
+      '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px;">💡 Tips for Using Your CV</div>'+
+        '<ul style="font-size:12px;color:#92400e;margin:0;padding-left:18px;line-height:2.1;">'+
+          '<li>Save both PDF and Word versions if provided</li>'+
+          '<li>Tailor your cover letter for each application</li>'+
+          '<li>Keep a digital copy in Google Drive or email</li>'+
+          '<li>Update your CV every 6 months</li>'+
+        '</ul>'+
+      '</div>'+
+
+      '<div style="border-top:1px solid #e5e7eb;padding-top:16px;">'+
+        '<p style="font-size:12px;color:#6b7280;margin:0 0 6px;">Questions? Contact us anytime:</p>'+
+        '<p style="font-size:13px;font-weight:700;color:#1a2744;margin:0;">📱 09063964052 &nbsp;|&nbsp; ✉ areymar36@gmail.com</p>'+
+        '<p style="font-size:11px;color:#9ca3af;margin:6px 0 0;">Facebook/Messenger: Arroyo CV Builder</p>'+
+        '<p style="font-size:12px;color:#6b7280;margin:8px 0 0;">Thank you for choosing Arroyo CV Builder! We wish you all the best. 🙏</p>'+
+      '</div>'+
+    '</div>'+
+
+    '<div style="background:#1a2744;padding:14px 28px;text-align:center;">'+
+      '<p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Arroyo CV Builder &nbsp;·&nbsp; Professional CV &amp; Resume Service &nbsp;·&nbsp; Philippines</p>'+
+    '</div>'+
+  '</div>';
+
+  // ── Plain text ─────────────────────────────────────────────
+  var plainBody=
+    'Dear '+p.firstName+',\n\n'+
+    'Great news! Your professional '+docLabel+' is now complete and ready for delivery.\n\n'+
+    'ORDER SUMMARY\n'+
+    'Reference No.: '+s.id+'\n'+
+    'Name: '+p.firstName+' '+p.lastName+'\n'+
+    'Service: '+docLabel+'\n'+
+    'Amount: '+total+'\n'+
+    'Status: Done — Ready for Delivery\n\n'+
+    'Your '+docLabel+' will be sent to you shortly via reply to this email, Messenger, or Viber.\n'+
+    'If you do not receive it within 24 hours, just reply here.\n\n'+
+    'Tips for Using Your CV:\n'+
+    '- Save both PDF and Word versions if provided\n'+
+    '- Tailor your cover letter for each application\n'+
+    '- Keep a digital copy in Google Drive or email\n'+
+    '- Update your CV every 6 months\n\n'+
+    'Questions? 09063964052 | areymar36@gmail.com\n'+
+    'Facebook/Messenger: Arroyo CV Builder\n\n'+
+    'Thank you for choosing Arroyo CV Builder! 🙏\n'+
+    'Arroyo CV Builder';
+
+  try {
+    emailjs.init(EMAILJS_KEY);
+    await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+      to_email:         p.email,
+      to_name:          p.firstName+' '+p.lastName,
+      customer_name:    p.firstName,
+      cc_email:         ADMIN_CC,
+      subject:          'Your '+docLabel+' is Ready — Arroyo CV Builder',
+      translation_note: plainBody,
+      html_body:        htmlBody
+    });
+    showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
+  } catch(e){
+    showNotif('❌ Auto email failed: '+e.message, true);
+    console.error('EmailJS error:',e);
+  }
+}
+
 function emailCustomer(idx, type){
   const s=submissions[idx]; const p=s.personal;
   const hasCL=s.coverLetter?.requested;
