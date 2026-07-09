@@ -330,6 +330,10 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <div class="to-tmpl-swatch" style="background:#2c3e50;color:white;">7</div>
         <div><div class="to-tmpl-name">Template 7</div><div class="to-tmpl-desc">Classic · Clean</div></div>
       </div>
+      <div class="to-tmpl-btn" onclick="selectTemplate(8,this)">
+        <div class="to-tmpl-swatch" style="background:#1a2744;color:#c8a84b;">8</div>
+        <div><div class="to-tmpl-name">Template 8</div><div class="to-tmpl-desc">Fresh Grad · Grid</div></div>
+      </div>
     </div>
     <div class="to-preview">
       <div class="to-preview-wrap" id="previewWrap">
@@ -578,30 +582,55 @@ function viewSubmission(idx){
   if(s.eduLevel!=='fresh'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
-  // Cover letter details + generator
-  if(s.coverLetter?.requested){
-    html+=`<div class="info-group"><h4>📝 Cover Letter Add-on</h4>
-    <div class="cl-info-box">
-      <div class="cl-info-row"><span class="cl-info-lbl">Target Position:</span><span class="cl-info-val">${s.coverLetter.position||'—'}</span></div>
-      <div class="cl-info-row"><span class="cl-info-lbl">Target Company:</span><span class="cl-info-val">${s.coverLetter.company||'—'}</span></div>
-      <div class="cl-info-row"><span class="cl-info-lbl">Why this job:</span><span class="cl-info-val">${s.coverLetter.reason||'—'}</span></div>
-      <div class="cl-info-row"><span class="cl-info-lbl">Strengths:</span><span class="cl-info-val">${s.coverLetter.strengths||'—'}</span></div>
-      <div class="cl-info-row"><span class="cl-info-lbl">Tone / Style:</span><span class="cl-info-val">${s.coverLetter.tone||'—'}</span></div>
-    </div>
-    <div style="margin-top:12px;">
-      <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate Cover Letter</strong> — AI will write a full professional letter based on the details above. Edit if needed, then save or copy.</p>
-      <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-        <button onclick="generateCoverLetter(${si})" id="genCLBtn" style="padding:9px 16px;background:linear-gradient(135deg,#1a2744,#243358);color:var(--gold-light);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
-          <span id="genCLLabel">✨ Generate Cover Letter</span>
-          <span id="genCLSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;"></span>
-        </button>
-        <button onclick="copyCoverLetter()" id="copyCLBtn" style="display:none;padding:9px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copy Text</button>
+  // Cover letter generator — always visible, pre-filled from customer data if paid add-on
+  const clPos = s.coverLetter?.position || '';
+  const clCo  = s.coverLetter?.company  || '';
+  const clWhy = s.coverLetter?.reason   || '';
+  const clStr = s.coverLetter?.strengths|| '';
+  const clTone= s.coverLetter?.tone     || 'professional';
+  const clGen = s.coverLetter?.generated|| '';
+  const clBadge = s.coverLetter?.requested ? '<span style="margin-left:8px;font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:700;">💳 Paid Add-on</span>' : '';
+  html+=`<div class="info-group"><h4>✉️ Cover Letter Generator${clBadge}</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Position *</label>
+        <input id="clPosition" type="text" value="${clPos}" placeholder="e.g. Accounting Staff" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
       </div>
-      <textarea id="coverLetterDisplay" rows="14" placeholder="Cover letter will appear here after generating..." style="width:100%;font-size:12px;line-height:1.9;color:#1f2937;background:#fafafa;border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:Inter,sans-serif;resize:vertical;">${s.coverLetter.generated||''}</textarea>
-      <button onclick="saveCoverLetter(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Cover Letter</button>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Company *</label>
+        <input id="clCompany" type="text" value="${clCo}" placeholder="e.g. ABC Corporation" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+      </div>
     </div>
-    </div>`;
-  }
+    <div style="margin-bottom:10px;">
+      <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Key Strengths / Skills to Highlight</label>
+      <input id="clStrengths" type="text" value="${clStr}" placeholder="e.g. attention to detail, 3 years experience, MS Office" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Why This Job?</label>
+        <input id="clWhy" type="text" value="${clWhy}" placeholder="e.g. wants to grow in finance" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Tone / Style</label>
+        <select id="clTone" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;background:white;outline:none;">
+          <option value="professional" ${clTone==='professional'?'selected':''}>Professional & Formal</option>
+          <option value="friendly"     ${clTone==='friendly'?'selected':''}>Warm & Friendly</option>
+          <option value="confident"    ${clTone==='confident'?'selected':''}>Confident & Direct</option>
+          <option value="creative"     ${clTone==='creative'?'selected':''}>Creative & Expressive</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+      <button onclick="generateCoverLetter(${si})" id="genCLBtn" style="padding:9px 18px;background:linear-gradient(135deg,#1a2744,#243358);color:var(--gold-light);border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
+        <span id="genCLLabel">✨ Generate Cover Letter</span>
+        <span id="genCLSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;"></span>
+      </button>
+      <button onclick="copyCoverLetter()" id="copyCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">📋 Copy</button>
+      <button onclick="printCoverLetter()" id="printCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #93c5fd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">🖨️ Print</button>
+    </div>
+    <textarea id="coverLetterDisplay" rows="14" placeholder="Cover letter will appear here after generating..." style="width:100%;font-size:13px;line-height:1.9;color:#1f2937;background:#fafafa;border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:'Georgia',serif;resize:vertical;">${clGen}</textarea>
+    <button onclick="saveCoverLetter(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Cover Letter</button>
+  </div>`;
   // Admin notes
   html+=`<div class="info-group"><h4>🗒️ Admin Notes</h4>
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
@@ -832,6 +861,7 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===5) return T5(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===6) return T6(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===7) return T7(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===8) return T8(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
@@ -1320,6 +1350,92 @@ ${pb}
 </div></div></body></html>`;}
 
 
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 8 — Fresh Graduate · Navy/Gold Grid
+// ══════════════════════════════════════════════════════════════════════════════
+function T8(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+body{font-family:'Inter',sans-serif;background:#d1d5db;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.header{background:#1a2744;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.h-left .badge{color:#c8a84b;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:5px;}
+.h-left h1{font-size:22px;font-weight:800;color:white;letter-spacing:.5px;}
+.h-left .ttl{color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.h-photo{width:72px;height:72px;border-radius:50%;overflow:hidden;background:#243358;border:2.5px solid #c8a84b;flex-shrink:0;}
+.h-photo img,.h-photo div{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.profile-bar{background:#f0e9d6;border-bottom:2px solid #c8a84b44;padding:11px 28px;}
+.profile-bar p{font-size:11.5px;line-height:1.85;color:#2a2a2a;text-align:justify;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex:1;}
+.cell{padding:14px 20px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;}
+.cell:nth-child(even){border-right:none;}
+.cell:nth-last-child(-n+2){border-bottom:none;}
+.ch{font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1a2744;padding-bottom:6px;margin-bottom:10px;border-bottom:2px solid #c8a84b;display:flex;align-items:center;gap:6px;}
+.ch::before{content:'';display:inline-block;width:6px;height:6px;background:#c8a84b;border-radius:50%;flex-shrink:0;}
+.edu-item{margin-bottom:10px;}
+.edu-item:last-child{margin-bottom:0;}
+.edu-school{font-size:12px;font-weight:700;color:#1a2744;}
+.edu-deg{font-size:11px;color:#555;margin-top:1px;}
+.edu-yr{font-size:10px;color:#c8a84b;font-weight:700;margin-top:2px;}
+.edu-hon{font-size:10px;color:#888;margin-top:1px;}
+.ci{font-size:11px;color:#444;margin-bottom:6px;display:flex;align-items:flex-start;gap:6px;line-height:1.5;}
+.tag{display:inline-block;background:#1a274415;color:#1a2744;font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid #1a274430;margin:2px 3px 2px 0;}
+.li{font-size:11px;color:#444;margin-bottom:5px;padding-left:12px;position:relative;line-height:1.5;}
+.li::before{content:'▸';color:#c8a84b;position:absolute;left:0;}
+.ref-n{font-size:11px;font-weight:700;color:#1a2744;}
+.ref-s{font-size:10px;color:#888;margin-top:1px;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+  <div class="header">
+    <div class="h-left">
+      <div class="badge">Fresh Graduate</div>
+      <h1>${p.firstName} ${p.lastName}</h1>
+      <div class="ttl">${p.jobTitle||'Job Applicant'}</div>
+    </div>
+    <div class="h-photo">${ph}</div>
+  </div>
+  ${s.profileSummary?`<div class="profile-bar"><p>${s.profileSummary}</p></div>`:''}
+  <div class="grid">
+    <div class="cell">
+      <div class="ch">Education</div>
+      ${edu.length?edu.map(e=>`<div class="edu-item"><div class="edu-school">${e.school}</div>${e.degree?`<div class="edu-deg">${e.degree}</div>`:''}<div class="edu-yr">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="edu-hon">${e.honors}</div>`:''}</div>`).join(''):'<div class="li">Not specified</div>'}
+    </div>
+    <div class="cell">
+      <div class="ch">Contact</div>
+      ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
+      ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
+      ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
+      ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+      ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
+    </div>
+    <div class="cell">
+      <div class="ch">Skills</div>
+      <div style="display:flex;flex-wrap:wrap;">${skills.length?skills.map(sk=>`<span class="tag">${sk}</span>`).join(''):'<span class="li">Not specified</span>'}</div>
+    </div>
+    <div class="cell">
+      <div class="ch">Languages</div>
+      ${langs.length?langs.map(l=>`<div class="li">${l}</div>`).join(''):'<div class="li">Not specified</div>'}
+      ${p.nationality?`<div style="margin-top:8px;"><div class="ch" style="margin-top:4px;">Nationality</div><div class="li">${p.nationality}</div></div>`:''}
+    </div>
+    <div class="cell">
+      <div class="ch">Achievements & Awards</div>
+      ${s.awards?`<p style="font-size:11px;color:#444;line-height:1.75;">${s.awards}</p>`:'<div class="li">Not specified</div>'}
+    </div>
+    <div class="cell">
+      ${s.hobbies?`<div class="ch">Interests & Hobbies</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.hobbies}</p>`:''}
+      ${refs.length?`<div class="ch" style="margin-top:${s.hobbies?'12px':'0'};">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}`:''}
+      ${!s.hobbies&&!refs.length?`<div class="ch">Special Instructions</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.specialInstructions||'None'}</p>`:''}
+    </div>
+  </div>
+</div></div></body></html>`;
+}
+
 // ── DELETE SUBMISSION ────────────────────────────────────────────────────────
 async function deleteSubmission(idx){
   const s = submissions[idx];
@@ -1763,6 +1879,92 @@ async function saveNotes(idx){
     await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
     showNotif('Notes saved!');
   }catch(e){showNotif('Failed to save notes.',true);}
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 8 — Fresh Graduate · Navy/Gold Grid
+// ══════════════════════════════════════════════════════════════════════════════
+function T8(p,s,ph,edu,work,refs,isFresh,pb,pc){
+const skills=s.skills||[];const langs=s.languages||[];
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+body{font-family:'Inter',sans-serif;background:#d1d5db;}
+.page{width:100%;min-height:100vh;background:white;display:flex;flex-direction:column;}
+.header{background:#1a2744;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.h-left .badge{color:#c8a84b;font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:5px;}
+.h-left h1{font-size:22px;font-weight:800;color:white;letter-spacing:.5px;}
+.h-left .ttl{color:rgba(255,255,255,.5);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+.h-photo{width:72px;height:72px;border-radius:50%;overflow:hidden;background:#243358;border:2.5px solid #c8a84b;flex-shrink:0;}
+.h-photo img,.h-photo div{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.profile-bar{background:#f0e9d6;border-bottom:2px solid #c8a84b44;padding:11px 28px;}
+.profile-bar p{font-size:11.5px;line-height:1.85;color:#2a2a2a;text-align:justify;}
+.grid{display:grid;grid-template-columns:1fr 1fr;flex:1;}
+.cell{padding:14px 20px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;}
+.cell:nth-child(even){border-right:none;}
+.cell:nth-last-child(-n+2){border-bottom:none;}
+.ch{font-size:8.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1a2744;padding-bottom:6px;margin-bottom:10px;border-bottom:2px solid #c8a84b;display:flex;align-items:center;gap:6px;}
+.ch::before{content:'';display:inline-block;width:6px;height:6px;background:#c8a84b;border-radius:50%;flex-shrink:0;}
+.edu-item{margin-bottom:10px;}
+.edu-item:last-child{margin-bottom:0;}
+.edu-school{font-size:12px;font-weight:700;color:#1a2744;}
+.edu-deg{font-size:11px;color:#555;margin-top:1px;}
+.edu-yr{font-size:10px;color:#c8a84b;font-weight:700;margin-top:2px;}
+.edu-hon{font-size:10px;color:#888;margin-top:1px;}
+.ci{font-size:11px;color:#444;margin-bottom:6px;display:flex;align-items:flex-start;gap:6px;line-height:1.5;}
+.tag{display:inline-block;background:#1a274415;color:#1a2744;font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid #1a274430;margin:2px 3px 2px 0;}
+.li{font-size:11px;color:#444;margin-bottom:5px;padding-left:12px;position:relative;line-height:1.5;}
+.li::before{content:'▸';color:#c8a84b;position:absolute;left:0;}
+.ref-n{font-size:11px;font-weight:700;color:#1a2744;}
+.ref-s{font-size:10px;color:#888;margin-top:1px;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+  <div class="header">
+    <div class="h-left">
+      <div class="badge">Fresh Graduate</div>
+      <h1>${p.firstName} ${p.lastName}</h1>
+      <div class="ttl">${p.jobTitle||'Job Applicant'}</div>
+    </div>
+    <div class="h-photo">${ph}</div>
+  </div>
+  ${s.profileSummary?`<div class="profile-bar"><p>${s.profileSummary}</p></div>`:''}
+  <div class="grid">
+    <div class="cell">
+      <div class="ch">Education</div>
+      ${edu.length?edu.map(e=>`<div class="edu-item"><div class="edu-school">${e.school}</div>${e.degree?`<div class="edu-deg">${e.degree}</div>`:''}<div class="edu-yr">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="edu-hon">${e.honors}</div>`:''}</div>`).join(''):'<div class="li">Not specified</div>'}
+    </div>
+    <div class="cell">
+      <div class="ch">Contact</div>
+      ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
+      ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
+      ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
+      ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+      ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
+    </div>
+    <div class="cell">
+      <div class="ch">Skills</div>
+      <div style="display:flex;flex-wrap:wrap;">${skills.length?skills.map(sk=>`<span class="tag">${sk}</span>`).join(''):'<span class="li">Not specified</span>'}</div>
+    </div>
+    <div class="cell">
+      <div class="ch">Languages</div>
+      ${langs.length?langs.map(l=>`<div class="li">${l}</div>`).join(''):'<div class="li">Not specified</div>'}
+      ${p.nationality?`<div style="margin-top:8px;"><div class="ch" style="margin-top:4px;">Nationality</div><div class="li">${p.nationality}</div></div>`:''}
+    </div>
+    <div class="cell">
+      <div class="ch">Achievements & Awards</div>
+      ${s.awards?`<p style="font-size:11px;color:#444;line-height:1.75;">${s.awards}</p>`:'<div class="li">Not specified</div>'}
+    </div>
+    <div class="cell">
+      ${s.hobbies?`<div class="ch">Interests & Hobbies</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.hobbies}</p>`:''}
+      ${refs.length?`<div class="ch" style="margin-top:${s.hobbies?'12px':'0'};">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}`:''}
+      ${!s.hobbies&&!refs.length?`<div class="ch">Special Instructions</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.specialInstructions||'None'}</p>`:''}
+    </div>
+  </div>
+</div></div></body></html>`;
 }
 
 // ── DELETE SUBMISSION ─────────────────────────────────────────────────────────
