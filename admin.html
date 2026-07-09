@@ -538,13 +538,20 @@ function viewSubmission(idx){
     <span style="font-size:12px;font-weight:700;color:#10b981;background:#f0fdf4;padding:3px 10px;border-radius:20px;border:1px solid #86efac;">${totalPrice}</span>
   </div>
   ${s.dataConsent?.agreed
-    ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;">
-        <span style="font-size:18px;flex-shrink:0;">✅</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:3px;">Data Privacy Agreement — Accepted</div>
-          <div style="font-size:11px;color:#15803d;line-height:1.6;">Customer agreed to the Data Privacy Terms at time of submission.<br>
-          <strong>Agreed at:</strong> ${new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})} (PHT)</div>
+    ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:${s.dataConsent.consentText?'10px':'0'}">
+          <span style="font-size:18px;flex-shrink:0;">✅</span>
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:4px;">Data Privacy Agreement — Accepted</div>
+            <div style="font-size:11px;color:#15803d;line-height:1.7;">
+              <strong>Agreed at:</strong> ${new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'})} (PHT)<br>
+              <strong>Method:</strong> ${s.dataConsent.method||'Checkbox on submission form'}<br>
+              <strong>Version:</strong> ${s.dataConsent.consentVersion||'1.0'}<br>
+              <strong>Service:</strong> ${s.dataConsent.serviceUrl||'—'}
+            </div>
+          </div>
         </div>
+        ${s.dataConsent.consentText?`<div style="background:#dcfce7;border-radius:6px;padding:8px 10px;font-size:10.5px;color:#166534;line-height:1.6;border-left:3px solid #16a34a;font-style:italic;"><strong style="font-style:normal;display:block;margin-bottom:3px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;">Exact text agreed to:</strong>${s.dataConsent.consentText}</div>`:''}
       </div>`
     : `<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#9a3412;">
         ⚠️ No consent record — this submission was made before the Data Privacy Terms were added.

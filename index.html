@@ -1310,7 +1310,10 @@ function collectFormData() {
     dataConsent: {
       agreed: true,
       agreedAt: new Date().toISOString(),
-      ipNote: 'Agreed via checkbox on submission form'
+      method: 'Checkbox on submission form — customer manually ticked the box',
+      consentText: 'I hereby give my consent to Arroyo CV Builder to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.',
+      consentVersion: '1.0',
+      serviceUrl: 'https://interptools.github.io/arroyo-cv-builder/'
     },
     eduLevel,
     personal: {
