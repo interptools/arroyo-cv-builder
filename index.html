@@ -1175,33 +1175,37 @@ Rules:
 - Extract ALL work experiences and education entries you can see
 - Return ONLY the JSON, nothing else`;
 
-    // Send to Pollinations with image
-    const payload = {
-      model: 'openai',
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } },
-          { type: 'text', text: prompt }
-        ]
-      }]
-    };
-
-    const res = await fetch('https://text.pollinations.ai/', {
+    // Send to Gemini proxy (same as Arroyo Translation Services)
+    const res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        contents: [{parts: [
+          {text: prompt},
+          {inline_data: {mime_type: file.type || 'image/jpeg', data: base64}}
+        ]}],
+        generationConfig: {temperature: 0.1, maxOutputTokens: 2000}
+      })
     });
 
     if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
-    let text = await res.text();
+    const resJson = await res.json();
+    if (resJson.error) throw new Error(resJson.error.message || 'Gemini error');
+
+    let text = resJson.candidates && resJson.candidates[0] &&
+               resJson.candidates[0].content && resJson.candidates[0].content.parts &&
+               resJson.candidates[0].content.parts[0]
+               ? resJson.candidates[0].content.parts[0].text || '' : '';
+
+    if (typeof text !== 'string') text = JSON.stringify(text);
 
     // Strip markdown fences if present
     text = text.replace(/```json|```/g, '').trim();
-    // Strip reasoning tags if present
-    if (text.includes('"reasoning"') && text.includes('"content"')) {
-      try { const obj = JSON.parse(text); text = obj.content || text; } catch(e) {}
-    }
+    // Extract JSON object
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    if (jsonStart < 0 || jsonEnd < 0) throw new Error('No JSON in AI response');
+    text = text.slice(jsonStart, jsonEnd + 1);
 
     const data = JSON.parse(text);
 
