@@ -1596,14 +1596,14 @@ function compressPhoto(base64) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 400;
+      const MAX = 250;
       let w = img.width, h = img.height;
-      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
-      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
+      resolve(canvas.toDataURL('image/jpeg', 0.5));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
@@ -1668,9 +1668,8 @@ async function submitForm() {
   spinner.classList.remove('hidden');
 
   try {
-    // Strip photo to reduce payload size (keep only small version)
-    if (data.personal.photo && data.personal.photo.length > 100000) {
-      // Compress photo by resizing
+    // Always compress photo to max 250px / 50% quality to keep payload small
+    if (data.personal.photo) {
       data.personal.photo = await compressPhoto(data.personal.photo);
     }
 
@@ -1688,13 +1687,38 @@ async function submitForm() {
 
     submissions.push(data);
 
+    // Strip photos from older entries if payload is too large (keep newest photo intact)
+    const LIMIT = 88000;
+    let payload = JSON.stringify({ submissions });
+    if (payload.length > LIMIT) {
+      // First try: strip photos from all but the newest submission
+      for (let i = 0; i < submissions.length - 1; i++) {
+        if (submissions[i].personal && submissions[i].personal.photo) {
+          submissions[i].personal.photo = '';
+        }
+        payload = JSON.stringify({ submissions });
+        if (payload.length <= LIMIT) break;
+      }
+    }
+    // Second try: if still too large, also strip newest photo
+    if (payload.length > LIMIT && submissions.length > 0) {
+      const last = submissions[submissions.length - 1];
+      if (last.personal && last.personal.photo) last.personal.photo = '';
+      payload = JSON.stringify({ submissions });
+    }
+    // Last resort: remove oldest submissions until it fits
+    while (payload.length > LIMIT && submissions.length > 1) {
+      submissions.shift();
+      payload = JSON.stringify({ submissions });
+    }
+
     const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'X-Master-Key': JSONBIN_API_KEY
       },
-      body: JSON.stringify({ submissions })
+      body: payload
     });
 
     if (!putRes.ok) {
