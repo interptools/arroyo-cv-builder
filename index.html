@@ -324,6 +324,19 @@
   }
 
   /* EDUCATION TYPE SELECTOR */
+  /* CV Scanner */
+  .scan-card { background: linear-gradient(135deg, #1a2744 0%, #243560 100%); border-radius: 16px; padding: 20px 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1.5px solid rgba(201,168,76,0.3); }
+  .scan-card-text { flex: 1; min-width: 200px; }
+  .scan-card-text h3 { font-family: 'DM Serif Display', serif; color: #e8c97a; font-size: 17px; margin-bottom: 4px; }
+  .scan-card-text p { color: rgba(255,255,255,0.65); font-size: 12px; line-height: 1.5; }
+  .scan-upload-btn { background: #c9a84c; color: #1a2744; border: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .15s; display: flex; align-items: center; gap: 8px; }
+  .scan-upload-btn:hover { background: #e8c97a; }
+  .scan-status { margin-top: 14px; width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 12px; line-height: 1.6; display: none; }
+  .scan-status.loading { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.2); }
+  .scan-status.success { background: rgba(22,163,74,0.15); color: #86efac; border: 1px solid rgba(22,163,74,0.3); }
+  .scan-status.error { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+  .scan-preview { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(201,168,76,0.5); display: none; flex-shrink: 0; }
+
   .edu-selector {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -614,6 +627,20 @@
 
   <!-- PAGE 1: FORM -->
   <div class="page active" id="formPage">
+
+    <!-- CV SCANNER -->
+    <div class="scan-card">
+      <img id="scanPreview" class="scan-preview" alt="CV Preview">
+      <div class="scan-card-text">
+        <h3>📄 Already have a CV?</h3>
+        <p>Upload a photo or image of your existing CV and we'll auto-fill the form for you instantly!</p>
+      </div>
+      <button class="scan-upload-btn" onclick="document.getElementById('cvScanInput').click()">
+        🔍 Scan My CV
+      </button>
+      <input type="file" id="cvScanInput" accept="image/*" style="display:none" onchange="scanExistingCV(this)">
+      <div class="scan-status" id="scanStatus"></div>
+    </div>
 
     <!-- EDUCATION TYPE -->
     <div class="card">
@@ -1085,6 +1112,198 @@ async function loadLatestQR() {
 }
 
 // ─── EDUCATION TYPE ────────────────────────────────────────────────────────────
+// ── CV SCANNER ────────────────────────────────────────────────
+async function scanExistingCV(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const status = document.getElementById('scanStatus');
+  const preview = document.getElementById('scanPreview');
+
+  // Show image preview
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  // Show loading
+  status.className = 'scan-status loading';
+  status.style.display = 'block';
+  status.innerHTML = '⏳ Scanning your CV... Please wait a moment.';
+
+  try {
+    // Convert image to base64
+    const base64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const prompt = `You are a CV/Resume data extractor. Look at this CV image and extract all the information you can see. Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with these exact keys:
+
+{
+  "fullName": "",
+  "email": "",
+  "phone": "",
+  "address": "",
+  "linkedin": "",
+  "jobTitle": "",
+  "summary": "",
+  "skills": "",
+  "languages": "",
+  "certifications": "",
+  "achievements": "",
+  "interests": "",
+  "workHistory": [
+    {"company": "", "position": "", "startDate": "", "endDate": "", "description": ""}
+  ],
+  "education": [
+    {"school": "", "degree": "", "field": "", "startYear": "", "endYear": "", "gwa": ""}
+  ],
+  "references": [
+    {"name": "", "title": "", "company": "", "contact": ""}
+  ]
+}
+
+Rules:
+- skills: comma-separated list
+- languages: comma-separated list  
+- If a field is not visible in the CV, leave it as empty string ""
+- workHistory and education should be arrays even if only one item
+- Extract ALL work experiences and education entries you can see
+- Return ONLY the JSON, nothing else`;
+
+    // Send to Pollinations with image
+    const payload = {
+      model: 'openai',
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image_url', image_url: { url: `data:${file.type};base64,${base64}` } },
+          { type: 'text', text: prompt }
+        ]
+      }]
+    };
+
+    const res = await fetch('https://text.pollinations.ai/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
+    let text = await res.text();
+
+    // Strip markdown fences if present
+    text = text.replace(/```json|```/g, '').trim();
+    // Strip reasoning tags if present
+    if (text.includes('"reasoning"') && text.includes('"content"')) {
+      try { const obj = JSON.parse(text); text = obj.content || text; } catch(e) {}
+    }
+
+    const data = JSON.parse(text);
+
+    // ── AUTO-FILL FORM FIELDS ──────────────────────────────────
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+
+    // Personal fields
+    const nameParts = (data.fullName||'').trim().split(' ');
+    set('firstName', nameParts[0] || '');
+    set('lastName', nameParts.slice(1).join(' ') || '');
+    set('email', data.email);
+    set('phone', data.phone);
+    set('address', data.address);
+    set('linkedin', data.linkedin);
+    set('jobTitle', data.jobTitle);
+
+    // Skills as tags
+    if (data.skills) {
+      const skillInput = document.getElementById('skillInput');
+      data.skills.split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
+        if (skillInput) { skillInput.value = s; addTag('skill'); }
+      });
+    }
+
+    // Languages as tags
+    if (data.languages) {
+      const langInput = document.getElementById('langInput');
+      data.languages.split(',').map(l => l.trim()).filter(Boolean).forEach(l => {
+        if (langInput) { langInput.value = l; addTag('lang'); }
+      });
+    }
+
+    // Achievements / awards
+    set('awards', (data.achievements || '') + (data.certifications ? '\n' + data.certifications : ''));
+
+    // Work history — fill the first entry (already created by addWorkEntry())
+    if (data.workHistory && data.workHistory.length > 0) {
+      data.workHistory.forEach((w, i) => {
+        if (i > 0) addWorkEntry(); // add extra entries as needed
+        const entry = document.getElementById(`work-${i+1}`);
+        if (!entry) return;
+        const inputs = entry.querySelectorAll('input');
+        const textarea = entry.querySelector('textarea');
+        if (inputs[0]) inputs[0].value = w.company || '';
+        if (inputs[1]) inputs[1].value = w.position || '';
+        if (inputs[2]) inputs[2].value = w.startDate || '';
+        if (inputs[3]) inputs[3].value = w.endDate || '';
+        if (textarea) textarea.value = w.description || '';
+      });
+    }
+
+    // Education — fill first entry
+    if (data.education && data.education.length > 0) {
+      data.education.forEach((edu, i) => {
+        if (i > 0) addEduEntry();
+        const entry = document.getElementById(`edu-${i+1}`);
+        if (!entry) return;
+        const inputs = entry.querySelectorAll('input');
+        if (inputs[0]) inputs[0].value = edu.school || '';
+        if (inputs[1]) inputs[1].value = edu.degree || '';
+        if (inputs[2]) inputs[2].value = edu.endYear || '';
+        if (inputs[3]) inputs[3].value = edu.startYear || '';
+        if (inputs[4]) inputs[4].value = edu.gwa || '';
+      });
+    }
+
+    // References
+    if (data.references && data.references.length > 0) {
+      data.references.forEach((ref, i) => {
+        if (i > 0) addRefEntry();
+        const entry = document.getElementById(`ref-${i+1}`);
+        if (!entry) return;
+        const inputs = entry.querySelectorAll('input');
+        if (inputs[0]) inputs[0].value = ref.name || '';
+        if (inputs[1]) inputs[1].value = ref.title || '';
+        if (inputs[2]) inputs[2].value = ref.company || '';
+        if (inputs[3]) inputs[3].value = ref.contact || '';
+      });
+    }
+
+    // Count filled
+    let filled = 0;
+    if (data.fullName) filled++;
+    if (data.email) filled++;
+    if (data.phone) filled++;
+    if (data.address) filled++;
+    if (data.jobTitle) filled++;
+    if (data.skills) filled++;
+    if (data.workHistory && data.workHistory.length) filled++;
+    if (data.education && data.education.length) filled++;
+
+    status.className = 'scan-status success';
+    status.innerHTML = `✅ CV scanned successfully! ${filled} sections detected and filled in below. Please review and update anything that looks off — then upload your photo to complete the form.`;
+
+  } catch(err) {
+    console.error('Scan error:', err);
+    status.className = 'scan-status error';
+    status.innerHTML = '❌ Could not read the CV. Make sure the image is clear and well-lit. Try a higher quality photo. (' + (err.message || 'Unknown error') + ')';
+  }
+}
+// ─────────────────────────────────────────────────────────────
+
 function handleEduChange() {
   const val = document.querySelector('input[name="eduLevel"]:checked').value;
   document.querySelectorAll('.edu-option').forEach(el => el.classList.remove('selected'));
