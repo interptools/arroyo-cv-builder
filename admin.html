@@ -607,8 +607,16 @@ function viewSubmission(idx){
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
+  // Quick CV one-click generate
+  html+=`<div class="info-group"><h4>⚡ Quick CV</h4>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">One click — AI writes the profile, opens a print-ready CV instantly. Template: <strong>T${s.templatePref||'1'}</strong> (customer preference). <a href="#" onclick="event.preventDefault();closeModal('viewModal');openTemplateOverlay(${si});" style="color:var(--navy);font-weight:700;">Switch template</a></p>
+    <button onclick="quickGenerateCV(${si})" id="quickCVBtn_${si}" style="padding:11px 24px;background:linear-gradient(135deg,#c8a84b,#e2c97e);color:#1a2744;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;">
+      <span id="quickCVLabel_${si}">⚡ Generate &amp; Print CV</span>
+      <span id="quickCVSpinner_${si}" style="display:none;width:14px;height:14px;border:2px solid rgba(26,39,68,.2);border-top-color:#1a2744;border-radius:50%;animation:spin .7s linear infinite;"></span>
+    </button>
+  </div>\`;
   // Email customer button
-  html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
+  html+=\`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📤 CV is Ready — Request Payment</button>
       <button onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ CV Delivered</button>
@@ -710,6 +718,53 @@ function updatePreview(){
 }
 
 // ── GENERATE PDF ──────────────────────────────────────────────────────────────
+async function quickGenerateCV(idx){
+  const s=submissions[idx];
+  const tmpl=parseInt(s.templatePref)||1;
+  const btn=document.getElementById(`quickCVBtn_${idx}`);
+  const label=document.getElementById(`quickCVLabel_${idx}`);
+  const spinner=document.getElementById(`quickCVSpinner_${idx}`);
+  if(btn){btn.disabled=true;}
+  if(label){label.textContent='✍️ Writing AI profile...';}
+  if(spinner){spinner.style.display='inline-block';}
+
+  let aiProfile=s.profileSummary||'';
+  try{
+    const p=s.personal;
+    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+    const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length
+      ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | ')
+      :'No work experience (fresh graduate)';
+    const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
+    const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
+
+Target Position: ${p.jobTitle||'a professional role'}
+Education: ${eduLevel} — ${eduSum||'Not specified'}
+Work Experience: ${workSum}
+Key Skills: ${(s.skills||[]).join(', ')||'Not specified'}
+Languages: ${(s.languages||[]).join(', ')||'Not specified'}`;
+
+    const encoded=encodeURIComponent(prompt);
+    const res=await fetch(`https://text.pollinations.ai/${encoded}?model=openai`,{method:'GET'});
+    if(res.ok){
+      const gen=(await res.text()).trim();
+      if(gen&&gen.length>30&&!gen.toLowerCase().includes('error')) aiProfile=gen;
+    }
+  }catch(e){console.warn('Quick CV AI error:',e);}
+
+  if(label){label.textContent='🖨️ Opening print tab...';}
+  const sWithAI={...s,profileSummary:aiProfile};
+  const html=buildCVHtml(sWithAI,tmpl,'print');
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+
+  if(btn){btn.disabled=false;}
+  if(label){label.textContent='⚡ Generate & Print CV';}
+  if(spinner){spinner.style.display='none';}
+  showNotif('✅ CV opened — print or save as PDF!');
+}
+
 async function generateCV(){
   const s=submissions[currentSubmission];
   const btn=document.getElementById('generateBtn');
@@ -1634,18 +1689,30 @@ async function saveEdits(idx){
 
 // ── COVER LETTER GENERATOR ───────────────────────────────────────────────────
 async function generateCoverLetter(idx){
-  const s=submissions[idx]; const p=s.personal; const cl=s.coverLetter||{};
+  const s=submissions[idx]; const p=s.personal;
+  // Read from the live input fields in the modal
+  const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'the position';
+  const company=(document.getElementById('clCompany')?.value||'').trim()||'the company';
+  const strengths=(document.getElementById('clStrengths')?.value||'').trim()||(s.skills||[]).join(', ')||'Not specified';
+  const why=(document.getElementById('clWhy')?.value||'').trim()||'Passionate about contributing to the company';
+  const tone=document.getElementById('clTone')?.value||'professional';
+
   const btn=document.getElementById('genCLBtn');
   const label=document.getElementById('genCLLabel');
   const spinner=document.getElementById('genCLSpinner');
   const display=document.getElementById('coverLetterDisplay');
   const copyBtn=document.getElementById('copyCLBtn');
+  const printBtn=document.getElementById('printCLBtn');
+
+  if(!position||position==='the position'){showNotif('Please enter the target position.',true);return;}
+  if(!company||company==='the company'){showNotif('Please enter the target company.',true);return;}
 
   btn.disabled=true;
   label.textContent='Generating...';
   spinner.style.display='inline-block';
   display.value='Writing your cover letter...';
   if(copyBtn) copyBtn.style.display='none';
+  if(printBtn) printBtn.style.display='none';
 
   const toneMap={
     professional:'formal, professional, and respectful',
@@ -1653,40 +1720,41 @@ async function generateCoverLetter(idx){
     confident:'confident, assertive, and direct',
     creative:'creative, expressive, and memorable'
   };
-  const toneDesc=toneMap[cl.tone]||'professional and formal';
-  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+  const toneDesc=toneMap[tone]||'professional and formal';
+  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel||'Graduate';
   const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length
-    ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd})`).join(', ')
+    ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart||''}–${w.dateEnd||''})`).join(', ')
     :'No prior work experience';
-  const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ');
+  const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ')||'Not specified';
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
-  const prompt=`Write a complete professional cover letter for a job application. Use a ${toneDesc} tone.
+  const prompt=`Write a complete professional cover letter for a Filipino job applicant. Use a ${toneDesc} tone.
 
 Applicant Details:
 - Name: ${p.firstName} ${p.lastName}
-- Applying for: ${cl.position||p.jobTitle||'the position'}
-- Target Company: ${cl.company||'the company'}
-- Education: ${eduLevel} — ${eduSum||'Not specified'}
+- Applying for: ${position}
+- Target Company: ${company}
+- Education: ${eduLevel} — ${eduSum}
 - Work Experience: ${workSum}
-- Key Strengths/Skills: ${cl.strengths||((s.skills||[]).join(', '))||'Not specified'}
-- Why they want this job: ${cl.reason||'Passionate about contributing to the company'}
-- Nationality: ${p.nationality||'Filipino'}
+- Key Strengths/Skills: ${strengths}
+- Why they want this job: ${why}
+- Today's Date: ${today}
 
-FORMAT: Write a complete cover letter with:
-1. Date line (use today's date)
-2. Hiring Manager salutation
-3. Opening paragraph — state the position and express strong interest
-4. Body paragraph 1 — highlight education and most relevant experience
-5. Body paragraph 2 — highlight strengths, skills, and why they are a great fit for ${cl.company||'the company'}
-6. Closing paragraph — thank them and state availability for interview
-7. Professional sign-off with applicant's full name
+FORMAT:
+1. Date (${today})
+2. Dear Hiring Manager,
+3. Opening paragraph — state position and strong interest
+4. Body paragraph 1 — education and experience
+5. Body paragraph 2 — strengths and fit for ${company}
+6. Closing paragraph — availability and thank you
+7. Sincerely, [full name]
 
 RULES:
-- Write in FIRST PERSON as the applicant
-- Do NOT use placeholder brackets like [Company Name] — use the actual values given above
-- Keep it to one page (350–420 words)
-- Sound ${toneDesc}
-- Output ONLY the cover letter text — no explanation, no labels`;
+- First person only (I, my, me)
+- No placeholder brackets — use actual values
+- 350–420 words
+- Tone: ${toneDesc}
+- Output ONLY the cover letter — no labels, no explanation`;
 
   let generated='';
   try{
@@ -1694,27 +1762,21 @@ RULES:
     const r1=await fetch(`https://text.pollinations.ai/${encoded}?model=openai`,{method:'GET'});
     if(r1.ok){
       const t=(await r1.text()).trim();
-      if(t&&t.length>100&&!t.toLowerCase().includes('error'))generated=t;
+      if(t&&t.length>100&&!t.toLowerCase().includes('error')) generated=t;
     }
-  }catch(e1){console.warn('Pollinations failed:',e1);}
-
-  if(!generated){
-    try{
-      const r2=await fetch('https://api.groq.com/openai/v1/chat/completions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer gsk_free'},
-        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:prompt}],max_tokens:700})
-      });
-      const d2=await r2.json();
-      const t2=d2?.choices?.[0]?.message?.content?.trim();
-      if(t2&&t2.length>100)generated=t2;
-    }catch(e2){console.warn('Groq failed:',e2);}
-  }
+  }catch(e){console.warn('Pollinations failed:',e);}
 
   if(generated&&generated.length>100){
     display.value=generated;
-    if(copyBtn)copyBtn.style.display='inline-flex';
+    if(copyBtn) copyBtn.style.display='inline-flex';
+    if(printBtn) printBtn.style.display='inline-flex';
     showNotif('✅ Cover letter generated!');
+    if(!submissions[idx].coverLetter) submissions[idx].coverLetter={};
+    submissions[idx].coverLetter.position=position;
+    submissions[idx].coverLetter.company=company;
+    submissions[idx].coverLetter.strengths=strengths;
+    submissions[idx].coverLetter.reason=why;
+    submissions[idx].coverLetter.tone=tone;
   }else{
     display.value='';
     showNotif('Generation failed. Please try again.',true);
