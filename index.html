@@ -876,13 +876,23 @@
       </div>
     </div>
 
-    <button class="submit-btn" id="submitBtn" onclick="submitForm()">
-      <span id="submitLabel">Submit My Information</span>
+    <!-- DATA CONSENT -->
+    <label id="cv-consent-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <input type="checkbox" id="cv-consent-check" onchange="onCVConsentChange()" style="width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
+      <div style="font-size:12px;color:#1a2744;line-height:1.7;font-family:Inter,sans-serif">
+        <strong style="font-size:13px">I agree to the Data Privacy Terms</strong><br>
+        I hereby give my consent to <strong>Arroyo CV Builder</strong> to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.<br><br>
+        <span style="color:#92400e;font-size:11px">&#12371;&#12398;&#12501;&#12457;&#12540;&#12512;&#12395;&#25제&#20986;&#12377;&#12427;&#20491;&#20154;&#24773;&#22577;&#12399;&#12289;CV&#20316;&#25104;&#30446;&#30340;&#12398;&#12415;&#12395;&#20351;&#29992;&#12373;&#12428;&#12289;&#31532;&#19977;&#32773;&#12408;&#12398;&#25प्र&#20449;&#12399;&#12375;&#12414;&#12379;&#12435;&#12290;</span>
+      </div>
+    </label>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()" disabled style="opacity:0.5;cursor:not-allowed">
+      <span id="submitLabel">Please agree to the Data Privacy Terms above</span>
       <span id="submitSpinner" class="spinner hidden"></span>
     </button>
 
     <p class="footer-note">
-      By submitting, you agree that your information will be used solely to create your CV.<br>
+      By submitting, you confirm that all information provided is accurate and consent to its use for CV creation only.<br>
       <strong>Contact: Reymar Arroyo</strong> · 09063964052 · areymar36@gmail.com
     </p>
   </div>
@@ -1287,7 +1297,24 @@ function compressPhoto(base64) {
   });
 }
 
+function onCVConsentChange() {
+  const checked = document.getElementById('cv-consent-check').checked;
+  const btn = document.getElementById('submitBtn');
+  const label = document.getElementById('submitLabel');
+  const box = document.getElementById('cv-consent-label');
+  btn.disabled = !checked;
+  label.textContent = checked ? 'Submit My Information' : 'Please agree to the Data Privacy Terms above';
+  btn.style.opacity = checked ? '1' : '0.5';
+  btn.style.cursor = checked ? 'pointer' : 'not-allowed';
+  box.style.borderColor = checked ? '#10b981' : '#fde68a';
+  box.style.background = checked ? '#f0fdf4' : '#fffbeb';
+}
+
 async function submitForm() {
+  if (!document.getElementById('cv-consent-check').checked) {
+    showNotif('Please agree to the Data Privacy Terms before submitting.', true);
+    return;
+  }
   const data = collectFormData();
   const err = validate(data);
   if (err) { showNotif(err, true); return; }
