@@ -607,16 +607,8 @@ function viewSubmission(idx){
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
-  // Quick CV one-click generate
-  html+=`<div class="info-group"><h4>⚡ Quick CV</h4>
-    <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">One click — AI writes the profile, opens a print-ready CV instantly. Template: <strong>T${s.templatePref||'1'}</strong> (customer preference). <a href="#" onclick="event.preventDefault();closeModal('viewModal');openTemplateOverlay(${si});" style="color:var(--navy);font-weight:700;">Switch template</a></p>
-    <button onclick="quickGenerateCV(${si})" id="quickCVBtn_${si}" style="padding:11px 24px;background:linear-gradient(135deg,#c8a84b,#e2c97e);color:#1a2744;border:none;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;width:100%;justify-content:center;">
-      <span id="quickCVLabel_${si}">⚡ Generate &amp; Print CV</span>
-      <span id="quickCVSpinner_${si}" style="display:none;width:14px;height:14px;border:2px solid rgba(26,39,68,.2);border-top-color:#1a2744;border-radius:50%;animation:spin .7s linear infinite;"></span>
-    </button>
-  </div>\`;
   // Email customer button
-  html+=\`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
+  html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📤 CV is Ready — Request Payment</button>
       <button onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ CV Delivered</button>
@@ -718,53 +710,6 @@ function updatePreview(){
 }
 
 // ── GENERATE PDF ──────────────────────────────────────────────────────────────
-async function quickGenerateCV(idx){
-  const s=submissions[idx];
-  const tmpl=parseInt(s.templatePref)||1;
-  const btn=document.getElementById(`quickCVBtn_${idx}`);
-  const label=document.getElementById(`quickCVLabel_${idx}`);
-  const spinner=document.getElementById(`quickCVSpinner_${idx}`);
-  if(btn){btn.disabled=true;}
-  if(label){label.textContent='✍️ Writing AI profile...';}
-  if(spinner){spinner.style.display='inline-block';}
-
-  let aiProfile=s.profileSummary||'';
-  try{
-    const p=s.personal;
-    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
-    const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length
-      ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | ')
-      :'No work experience (fresh graduate)';
-    const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
-    const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
-
-Target Position: ${p.jobTitle||'a professional role'}
-Education: ${eduLevel} — ${eduSum||'Not specified'}
-Work Experience: ${workSum}
-Key Skills: ${(s.skills||[]).join(', ')||'Not specified'}
-Languages: ${(s.languages||[]).join(', ')||'Not specified'}`;
-
-    const encoded=encodeURIComponent(prompt);
-    const res=await fetch(`https://text.pollinations.ai/${encoded}?model=openai`,{method:'GET'});
-    if(res.ok){
-      const gen=(await res.text()).trim();
-      if(gen&&gen.length>30&&!gen.toLowerCase().includes('error')) aiProfile=gen;
-    }
-  }catch(e){console.warn('Quick CV AI error:',e);}
-
-  if(label){label.textContent='🖨️ Opening print tab...';}
-  const sWithAI={...s,profileSummary:aiProfile};
-  const html=buildCVHtml(sWithAI,tmpl,'print');
-  const win=window.open('','_blank');
-  win.document.write(html);
-  win.document.close();
-
-  if(btn){btn.disabled=false;}
-  if(label){label.textContent='⚡ Generate & Print CV';}
-  if(spinner){spinner.style.display='none';}
-  showNotif('✅ CV opened — print or save as PDF!');
-}
-
 async function generateCV(){
   const s=submissions[currentSubmission];
   const btn=document.getElementById('generateBtn');
@@ -848,8 +793,8 @@ function buildCVHtml(s,tmpl,mode){
       min-height:100vh;
     }
     .page{
-      width:216mm;
-      min-height:356mm;
+      width:210mm;
+      min-height:297mm;
       background:white;
       display:flex;
       box-shadow:0 4px 30px rgba(0,0,0,.4);
@@ -858,7 +803,7 @@ function buildCVHtml(s,tmpl,mode){
     /* Print: clean A4 */
     @media print{
       .no-print{display:none!important;}
-      @page{margin:0;size:legal portrait;}
+      @page{margin:0;size:A4 portrait;}
       html,body{
         margin:0;padding:0;
         background:white;
@@ -872,8 +817,8 @@ function buildCVHtml(s,tmpl,mode){
         background:white;
       }
       .page{
-        width:216mm;
-        min-height:356mm;
+        width:210mm;
+        min-height:297mm;
         box-shadow:none;
         page-break-after:avoid;
       }
