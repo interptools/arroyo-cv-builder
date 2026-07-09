@@ -1463,7 +1463,7 @@ async function submitForm() {
     submissions.push(data);
 
     // Auto-delete oldest — keep max 5
-    const MAX_SUBMISSIONS = 5;
+    const MAX_SUBMISSIONS = 3;
     if(submissions.length > MAX_SUBMISSIONS){
       submissions.sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
       submissions = submissions.slice(submissions.length - MAX_SUBMISSIONS);
