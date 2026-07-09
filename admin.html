@@ -1735,28 +1735,23 @@ RULES:
 
   let generated='';
   try{
-    const encoded=encodeURIComponent(prompt);
-    const r1=await fetch(`https://text.pollinations.ai/${encoded}?model=openai`,{method:'GET'});
+    const r1=await fetch('https://gemini-proxy.areymar36.workers.dev',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:prompt}]}],
+        generationConfig:{temperature:0.7,maxOutputTokens:1200}
+      })
+    });
     if(r1.ok){
-      let t=(await r1.text()).trim();
-      // Strip JSON reasoning wrapper if Pollinations returns raw API response
-      if(t.startsWith('{')&&t.includes('"reasoning"')){
-        try{
-          const parsed=JSON.parse(t);
-          t=parsed?.choices?.[0]?.message?.content||parsed?.content||t;
-        }catch(e2){ /* keep t as-is */ }
-      }
-      // Strip word count annotations like word(1) word(2)
-      t=t.replace(/\b(\w[\w''\u2019-]*)\(\d+\)/g,'$1');
-      // Strip word count annotations like word(1) word(2)
-      t=t.replace(/(\w[\w''-]*)\(\d+\)/g,'$1');
-      // Strip any remaining JSON artifacts
-      t=t.replace(/^[\s\S]*?"role"\s*:\s*"assistant"[\s\S]*?"content"\s*:\s*"/,'');
-      t=t.replace(/"[\s\S]*$/,'');
-      t=t.trim();
-      if(t&&t.length>100&&!t.toLowerCase().startsWith('error')) generated=t;
+      const rj=await r1.json();
+      if(rj.error) throw new Error(rj.error.message||'Gemini error');
+      let t=rj.candidates&&rj.candidates[0]&&rj.candidates[0].content&&rj.candidates[0].content.parts&&rj.candidates[0].content.parts[0]
+        ?rj.candidates[0].content.parts[0].text||'':'';
+      t=t.replace(/```[\s\S]*?```/g,'').trim();
+      if(t&&t.length>100) generated=t;
     }
-  }catch(e){console.warn('Pollinations failed:',e);}
+  }catch(e){console.warn('Gemini proxy failed:',e);}
 
   if(generated&&generated.length>100){
     display.value=generated;
@@ -1794,82 +1789,142 @@ async function saveCoverLetter(idx){
 function printCoverLetter(){
   const text=document.getElementById('coverLetterDisplay')?.value?.trim();
   if(!text){showNotif('No cover letter to print.',true);return;}
-  // Get current submission for sender info
   const s=submissions[currentSubmission]||{};
   const p=s.personal||{};
-  const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'';
-  const company=(document.getElementById('clCompany')?.value||'').trim()||'';
-  // Format paragraphs
-  const paras=text.split(/\n\n+/).filter(x=>x.trim());
-  const parasHtml=paras.map(para=>`<p>${para.replace(/\n/g,'<br>')}</p>`).join('');
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cover Letter — ${p.firstName||''} ${p.lastName||''}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
-    html,body{height:100%;background:#e5e7eb;}
-    .no-print{position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;}
-    .no-print span{color:white;font-family:Inter,sans-serif;font-size:14px;font-weight:600;}
-    .no-print button{background:#c8a84b;color:#1a2744;border:none;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;}
-    .no-print .close{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);}
-    .page-wrap{display:flex;justify-content:center;padding:70px 20px 40px;min-height:100vh;}
-    .page{width:210mm;min-height:297mm;background:white;display:flex;flex-direction:column;box-shadow:0 4px 30px rgba(0,0,0,.3);}
-    .sidebar{width:68mm;background:#1a2744;padding:32px 22px;flex-shrink:0;display:flex;flex-direction:column;}
-    .photo-wrap{width:80px;height:80px;border-radius:50%;border:3px solid #c8a84b;overflow:hidden;background:#243358;margin:0 auto 20px;flex-shrink:0;}
-    .photo-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
-    .photo-init{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#c8a84b;font-family:Inter,sans-serif;}
-    .sender-name{font-family:Inter,sans-serif;font-size:14px;font-weight:700;color:white;text-align:center;margin-bottom:4px;}
-    .sender-ttl{font-family:Inter,sans-serif;font-size:9px;color:#c8a84b;text-align:center;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:20px;}
-    .s-divider{border:none;border-top:1px solid rgba(255,255,255,.1);margin:0 0 16px;}
-    .s-label{font-family:Inter,sans-serif;font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c8a84b;margin-bottom:8px;}
-    .s-val{font-family:Inter,sans-serif;font-size:10px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:12px;word-break:break-word;}
-    .to-block{margin-top:auto;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);}
-    .to-label{font-family:Inter,sans-serif;font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#c8a84b;margin-bottom:6px;}
-    .to-val{font-family:Inter,sans-serif;font-size:10px;color:rgba(255,255,255,.65);line-height:1.7;}
-    .main{flex:1;padding:40px 36px 32px;}
-    .cl-label{font-family:Inter,sans-serif;font-size:8.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#c8a84b;margin-bottom:6px;}
-    .cl-heading{font-family:Inter,sans-serif;font-size:22px;font-weight:700;color:#1a2744;margin-bottom:28px;line-height:1.2;}
-    .cl-body p{font-family:'Crimson Text',serif;font-size:12.5pt;line-height:1.9;color:#2a2a2a;margin-bottom:14px;text-align:justify;}
-    .cl-sign{margin-top:28px;font-family:'Crimson Text',serif;font-size:15pt;font-style:italic;color:#1a2744;font-weight:600;}
-    @media print{
-      .no-print{display:none!important;}
-      html,body{background:white;}
-      .page-wrap{padding:0;display:block;min-height:unset;}
-      .page{width:210mm;min-height:297mm;box-shadow:none;}
-      @page{margin:0;size:A4 portrait;}
-      body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'Applicant';
+  const company=(document.getElementById('clCompany')?.value||'').trim()||'The Company';
+
+  // Split body (skip date line and greeting if AI included them, keep paragraphs)
+  const allLines=text.split(/\n/).map(l=>l.trim()).filter(l=>l);
+  // Extract greeting line (Dear ...) and signature (Sincerely / the name at end)
+  let greeting='Dear Hiring Manager,';
+  let signature=`${p.firstName||''} ${p.lastName||''}`.trim();
+  let bodyLines=[];
+  let foundGreeting=false;
+  let signatureStartIdx=-1;
+  for(let i=0;i<allLines.length;i++){
+    const l=allLines[i];
+    if(/^dear\b/i.test(l)){greeting=l;foundGreeting=true;continue;}
+    if(foundGreeting){
+      if(/^(sincerely|regards|warm regards|best regards|respectfully|yours truly)/i.test(l)){
+        signatureStartIdx=i;break;
+      }
+      bodyLines.push(l);
     }
-  </style></head><body>
-  <div class="no-print">
-    <span>Cover Letter — ${p.firstName||''} ${p.lastName||''}</span>
-    <button onclick="window.print()">🖨 Print / Save as PDF</button>
-    <button class="close" onclick="window.close()">✕ Close</button>
-    <span style="color:rgba(255,255,255,.4);font-size:11px;">Set: Paper=A4 · Margins=None · Background graphics=ON</span>
-  </div>
-  <div class="page-wrap"><div class="page" style="display:flex;flex-direction:row;">
-    <div class="sidebar">
-      <div class="photo-wrap">${p.photo?`<img src="${p.photo}">`:`<div class="photo-init">${(p.firstName||'?')[0]}${(p.lastName||'?')[0]}</div>`}</div>
-      <div class="sender-name">${p.firstName||''} ${p.lastName||''}</div>
-      <div class="sender-ttl">${position||p.jobTitle||'Applicant'}</div>
-      <hr class="s-divider">
-      ${p.phone?`<div class="s-label">Phone</div><div class="s-val">${p.phone}</div>`:''}
-      ${p.email?`<div class="s-label">Email</div><div class="s-val">${p.email}</div>`:''}
-      ${p.address?`<div class="s-label">Address</div><div class="s-val">${p.address}</div>`:''}
+  }
+  if(!foundGreeting) bodyLines=allLines.filter(l=>!/^\d{1,2}[\s,]|^\w+ \d{1,2},/.test(l));
+  if(signatureStartIdx!==-1&&allLines[signatureStartIdx+1]) signature=allLines[signatureStartIdx+1];
+
+  // Group body lines into paragraphs
+  const rawParas=text.split(/\n\n+/).filter(x=>x.trim());
+  const bodyParas=rawParas.filter(p=>{
+    const t=p.trim();
+    return !/^dear\b/i.test(t) && !/^(sincerely|regards|warm regards|best regards|respectfully|yours truly)/i.test(t) && !/^\d{1,2}[\s,]/.test(t) && !(/^\w+ \d{1,2}, \d{4}/.test(t));
+  });
+  const parasHtml=bodyParas.map(para=>`<p>${para.replace(/\n/g,'<br>')}</p>`).join('');
+
+  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+  const photoHtml=p.photo
+    ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    :`<div style="width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#1a2744;font-family:Inter,sans-serif;">${(p.firstName||'?')[0]}${(p.lastName||'?')[0]}</div>`;
+
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>Cover Letter \u2014 ${p.firstName||''} ${p.lastName||''}</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:#d1d5db;}
+body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+.no-print{position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;}
+.no-print span{color:white;font-family:Inter,sans-serif;font-size:13px;font-weight:600;}
+.no-print button{background:#c8a84b;color:#1a2744;border:none;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;}
+.no-print .close-btn{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);}
+.no-print .hint{color:rgba(255,255,255,.4);font-size:11px;font-family:Inter,sans-serif;}
+.page-wrap{display:flex;justify-content:center;padding:72px 20px 40px;min-height:100vh;}
+.page{width:210mm;min-height:297mm;background:white;display:flex;flex-direction:row;box-shadow:0 8px 40px rgba(0,0,0,.35);overflow:hidden;}
+
+/* LEFT SIDEBAR */
+.sidebar{width:72mm;flex-shrink:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
+.sidebar-gradient{position:absolute;inset:0;background:linear-gradient(160deg,#2d7dd2 0%,#7b3fa0 45%,#e0457b 100%);}
+.sidebar-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:32px 22px 28px;}
+.photo-ring{width:90px;height:90px;border-radius:50%;border:3px solid rgba(255,255,255,0.9);overflow:hidden;margin:0 auto 16px;flex-shrink:0;background:rgba(255,255,255,0.2);}
+.applicant-name{font-family:Inter,sans-serif;font-size:14px;font-weight:700;color:white;text-align:center;margin-bottom:3px;line-height:1.3;}
+.applicant-title{font-family:Inter,sans-serif;font-size:8.5px;font-weight:600;color:rgba(255,255,255,0.75);text-align:center;letter-spacing:2px;text-transform:uppercase;margin-bottom:22px;}
+.contact-divider{border:none;border-top:1px solid rgba(255,255,255,0.25);margin-bottom:16px;}
+.contact-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:10px;}
+.contact-icon{width:18px;height:18px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;margin-top:1px;}
+.contact-text{font-family:Inter,sans-serif;font-size:9.5px;color:rgba(255,255,255,0.85);line-height:1.5;word-break:break-word;}
+.to-block{margin-top:auto;padding-top:18px;border-top:1px solid rgba(255,255,255,0.25);}
+.to-label{font-family:Inter,sans-serif;font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:8px;}
+.to-name{font-family:Inter,sans-serif;font-size:10px;font-weight:700;color:white;margin-bottom:2px;}
+.to-detail{font-family:Inter,sans-serif;font-size:9px;color:rgba(255,255,255,0.7);line-height:1.5;}
+.sender-address{font-family:Inter,sans-serif;font-size:9px;color:rgba(255,255,255,0.7);line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);}
+
+/* RIGHT MAIN */
+.main{flex:1;padding:40px 36px 32px;display:flex;flex-direction:column;}
+.cl-date{font-family:Inter,sans-serif;font-size:10px;color:#6b7280;margin-bottom:24px;}
+.cl-greeting{font-family:Inter,sans-serif;font-size:18px;font-weight:700;color:#1a2744;margin-bottom:22px;line-height:1.3;}
+.cl-body{flex:1;}
+.cl-body p{font-family:'Crimson Text',serif;font-size:11.5pt;line-height:1.85;color:#2a2a2a;margin-bottom:13px;text-align:justify;}
+.cl-signature{margin-top:28px;}
+.cl-sign-closing{font-family:Inter,sans-serif;font-size:10px;color:#6b7280;margin-bottom:8px;}
+.cl-sign-name{font-family:'Dancing Script',cursive;font-size:26px;color:#1a2744;line-height:1.2;}
+.cl-sign-typed{font-family:Inter,sans-serif;font-size:10px;color:#374151;margin-top:3px;font-weight:500;}
+@media print{
+  .no-print{display:none!important;}
+  html,body{background:white;}
+  .page-wrap{padding:0;display:block;min-height:unset;}
+  .page{width:210mm;min-height:297mm;box-shadow:none;}
+  @page{margin:0;size:A4 portrait;}
+}
+</style></head><body>
+<div class="no-print">
+  <span>Cover Letter \u2014 ${p.firstName||''} ${p.lastName||''}</span>
+  <button onclick="window.print()">&#128424; Print / Save as PDF</button>
+  <button class="close-btn" onclick="window.close()">&#x2715; Close</button>
+  <span class="hint">Paper=A4 &middot; Margins=None &middot; Background graphics=ON</span>
+</div>
+<div class="page-wrap"><div class="page">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-gradient"></div>
+    <div class="sidebar-content">
+      <div class="photo-ring">${photoHtml}</div>
+      <div class="applicant-name">${p.firstName||''} ${p.lastName||''}</div>
+      <div class="applicant-title">${position}</div>
+      <hr class="contact-divider">
+      ${p.email?`<div class="contact-item"><div class="contact-icon">&#9993;</div><div class="contact-text">${p.email}</div></div>`:''}
+      ${p.phone?`<div class="contact-item"><div class="contact-icon">&#128222;</div><div class="contact-text">${p.phone}</div></div>`:''}
+      ${(p.social||p.linkedin)?`<div class="contact-item"><div class="contact-icon">&#127760;</div><div class="contact-text">${p.social||p.linkedin}</div></div>`:''}
       <div class="to-block">
-        <div class="to-label">Applying To</div>
-        <div class="to-val">${company||'The Company'}</div>
+        <div class="to-label">To</div>
+        <div class="to-name">Hiring Manager</div>
+        <div class="to-detail">${company}</div>
+        ${p.address?`<div class="sender-address">${p.address}</div>`:''}
       </div>
     </div>
-    <div class="main">
-      <div class="cl-label">Cover Letter</div>
-      <div class="cl-heading">Dear Hiring Manager,</div>
-      <div class="cl-body">${parasHtml}</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="cl-date">${today}</div>
+    <div class="cl-greeting">${greeting}</div>
+    <div class="cl-body">${parasHtml}</div>
+    <div class="cl-signature">
+      <div class="cl-sign-closing">Sincerely,</div>
+      <div class="cl-sign-name">${signature||((p.firstName||'')+ ' ' +(p.lastName||''))}</div>
+      <div class="cl-sign-typed">${p.firstName||''} ${p.lastName||''}</div>
     </div>
-  </div></div>
-  <script>window.onload=function(){window.print();}<\/script>
-  </body></html>`);
+  </div>
+
+</div></div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
   win.document.close();
 }
+
 function copyCoverLetter(){
   const text=document.getElementById('coverLetterDisplay')?.value;
   if(!text)return;
