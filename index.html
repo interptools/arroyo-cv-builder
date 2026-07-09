@@ -11,7 +11,7 @@
 
 <!-- Facebook / Messenger Preview -->
 <meta property="og:title" content="🎯 Arroyo CV/Resume Builder — Professional CV in Minutes!">
-<meta property="og:description" content="Need a job-winning CV? Fill out our simple form and get a professionally designed resume fast! Starting at ₱25 only. 📄✨">
+<meta property="og:description" content="Need a job-winning CV? Fill out our simple form and get a professionally designed resume fast! Starting at ₱50 only. 📄✨">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://interptools.github.io/arroyo-cv-builder/">
 <meta property="og:image" content="https://interptools.github.io/arroyo-cv-builder/preview.svg">
@@ -23,7 +23,7 @@
 <!-- Twitter Preview -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="🎯 Arroyo CV/Resume Builder">
-<meta name="twitter:description" content="Professional CV in minutes! Fill out the form and get hired faster. ₱25 only!">
+<meta name="twitter:description" content="Professional CV in minutes! Fill out the form and get hired faster. ₱50 only!">
 <meta name="twitter:image" content="https://interptools.github.io/arroyo-cv-builder/preview.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arroyo CV/Resume Builder</title>
@@ -891,7 +891,7 @@
         <div style="display:flex;align-items:center;gap:10px">
           <div style="text-align:right">
             <div style="color:#c8a84b;font-size:16px;font-weight:800">+₱75</div>
-            <div style="color:rgba(255,255,255,0.4);font-size:10px;text-decoration:line-through">₱100</div>
+            <div style="color:rgba(255,255,255,0.4);font-size:10px;text-decoration:line-through">₱125</div>
           </div>
           <div id="cl-check-circle" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(200,168,75,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0">
             <svg id="cl-check-icon" width="14" height="14" fill="none" stroke="rgba(200,168,75,0.3)" stroke-width="2.5" viewBox="0 0 24 24" style="transition:all .2s"><polyline points="20 6 9 17 4 12"/></svg>
@@ -930,7 +930,7 @@
           </div>
         </div>
         <div style="margin-top:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;line-height:1.6">
-          <strong>What you'll receive:</strong> A 1-page cover letter in Word/PDF format, personalized for your target job, delivered together with your CV. Total payment: <strong id="cl-total-label">₱100 (CV ₱25 + Cover Letter ₱75)</strong>
+          <strong>What you'll receive:</strong> A 1-page cover letter in Word/PDF format, personalized for your target job, delivered together with your CV. Total payment: <strong id="cl-total-label">₱125 (CV ₱50 + Cover Letter ₱75)</strong>
         </div>
       </div>
     </div>
@@ -965,7 +965,7 @@
         <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Professional CV / Resume</span>
-          <span style="font-weight:600;color:#1a2744">₱25</span>
+          <span style="font-weight:600;color:#1a2744">₱50</span>
         </div>
         <div id="cl-summary-row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Cover Letter Add-on</span>
@@ -973,7 +973,7 @@
         </div>
         <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
           <span style="font-weight:700;color:#1a2744">Total</span>
-          <span id="confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱25</span>
+          <span id="confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱50</span>
         </div>
       </div>
 
@@ -1310,7 +1310,10 @@ function collectFormData() {
     dataConsent: {
       agreed: true,
       agreedAt: new Date().toISOString(),
-      consentVersion: '1.0'
+      method: 'Checkbox on submission form — customer manually ticked the box',
+      consentText: 'I hereby give my consent to Arroyo CV Builder to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.',
+      consentVersion: '1.0',
+      serviceUrl: 'https://interptools.github.io/arroyo-cv-builder/'
     },
     eduLevel,
     personal: {
@@ -1370,14 +1373,14 @@ function compressPhoto(base64) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 250;
+      const MAX = 400;
       let w = img.width, h = img.height;
-      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.55));
+      resolve(canvas.toDataURL('image/jpeg', 0.7));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
@@ -1385,7 +1388,7 @@ function compressPhoto(base64) {
 }
 
 function updateConfirmPage() {
-  var total = coverLetterSelected ? 100 : 25;
+  var total = coverLetterSelected ? 125 : 50;
   var clRow = document.getElementById('cl-summary-row');
   var totalEl = document.getElementById('confirm-total');
   var amountEl = document.getElementById('confirm-gcash-amount');
@@ -1461,13 +1464,6 @@ async function submitForm() {
     } catch(e) { console.warn('Could not load existing:', e); }
 
     submissions.push(data);
-
-    // Auto-delete oldest — keep max 5
-    const MAX_SUBMISSIONS = 3;
-    if(submissions.length > MAX_SUBMISSIONS){
-      submissions.sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
-      submissions = submissions.slice(submissions.length - MAX_SUBMISSIONS);
-    }
 
     const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
