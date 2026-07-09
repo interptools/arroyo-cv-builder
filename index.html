@@ -1310,10 +1310,7 @@ function collectFormData() {
     dataConsent: {
       agreed: true,
       agreedAt: new Date().toISOString(),
-      method: 'Checkbox on submission form — customer manually ticked the box',
-      consentText: 'I hereby give my consent to Arroyo CV Builder to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.',
-      consentVersion: '1.0',
-      serviceUrl: 'https://interptools.github.io/arroyo-cv-builder/'
+      consentVersion: '1.0'
     },
     eduLevel,
     personal: {
@@ -1373,14 +1370,14 @@ function compressPhoto(base64) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      const MAX = 400;
+      const MAX = 250;
       let w = img.width, h = img.height;
-      if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
-      else { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
       canvas.width = w;
       canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.7));
+      resolve(canvas.toDataURL('image/jpeg', 0.55));
     };
     img.onerror = () => resolve(base64);
     img.src = base64;
@@ -1464,6 +1461,13 @@ async function submitForm() {
     } catch(e) { console.warn('Could not load existing:', e); }
 
     submissions.push(data);
+
+    // Auto-delete oldest — keep max 5
+    const MAX_SUBMISSIONS = 5;
+    if(submissions.length > MAX_SUBMISSIONS){
+      submissions.sort((a,b)=>new Date(a.submittedAt)-new Date(b.submittedAt));
+      submissions = submissions.slice(submissions.length - MAX_SUBMISSIONS);
+    }
 
     const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
