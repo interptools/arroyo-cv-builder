@@ -362,7 +362,7 @@ const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'Arroyo2024!';
-const ANTHROPIC_API_KEY = 'YOUR_ANTHROPIC_API_KEY_HERE';
+const ANTHROPIC_API_KEY = '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';
 
 
 let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 = '';
@@ -779,7 +779,7 @@ Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer
     } catch(e){ console.warn('Pollinations CV failed:', e); }
 
     // Option 2: Anthropic Claude (fallback)
-    if(!aiProfile && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'YOUR_ANTHROPIC_API_KEY_HERE'){
+    if(!aiProfile && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== ''){
       try {
         const res2=await fetch('https://api.anthropic.com/v1/messages',{
           method:'POST',
@@ -1448,7 +1448,7 @@ Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing t
     } catch(e1){ console.warn('Pollinations failed:', e1); }
 
     // Option 2: Anthropic Claude (fallback — requires API key set below)
-    if (!generated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'YOUR_ANTHROPIC_API_KEY_HERE') {
+    if (!generated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== '') {
       try {
         const r2 = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
@@ -1762,7 +1762,7 @@ RULES:
   }catch(e1){console.warn('Pollinations CL failed:',e1);}
 
   // Option 2: Anthropic Claude (fallback)
-  if(!clGenerated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY!=='YOUR_ANTHROPIC_API_KEY_HERE'){
+  if(!clGenerated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY!==''){
     try{
       const r2=await fetch('https://api.anthropic.com/v1/messages',{
         method:'POST',
