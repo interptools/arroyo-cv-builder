@@ -362,6 +362,7 @@ const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'Arroyo2024!';
+const ANTHROPIC_API_KEY = 'YOUR_ANTHROPIC_API_KEY_HERE';
 
 
 let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 = '';
@@ -773,6 +774,7 @@ Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer
         method:'POST',
         headers:{
           'Content-Type':'application/json',
+          'x-api-key':ANTHROPIC_API_KEY,
           'anthropic-version':'2023-06-01',
           'anthropic-dangerous-direct-browser-access':'true'
         },
@@ -1428,6 +1430,7 @@ Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing t
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-api-key': ANTHROPIC_API_KEY,
           'anthropic-version': '2023-06-01',
           'anthropic-dangerous-direct-browser-access': 'true'
         },
@@ -1726,6 +1729,7 @@ RULES:
       method:'POST',
       headers:{
         'Content-Type':'application/json',
+        'x-api-key':ANTHROPIC_API_KEY,
         'anthropic-version':'2023-06-01',
         'anthropic-dangerous-direct-browser-access':'true'
       },
