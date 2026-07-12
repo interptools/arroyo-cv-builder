@@ -767,14 +767,20 @@ Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
-    // Try Pollinations for CV generation too
+    // Use Anthropic Claude API
     try {
-      const encodedPrompt2 = encodeURIComponent(prompt);
-      const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
-      if(res.ok){
-        const gen=(await res.text()).trim();
-        if(gen && gen.length > 30 && !gen.includes('Error')) aiProfile=gen;
-      }
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+      });
+      const d=await res.json();
+      const gen=d?.content?.[0]?.text?.trim()||'';
+      if(gen && gen.length > 30) aiProfile=gen;
     } catch(e){ console.warn('CV AI failed:', e); }
   }catch(e){console.error('AI profile error:',e);}
 
@@ -1415,46 +1421,26 @@ Interests/Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing the employer to hire them.`;
 
-    // Try multiple free AI APIs for reliability
+    // Use Anthropic API (Claude)
     let generated = '';
-
-    // Option 1: Pollinations AI
     try {
-      const encoded = encodeURIComponent(prompt);
-      const r1 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
-      if (r1.ok) {
-        const t = (await r1.text()).trim();
-        if (t && t.length > 30 && !t.includes('error') && !t.includes('Error')) generated = t;
-      }
-    } catch(e1){ console.warn('Pollinations failed:', e1); }
-
-    // Option 2: Groq API (free, fast, no signup needed from browser)
-    if (!generated) {
-      try {
-        const r2 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer gsk_free' },
-          body: JSON.stringify({ model: 'llama3-8b-8192', messages: [{ role: 'user', content: prompt }], max_tokens: 300 })
-        });
-        const d2 = await r2.json();
-        const t2 = d2?.choices?.[0]?.message?.content?.trim();
-        if (t2 && t2.length > 30) generated = t2;
-      } catch(e2){ console.warn('Groq failed:', e2); }
-    }
-
-    // Option 3: OpenRouter free tier
-    if (!generated) {
-      try {
-        const r3 = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer sk-or-free', 'HTTP-Referer': 'https://interptools.github.io' },
-          body: JSON.stringify({ model: 'mistralai/mistral-7b-instruct:free', messages: [{ role: 'user', content: prompt }], max_tokens: 300 })
-        });
-        const d3 = await r3.json();
-        const t3 = d3?.choices?.[0]?.message?.content?.trim();
-        if (t3 && t3.length > 30) generated = t3;
-      } catch(e3){ console.warn('OpenRouter failed:', e3); }
-    }
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      const d = await r.json();
+      const t = d?.content?.[0]?.text?.trim();
+      if (t && t.length > 30) generated = t;
+    } catch(e1){ console.warn('Claude API failed:', e1); }
 
     if (generated && generated.length > 30) {
       display.value = generated;
@@ -1736,23 +1722,24 @@ RULES:
 
   let generated='';
   try{
-    const r1=await fetch('https://gemini-proxy.areymar36.workers.dev',{
+    const r1=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
       body:JSON.stringify({
-        contents:[{parts:[{text:prompt}]}],
-        generationConfig:{temperature:0.7,maxOutputTokens:1200}
+        model:'claude-sonnet-4-6',
+        max_tokens:1000,
+        messages:[{role:'user',content:prompt}]
       })
     });
-    if(r1.ok){
-      const rj=await r1.json();
-      if(rj.error) throw new Error(rj.error.message||'Gemini error');
-      let t=rj.candidates&&rj.candidates[0]&&rj.candidates[0].content&&rj.candidates[0].content.parts&&rj.candidates[0].content.parts[0]
-        ?rj.candidates[0].content.parts[0].text||'':'';
-      t=t.replace(/```[\s\S]*?```/g,'').trim();
-      if(t&&t.length>100) generated=t;
-    }
-  }catch(e){console.warn('Gemini proxy failed:',e);}
+    const rj=await r1.json();
+    let t=rj?.content?.[0]?.text?.trim()||'';
+    t=t.replace(/```[\s\S]*?```/g,'').trim();
+    if(t&&t.length>100) generated=t;
+  }catch(e){console.warn('Claude API failed:',e);}
 
   if(generated&&generated.length>100){
     display.value=generated;
