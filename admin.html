@@ -647,10 +647,10 @@ function viewSubmission(idx){
   </div>`;
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
-    <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate with Google AI</strong> — auto-generates an impressive profile. Edit if needed, then Save.</p>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate with Claude AI</strong> — auto-generates an impressive profile. Edit if needed, then Save.</p>
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
       <button onclick="generateProfileSummary(${si})" id="genProfileBtn" style="padding:9px 16px;background:linear-gradient(135deg,#1a6634,#1e8040);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;">
-        <span id="genProfileLabel">✨ Generate with Google AI</span>
+        <span id="genProfileLabel">✨ Generate with Claude AI</span>
         <span id="genProfileSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;"></span>
       </button>
     </div>
@@ -768,22 +768,34 @@ Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
-    // Use Anthropic Claude API
+    // Option 1: Pollinations AI (free, no key needed)
     try {
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key':ANTHROPIC_API_KEY,
-          'anthropic-version':'2023-06-01',
-          'anthropic-dangerous-direct-browser-access':'true'
-        },
-        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-      });
-      const d=await res.json();
-      const gen=d?.content?.[0]?.text?.trim()||'';
-      if(gen && gen.length > 30) aiProfile=gen;
-    } catch(e){ console.warn('CV AI failed:', e); }
+      const encodedPrompt2=encodeURIComponent(prompt);
+      const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
+      if(res.ok){
+        const gen=(await res.text()).trim();
+        if(gen && gen.length > 30 && !gen.toLowerCase().includes('error')) aiProfile=gen;
+      }
+    } catch(e){ console.warn('Pollinations CV failed:', e); }
+
+    // Option 2: Anthropic Claude (fallback)
+    if(!aiProfile && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'YOUR_ANTHROPIC_API_KEY_HERE'){
+      try {
+        const res2=await fetch('https://api.anthropic.com/v1/messages',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'x-api-key':ANTHROPIC_API_KEY,
+            'anthropic-version':'2023-06-01',
+            'anthropic-dangerous-direct-browser-access':'true'
+          },
+          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+        });
+        const d2=await res2.json();
+        const gen2=d2?.content?.[0]?.text?.trim()||'';
+        if(gen2 && gen2.length > 30) aiProfile=gen2;
+      } catch(e){ console.warn('Claude CV AI failed:', e); }
+    }
   }catch(e){console.error('AI profile error:',e);}
 
   btn.disabled=false; label.textContent='🖨️ Generate & Save as PDF'; spinner.style.display='none';
@@ -1423,27 +1435,41 @@ Interests/Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing the employer to hire them.`;
 
-    // Use Anthropic API (Claude)
     let generated = '';
+
+    // Option 1: Pollinations AI (free, no key needed)
     try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 1000,
-          messages: [{ role: 'user', content: prompt }]
-        })
-      });
-      const d = await r.json();
-      const t = d?.content?.[0]?.text?.trim();
-      if (t && t.length > 30) generated = t;
-    } catch(e1){ console.warn('Claude API failed:', e1); }
+      const encoded = encodeURIComponent(prompt);
+      const r1 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
+      if (r1.ok) {
+        const t = (await r1.text()).trim();
+        if (t && t.length > 30 && !t.toLowerCase().includes('error')) generated = t;
+      }
+    } catch(e1){ console.warn('Pollinations failed:', e1); }
+
+    // Option 2: Anthropic Claude (fallback — requires API key set below)
+    if (!generated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'YOUR_ANTHROPIC_API_KEY_HERE') {
+      try {
+        const r2 = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 1000,
+            messages: [{ role: 'user', content: prompt }]
+          })
+        });
+        const d2 = await r2.json();
+        if (!r2.ok) throw new Error(d2?.error?.message || `API error ${r2.status}`);
+        const t2 = d2?.content?.[0]?.text?.trim();
+        if (t2 && t2.length > 30) generated = t2;
+      } catch(e2){ console.warn('Claude API failed:', e2); }
+    }
 
     if (generated && generated.length > 30) {
       display.value = generated;
@@ -1723,30 +1749,40 @@ RULES:
 - Tone: ${toneDesc}
 - Output ONLY the cover letter — no labels, no explanation`;
 
-  let generated='';
-  try{
-    const r1=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key':ANTHROPIC_API_KEY,
-        'anthropic-version':'2023-06-01',
-        'anthropic-dangerous-direct-browser-access':'true'
-      },
-      body:JSON.stringify({
-        model:'claude-sonnet-4-6',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
-    });
-    const rj=await r1.json();
-    let t=rj?.content?.[0]?.text?.trim()||'';
-    t=t.replace(/```[\s\S]*?```/g,'').trim();
-    if(t&&t.length>100) generated=t;
-  }catch(e){console.warn('Claude API failed:',e);}
+  let clGenerated='';
 
-  if(generated&&generated.length>100){
-    display.value=generated;
+  // Option 1: Pollinations AI (free, no key needed)
+  try{
+    const clEncoded=encodeURIComponent(prompt);
+    const r1=await fetch(`https://text.pollinations.ai/${clEncoded}?model=openai`,{method:'GET'});
+    if(r1.ok){
+      const t=(await r1.text()).trim().replace(/```[\s\S]*?```/g,'').trim();
+      if(t&&t.length>100) clGenerated=t;
+    }
+  }catch(e1){console.warn('Pollinations CL failed:',e1);}
+
+  // Option 2: Anthropic Claude (fallback)
+  if(!clGenerated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY!=='YOUR_ANTHROPIC_API_KEY_HERE'){
+    try{
+      const r2=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key':ANTHROPIC_API_KEY,
+          'anthropic-version':'2023-06-01',
+          'anthropic-dangerous-direct-browser-access':'true'
+        },
+        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+      });
+      const rj=await r2.json();
+      if(!r2.ok) throw new Error(rj?.error?.message||`API error ${r2.status}`);
+      const t2=(rj?.content?.[0]?.text?.trim()||'').replace(/```[\s\S]*?```/g,'').trim();
+      if(t2&&t2.length>100) clGenerated=t2;
+    }catch(e2){console.warn('Claude CL failed:',e2);}
+  }
+
+  if(clGenerated&&clGenerated.length>100){
+    display.value=clGenerated;
     if(copyBtn) copyBtn.style.display='inline-flex';
     if(printBtn) printBtn.style.display='inline-flex';
     showNotif('✅ Cover letter generated!');
@@ -1758,7 +1794,7 @@ RULES:
     submissions[idx].coverLetter.tone=tone;
   }else{
     display.value='';
-    showNotif('Generation failed. Please try again.',true);
+    showNotif('Generation failed. All AI services unavailable. Please try again.',true);
   }
 
   btn.disabled=false;
