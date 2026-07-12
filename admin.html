@@ -768,33 +768,28 @@ Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
-    // Option 1: Pollinations AI (free, no key needed)
+    // Option 1: Groq (free, fast, reliable)
     try {
-      const encodedPrompt2=encodeURIComponent(prompt);
-      const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
-      if(res.ok){
-        const gen=(await res.text()).trim();
-        if(gen && gen.length > 30 && !gen.toLowerCase().includes('error')) aiProfile=gen;
-      }
-    } catch(e){ console.warn('Pollinations CV failed:', e); }
+      const r1=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer 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'},
+        body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:prompt}],max_tokens:300})
+      });
+      const d1=await r1.json();
+      const gen1=d1?.choices?.[0]?.message?.content?.trim()||'';
+      if(gen1 && gen1.length > 30) aiProfile=gen1;
+    } catch(e){ console.warn('Groq CV failed:', e); }
 
-    // Option 2: Anthropic Claude (fallback)
-    if(!aiProfile && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== ''){
+    // Option 2: Pollinations (free fallback, no key)
+    if(!aiProfile){
       try {
-        const res2=await fetch('https://api.anthropic.com/v1/messages',{
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'x-api-key':ANTHROPIC_API_KEY,
-            'anthropic-version':'2023-06-01',
-            'anthropic-dangerous-direct-browser-access':'true'
-          },
-          body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-        });
-        const d2=await res2.json();
-        const gen2=d2?.content?.[0]?.text?.trim()||'';
-        if(gen2 && gen2.length > 30) aiProfile=gen2;
-      } catch(e){ console.warn('Claude CV AI failed:', e); }
+        const encodedPrompt2=encodeURIComponent(prompt);
+        const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
+        if(res.ok){
+          const gen=(await res.text()).trim();
+          if(gen && gen.length > 30 && !gen.toLowerCase().includes('error')) aiProfile=gen;
+        }
+      } catch(e){ console.warn('Pollinations CV failed:', e); }
     }
   }catch(e){console.error('AI profile error:',e);}
 
@@ -1437,38 +1432,29 @@ Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing t
 
     let generated = '';
 
-    // Option 1: Pollinations AI (free, no key needed)
+    // Option 1: Groq (free, fast, reliable)
     try {
-      const encoded = encodeURIComponent(prompt);
-      const r1 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
-      if (r1.ok) {
-        const t = (await r1.text()).trim();
-        if (t && t.length > 30 && !t.toLowerCase().includes('error')) generated = t;
-      }
-    } catch(e1){ console.warn('Pollinations failed:', e1); }
+      const r1 = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer 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' },
+        body: JSON.stringify({ model: 'llama3-8b-8192', messages: [{ role: 'user', content: prompt }], max_tokens: 300 })
+      });
+      const d1 = await r1.json();
+      if (!r1.ok) throw new Error(d1?.error?.message || `Groq error ${r1.status}`);
+      const t1 = d1?.choices?.[0]?.message?.content?.trim();
+      if (t1 && t1.length > 30) generated = t1;
+    } catch(e1){ console.warn('Groq failed:', e1); }
 
-    // Option 2: Anthropic Claude (fallback — requires API key set below)
-    if (!generated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== '') {
+    // Option 2: Pollinations (free fallback, no key)
+    if (!generated) {
       try {
-        const r2 = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 1000,
-            messages: [{ role: 'user', content: prompt }]
-          })
-        });
-        const d2 = await r2.json();
-        if (!r2.ok) throw new Error(d2?.error?.message || `API error ${r2.status}`);
-        const t2 = d2?.content?.[0]?.text?.trim();
-        if (t2 && t2.length > 30) generated = t2;
-      } catch(e2){ console.warn('Claude API failed:', e2); }
+        const encoded = encodeURIComponent(prompt);
+        const r2 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
+        if (r2.ok) {
+          const t2 = (await r2.text()).trim();
+          if (t2 && t2.length > 30 && !t2.toLowerCase().includes('error')) generated = t2;
+        }
+      } catch(e2){ console.warn('Pollinations failed:', e2); }
     }
 
     if (generated && generated.length > 30) {
@@ -1749,39 +1735,17 @@ RULES:
 - Tone: ${toneDesc}
 - Output ONLY the cover letter — no labels, no explanation`;
 
-  let clGenerated='';
-
-  // Option 1: Pollinations AI (free, no key needed)
+  // Option 1: Groq (free, fast, reliable)
   try{
-    const clEncoded=encodeURIComponent(prompt);
-    const r1=await fetch(`https://text.pollinations.ai/${clEncoded}?model=openai`,{method:'GET'});
-    if(r1.ok){
-      const t=(await r1.text()).trim().replace(/```[\s\S]*?```/g,'').trim();
-      if(t&&t.length>100) clGenerated=t;
-    }
-  }catch(e1){console.warn('Pollinations CL failed:',e1);}
-
-  // Option 2: Anthropic Claude (fallback)
-  if(!clGenerated && ANTHROPIC_API_KEY && ANTHROPIC_API_KEY!==''){
-    try{
-      const r2=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key':ANTHROPIC_API_KEY,
-          'anthropic-version':'2023-06-01',
-          'anthropic-dangerous-direct-browser-access':'true'
-        },
-        body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-      });
-      const rj=await r2.json();
-      if(!r2.ok) throw new Error(rj?.error?.message||`API error ${r2.status}`);
-      const t2=(rj?.content?.[0]?.text?.trim()||'').replace(/```[\s\S]*?```/g,'').trim();
-      if(t2&&t2.length>100) clGenerated=t2;
-    }catch(e2){console.warn('Claude CL failed:',e2);}
-  }
-
-  if(clGenerated&&clGenerated.length>100){
+    const r1=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer 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'},
+      body:JSON.stringify({model:'llama3-8b-8192',messages:[{role:'user',content:prompt}],max_tokens:600})
+    });
+    const rj=await r1.json();
+    if(!r1.ok) throw new Error(rj?.error?.message||`Groq error ${r1.status}`);
+    let clGenerated=(rj?.choices?.[0]?.message?.content?.trim()||'').replace(/```[\s\S]*?```/g,'').trim();
+    if(!clGenerated||clGenerated.length<100) throw new Error('Empty response. Please try again.');
     display.value=clGenerated;
     if(copyBtn) copyBtn.style.display='inline-flex';
     if(printBtn) printBtn.style.display='inline-flex';
@@ -1792,9 +1756,32 @@ RULES:
     submissions[idx].coverLetter.strengths=strengths;
     submissions[idx].coverLetter.reason=why;
     submissions[idx].coverLetter.tone=tone;
-  }else{
+  }catch(e){
+    // Option 2: Pollinations fallback
+    try{
+      const clEncoded=encodeURIComponent(prompt);
+      const r2=await fetch(`https://text.pollinations.ai/${clEncoded}?model=openai`,{method:'GET'});
+      if(r2.ok){
+        let clGenerated2=(await r2.text()).trim().replace(/```[\s\S]*?```/g,'').trim();
+        if(clGenerated2&&clGenerated2.length>100){
+          display.value=clGenerated2;
+          if(copyBtn) copyBtn.style.display='inline-flex';
+          if(printBtn) printBtn.style.display='inline-flex';
+          showNotif('✅ Cover letter generated!');
+          if(!submissions[idx].coverLetter) submissions[idx].coverLetter={};
+          submissions[idx].coverLetter.position=position;
+          submissions[idx].coverLetter.company=company;
+          submissions[idx].coverLetter.strengths=strengths;
+          submissions[idx].coverLetter.reason=why;
+          submissions[idx].coverLetter.tone=tone;
+          btn.disabled=false; label.textContent='✨ Re-generate'; spinner.style.display='none';
+          return;
+        }
+      }
+    }catch(e2){console.warn('Pollinations CL failed:',e2);}
     display.value='';
-    showNotif('Generation failed. All AI services unavailable. Please try again.',true);
+    showNotif('Generation failed. Please try again.',true);
+    console.error('CL error:',e);
   }
 
   btn.disabled=false;
