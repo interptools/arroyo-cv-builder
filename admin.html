@@ -545,7 +545,7 @@ function viewSubmission(idx){
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
   let html='';
   const hasCL=s.coverLetter?.requested;
-  const totalPrice=hasCL?'₱100 (CV ₱25 + Cover Letter ₱75)':'₱25 (CV only)';
+  const totalPrice=hasCL?'₱100 (CV ₱50 + Cover Letter ₱75)':'₱50 (CV only)';
   if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
   html+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
   html+='<span class="status-badge status-'+s.status+'">'+s.status+'</span>';
