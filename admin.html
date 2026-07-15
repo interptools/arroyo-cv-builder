@@ -670,9 +670,14 @@ function viewSubmission(idx){
   // Email customer button
   html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">📤 CV is Ready — Request Payment</button>
-      <button onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">✅ CV Delivered</button>
+      <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+        <span>📤 CV is Ready — Request Payment</span>
+      </button>
+      <button id="emailDeliveredBtn_${si}" onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+        <span>✅ CV Delivered</span>
+      </button>
     </div>
+    <p style="font-size:11px;color:var(--gray);margin-top:8px;">📨 Emails are sent automatically via EmailJS — no email client needed.</p>
   </div>`;
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
@@ -875,27 +880,41 @@ function buildCVHtml(s,tmpl,mode){
       box-shadow:0 4px 30px rgba(0,0,0,.4);
       flex-shrink:0;
     }
-    /* Print: clean A4 */
+    /* Print: clean A4 — no blank pages */
     @media print{
       .no-print{display:none!important;}
       @page{margin:0;size:A4 portrait;}
       html,body{
         margin:0;padding:0;
+        width:210mm;
+        height:297mm;
+        min-height:unset;
+        max-height:297mm;
+        overflow:hidden;
         background:white;
         -webkit-print-color-adjust:exact;
         print-color-adjust:exact;
       }
       .page-wrap{
         padding:0;
+        margin:0;
         display:block;
+        width:210mm;
+        height:297mm;
         min-height:unset;
+        max-height:297mm;
+        overflow:hidden;
         background:white;
       }
       .page{
         width:210mm;
-        min-height:297mm;
+        height:297mm;
+        min-height:unset;
+        max-height:297mm;
+        overflow:hidden;
         box-shadow:none;
         page-break-after:avoid;
+        page-break-inside:avoid;
       }
     }
   </style>`;
@@ -2789,38 +2808,185 @@ async function sendDoneEmail(idx){
   }
 }
 
-function emailCustomer(idx, type){
+async function emailCustomer(idx, type){
   const s=submissions[idx]; const p=s.personal;
   const hasCL=s.coverLetter?.requested;
   const total=hasCL?'₱125':'₱50';
-  let subject,body;
-  if(type==='ready'){
-    subject=`Your CV is Ready — Please Send Payment (${total})`;
-    body=`Hi ${p.firstName},
+  const docLabel=hasCL?'CV and Cover Letter':'CV';
 
-Your professional CV${hasCL?' and cover letter':''} is ready!
+  if(!p.email){ showNotif('No email on file for this customer.', true); return; }
 
-Please send payment of ${total} via GCash to proceed with delivery.
+  // ── Disable button to prevent double-send ────────────────────
+  const btnId = type==='ready' ? 'emailReadyBtn_'+idx : 'emailDeliveredBtn_'+idx;
+  const btn = document.getElementById(btnId);
+  const origText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled=true; btn.textContent='Sending...'; }
 
-GCash: 09063964052 (Reymar Arroyo)
+  let htmlBody='', plainBody='', subject='';
 
-After payment, send your GCash screenshot to this email or via Messenger/Viber.
+  if(type === 'ready'){
+    subject = `Your CV is Ready — Please Send Payment (${total})`;
 
-Thank you!
-Arroyo CV Builder`;
+    htmlBody =
+      '<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;">'+
+
+      '<div style="background:#1a2744;padding:24px 28px;">'+
+        '<h1 style="color:#e2c97e;margin:0;font-size:20px;letter-spacing:.5px;">Arroyo CV Builder</h1>'+
+        '<p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Professional CV &amp; Resume Service</p>'+
+      '</div>'+
+
+      '<div style="background:#f7f8fc;padding:24px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">'+
+        '<p style="font-size:15px;margin:0 0 8px;">Dear <strong>'+p.firstName+'</strong>,</p>'+
+        '<p style="font-size:13px;line-height:1.8;color:#374151;margin:0 0 20px;">'+
+          'Great news! 🎉 Your professional <strong>'+docLabel+'</strong> is now ready! '+
+          'Please complete the payment below to receive your file.'+
+        '</p>'+
+
+        '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;">'+
+          '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
+          '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
+            '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+p.firstName+' '+p.lastName+'</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;">Amount Due</td><td style="padding:5px 0;">'+
+              '<span style="background:#fef3c7;color:#92400e;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:800;">'+total+'</span>'+
+            '</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;">Status</td><td style="padding:5px 0;">'+
+              '<span style="background:#dbeafe;color:#1d4ed8;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;">⏳ Awaiting Payment</span>'+
+            '</td></tr>'+
+          '</table>'+
+        '</div>'+
+
+        '<div style="background:#1a2744;border-radius:10px;padding:20px 22px;margin-bottom:20px;text-align:center;">'+
+          '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c8a84b;margin-bottom:12px;">💳 GCash / InstaPay Payment</div>'+
+          '<div style="font-size:28px;font-weight:900;color:white;letter-spacing:1px;margin-bottom:4px;">'+total+'</div>'+
+          '<div style="font-size:14px;color:rgba(255,255,255,.7);margin-bottom:12px;">Send via GCash to:</div>'+
+          '<div style="background:rgba(200,168,75,.15);border:1.5px solid rgba(200,168,75,.4);border-radius:8px;padding:12px 18px;display:inline-block;">'+
+            '<div style="font-size:20px;font-weight:900;color:#e2c97e;letter-spacing:1px;">09063964052</div>'+
+            '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;">Reymar Arroyo · Arroyo CV Builder</div>'+
+          '</div>'+
+        '</div>'+
+
+        '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
+          '<div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px;">📸 After Payment</div>'+
+          '<p style="font-size:12px;color:#166534;margin:0;line-height:1.75;">'+
+            'Send your <strong>GCash payment screenshot</strong> to us via:<br>'+
+            '📧 Reply to this email &nbsp;|&nbsp; 💬 Facebook Messenger &nbsp;|&nbsp; 📲 Viber'+
+          '</p>'+
+        '</div>'+
+
+        '<div style="border-top:1px solid #e5e7eb;padding-top:16px;">'+
+          '<p style="font-size:12px;color:#6b7280;margin:0 0 6px;">Questions? Contact us anytime:</p>'+
+          '<p style="font-size:13px;font-weight:700;color:#1a2744;margin:0;">📱 09063964052 &nbsp;|&nbsp; ✉ areymar36@gmail.com</p>'+
+          '<p style="font-size:11px;color:#9ca3af;margin:6px 0 0;">Facebook/Messenger: Arroyo CV Builder</p>'+
+        '</div>'+
+      '</div>'+
+
+      '<div style="background:#1a2744;padding:14px 28px;text-align:center;">'+
+        '<p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Arroyo CV Builder &nbsp;·&nbsp; Professional CV &amp; Resume Service &nbsp;·&nbsp; Philippines</p>'+
+      '</div>'+
+    '</div>';
+
+    plainBody =
+      'Dear '+p.firstName+',\n\n'+
+      'Great news! Your professional '+docLabel+' is now ready!\n\n'+
+      'ORDER SUMMARY\n'+
+      'Name: '+p.firstName+' '+p.lastName+'\n'+
+      'Service: '+docLabel+'\n'+
+      'Amount Due: '+total+'\n\n'+
+      'HOW TO PAY:\n'+
+      'Send '+total+' via GCash to:\n'+
+      '09063964052 — Reymar Arroyo (Arroyo CV Builder)\n\n'+
+      'AFTER PAYMENT:\n'+
+      'Send your GCash screenshot via:\n'+
+      '- Reply to this email\n'+
+      '- Facebook Messenger: Arroyo CV Builder\n'+
+      '- Viber: 09063964052\n\n'+
+      'Questions? 09063964052 | areymar36@gmail.com\n\n'+
+      'Thank you!\n'+
+      'Arroyo CV Builder';
+
   } else {
-    subject=`Your CV${hasCL?' and Cover Letter':''} Has Been Delivered!`;
-    body=`Hi ${p.firstName},
+    // type === 'delivered'
+    subject = `Your ${docLabel} Has Been Delivered! — Arroyo CV Builder`;
 
-Your professional CV${hasCL?' and cover letter':''} has been delivered! Please check your email/Messenger.
+    htmlBody =
+      '<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;">'+
 
-Thank you for choosing Arroyo CV Builder. We wish you all the best in your job search!
+      '<div style="background:#1a2744;padding:24px 28px;">'+
+        '<h1 style="color:#e2c97e;margin:0;font-size:20px;letter-spacing:.5px;">Arroyo CV Builder</h1>'+
+        '<p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Professional CV &amp; Resume Service</p>'+
+      '</div>'+
 
-Arroyo CV Builder
-09063964052`;
+      '<div style="background:#f7f8fc;padding:24px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">'+
+        '<p style="font-size:15px;margin:0 0 8px;">Dear <strong>'+p.firstName+'</strong>,</p>'+
+        '<p style="font-size:13px;line-height:1.8;color:#374151;margin:0 0 20px;">'+
+          'Your professional <strong>'+docLabel+'</strong> has been delivered! 🎊 '+
+          'Please check your email, Messenger, or Viber for the file.'+
+        '</p>'+
+
+        '<div style="background:#d1fae5;border:1.5px solid #6ee7b7;border-radius:10px;padding:18px 20px;margin-bottom:20px;text-align:center;">'+
+          '<div style="font-size:32px;margin-bottom:8px;">✅</div>'+
+          '<div style="font-size:16px;font-weight:800;color:#065f46;margin-bottom:4px;">Your '+docLabel+' is Ready!</div>'+
+          '<div style="font-size:12px;color:#166534;">Check your inbox, Messenger, or Viber now</div>'+
+        '</div>'+
+
+        '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
+          '<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:8px;">💡 Tips for Using Your CV</div>'+
+          '<ul style="font-size:12px;color:#92400e;margin:0;padding-left:18px;line-height:2.1;">'+
+            '<li>Save both PDF and Word versions if provided</li>'+
+            '<li>Tailor your cover letter for each application</li>'+
+            '<li>Keep a digital copy in Google Drive or email</li>'+
+            '<li>Update your CV every 6 months</li>'+
+          '</ul>'+
+        '</div>'+
+
+        '<div style="border-top:1px solid #e5e7eb;padding-top:16px;">'+
+          '<p style="font-size:13px;color:#374151;margin:0 0 8px;">We wish you all the best in your job search! 🙏</p>'+
+          '<p style="font-size:12px;color:#6b7280;margin:0 0 6px;">Questions? Contact us anytime:</p>'+
+          '<p style="font-size:13px;font-weight:700;color:#1a2744;margin:0;">📱 09063964052 &nbsp;|&nbsp; ✉ areymar36@gmail.com</p>'+
+          '<p style="font-size:11px;color:#9ca3af;margin:6px 0 0;">Facebook/Messenger: Arroyo CV Builder</p>'+
+        '</div>'+
+      '</div>'+
+
+      '<div style="background:#1a2744;padding:14px 28px;text-align:center;">'+
+        '<p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Arroyo CV Builder &nbsp;·&nbsp; Professional CV &amp; Resume Service &nbsp;·&nbsp; Philippines</p>'+
+      '</div>'+
+    '</div>';
+
+    plainBody =
+      'Dear '+p.firstName+',\n\n'+
+      'Your professional '+docLabel+' has been delivered!\n\n'+
+      'Please check your email, Messenger, or Viber for the file.\n\n'+
+      'Tips for Using Your CV:\n'+
+      '- Save both PDF and Word versions if provided\n'+
+      '- Tailor your cover letter for each application\n'+
+      '- Keep a digital copy in Google Drive or email\n'+
+      '- Update your CV every 6 months\n\n'+
+      'We wish you all the best in your job search!\n\n'+
+      'Questions? 09063964052 | areymar36@gmail.com\n'+
+      'Facebook/Messenger: Arroyo CV Builder\n\n'+
+      'Thank you for choosing Arroyo CV Builder! 🙏\n'+
+      'Arroyo CV Builder';
   }
-  const mailto=`mailto:${p.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.open(mailto);
+
+  try {
+    emailjs.init(EMAILJS_KEY);
+    await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+      to_email:         p.email,
+      to_name:          p.firstName+' '+p.lastName,
+      customer_name:    p.firstName,
+      cc_email:         ADMIN_CC,
+      subject:          subject,
+      translation_note: plainBody,
+      html_body:        htmlBody
+    });
+    showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
+  } catch(e){
+    showNotif('❌ Email failed: '+e.message+'. Try again or check connection.', true);
+    console.error('EmailJS error:', e);
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent=origText; }
+  }
 }
 
 // ── GCASH ─────────────────────────────────────────────────────────────────────
