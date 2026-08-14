@@ -1408,9 +1408,24 @@ async function generateCV(){
   const btn=document.getElementById('generateBtn');
   const label=document.getElementById('genLabel');
   const spinner=document.getElementById('genSpinner');
+
+  // ── PROFILE SUMMARY IS READ-ONLY AT PRINT TIME ──────────────────────────────
+  // The summary saved on the submission (whether AI-generated earlier via the
+  // "Generate Profile Summary" button, or typed/edited by the admin) is the
+  // source of truth. Printing must NEVER rewrite it. Making it fit one A4 page
+  // is handled visually by the ONE-PAGE AUTO-FIT script inside the print window,
+  // which scales the layout — it does not touch the wording.
+  const savedProfile = (s.profileSummary || '').trim();
+
+  if(savedProfile){
+    openCVPrintWindow({...s, profileSummary: savedProfile});
+    return;
+  }
+
+  // ── ONLY generate when there is no summary at all ────────────────────────────
   btn.disabled=true; label.textContent='✨ Writing AI Profile...'; spinner.style.display='inline-block';
 
-  let aiProfile=s.profileSummary||'';
+  let aiProfile='';
   try{
     const p=s.personal;
     const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
@@ -1431,14 +1446,25 @@ Hobbies: ${s.hobbies||'Not specified'}
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
     const gen = await aiGenerate(prompt, (msg)=>{ label.textContent=msg; });
-    if(gen && gen.length > 30) aiProfile = gen;
-    else console.warn('All AI providers returned empty for CV profile.');
+    if(gen && gen.length > 30){
+      aiProfile = gen;
+      // Persist it so the next print reuses this exact text instead of rewriting.
+      submissions[currentSubmission].profileSummary = gen;
+      const disp = document.getElementById('profileDisplay');
+      if(disp) disp.value = gen;
+    } else {
+      console.warn('All AI providers returned empty for CV profile.');
+    }
   } catch(e){ console.warn('generateCV AI error:', e); }
 
   btn.disabled=false; label.textContent='🖨️ Generate & Save as PDF'; spinner.style.display='none';
 
-  const sWithAI={...s,profileSummary:aiProfile};
-  const html=buildCVHtml(sWithAI,selectedTemplate,'print');
+  openCVPrintWindow({...s, profileSummary: aiProfile});
+}
+
+// ── OPEN PRINT WINDOW (no AI, no content changes) ─────────────────────────────
+function openCVPrintWindow(sub){
+  const html=buildCVHtml(sub,selectedTemplate,'print');
   const win=window.open('','_blank');
   win.document.write(html);
   win.document.close();
