@@ -874,6 +874,24 @@ const MAIL_COUNT_KEY = 'arroyo_mail_count_v1';
 const MAIL_CAP_KEY   = 'arroyo_mail_cap_v1';
 const DEFAULT_MAIL_CAP = 200;   // EmailJS free tier — confirm on your dashboard
 
+// EmailJS rejects with an EmailJSResponseStatus object ({status, text}), NOT an
+// Error — so e.message is undefined and every failure read "failed: undefined".
+// This turns whatever came back into something you can actually act on.
+function mailErr(e){
+  if(!e) return 'unknown error';
+  if(typeof e === 'string') return e;
+  const status = e.status ?? e.code ?? '';
+  const text   = e.text || e.message || '';
+  let hint = '';
+  if(status === 403) hint = ' — EmailJS is blocking this page. Check "Allowed Origins" in EmailJS → Account → Security, and that API requests from browsers are enabled.';
+  else if(status === 401 || status === 400) hint = ' — bad Public Key, Service ID, or Template ID, or a template variable it expects is missing.';
+  else if(status === 402 || /limit|quota/i.test(text)) hint = ' — monthly quota reached on your EmailJS plan.';
+  else if(status === 404) hint = ' — that Service ID or Template ID does not exist on this EmailJS account.';
+  else if(status === 412) hint = ' — the connected mail service (usually Gmail) needs re-authorising in EmailJS → Email Services.';
+  else if(!status && !text) hint = ' — no response at all. The EmailJS script may be blocked (ad-blocker/offline), or you opened this file with file:// instead of a real http(s) address.';
+  return (status ? 'status ' + status + ': ' : '') + (text || 'no details') + hint;
+}
+
 function alreadyEmailed(idx, type){
   return !!(submissions[idx] && submissions[idx].emailLog && submissions[idx].emailLog[type]);
 }
@@ -3653,10 +3671,13 @@ async function sendDoneEmail(idx){
       html_body:        htmlBody
     });
     showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
-    await noteEmailSent(idx, type === 'delivered' ? 'delivered' : 'ready');
+    // sendDoneEmail only ever sends the "ready / payment request" mail, so the
+    // type is fixed. It previously read an undefined `type` variable here, which
+    // threw straight after a SUCCESSFUL send — so nothing was ever logged, the
+    // duplicate guard never armed, and the month counter never moved.
     await noteEmailSent(idx, 'ready');
   } catch(e){
-    showNotif('❌ Auto email failed: '+e.message, true);
+    showNotif('❌ Auto email failed — '+mailErr(e), true);
     console.error('EmailJS error:',e);
   }
 }
@@ -3834,8 +3855,10 @@ async function emailCustomer(idx, type){
       html_body:        htmlBody
     });
     showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
+    // Record the send so the duplicate guard arms and the counter advances.
+    await noteEmailSent(idx, type === 'delivered' ? 'delivered' : 'ready');
   } catch(e){
-    showNotif('❌ Email failed: '+e.message+'. Try again or check connection.', true);
+    showNotif('❌ Email failed — '+mailErr(e), true);
     console.error('EmailJS error:', e);
   } finally {
     if(btn){ btn.disabled=false; btn.textContent=origText; }
