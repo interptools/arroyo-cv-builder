@@ -1299,6 +1299,7 @@ function todayKey() {
 
 function markSubmitted(email) {
   try {
+    pruneSubmitKeys();
     localStorage.setItem(SUBMIT_KEY_PREFIX + todayKey(), JSON.stringify({
       email: email || '',
       at: new Date().toISOString()
@@ -1306,7 +1307,22 @@ function markSubmitted(email) {
   } catch (e) { /* private mode — skip silently */ }
 }
 
+// The guard key is date-stamped, so one accumulates per day forever unless
+// we sweep. Keep only today's; everything older has no purpose.
+function pruneSubmitKeys() {
+  try {
+    const keep = SUBMIT_KEY_PREFIX + todayKey();
+    const stale = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(SUBMIT_KEY_PREFIX) && k !== keep) stale.push(k);
+    }
+    stale.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+}
+
 function checkAlreadySubmitted() {
+  pruneSubmitKeys();
   let rec = null;
   try { rec = JSON.parse(localStorage.getItem(SUBMIT_KEY_PREFIX + todayKey()) || 'null'); }
   catch (e) { return false; }

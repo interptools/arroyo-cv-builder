@@ -129,6 +129,27 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .current-qr h4{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;}
 .current-qr img{max-width:160px;border-radius:8px;border:2px solid var(--gray-light);}
 
+/* SYSTEM HEALTH */
+.health-card{background:white;border-radius:14px;padding:24px;box-shadow:0 2px 16px rgba(26,39,68,.07);margin-bottom:18px;max-width:760px;}
+.health-card h3{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.hc-sub{font-size:12.5px;color:var(--gray);line-height:1.65;margin-bottom:14px;}
+.meter{height:12px;background:var(--gray-light);border-radius:20px;overflow:hidden;}
+.meter-fill{height:100%;width:0;border-radius:20px;transition:width .4s ease,background .3s;background:var(--success);}
+.meter-fill.warn{background:#f59e0b;}
+.meter-fill.crit{background:var(--error);}
+.meter-legend{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;font-weight:600;color:var(--navy);margin-top:8px;flex-wrap:wrap;}
+.hc-alert{border-radius:9px;padding:11px 14px;font-size:12px;line-height:1.6;margin-top:12px;}
+.hc-alert.ok{background:#f0fdf4;border:1.5px solid #86efac;color:#166534;}
+.hc-alert.warn{background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;}
+.hc-alert.crit{background:#fef2f2;border:1.5px solid #fca5a5;color:#b91c1c;}
+.ai-row{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1.5px solid var(--gray-light);border-radius:9px;margin-bottom:8px;font-size:12.5px;flex-wrap:wrap;}
+.ai-name{font-weight:700;color:var(--navy);min-width:150px;}
+.ai-pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:20px;}
+.ai-pill.up{background:#d1fae5;color:#065f46;}
+.ai-pill.down{background:#fee2e2;color:#b91c1c;}
+.ai-pill.test{background:#e5e7eb;color:#4b5563;}
+.ai-note{color:var(--gray);font-size:11.5px;flex:1;min-width:160px;}
+
 /* NOTIF */
 .notif{position:fixed;top:20px;right:20px;background:white;border-radius:10px;padding:14px 18px;box-shadow:0 8px 30px rgba(0,0,0,.12);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;z-index:99999;transform:translateX(120%);transition:transform .3s ease;max-width:320px;border-left:4px solid var(--success);}
 .notif.show{transform:translateX(0);}
@@ -212,6 +233,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <button class="nav-item active" onclick="showPage('dashPage',this)"><span class="ni-icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="showPage('submissionsPage',this)"><span class="ni-icon">📋</span> Submissions</button>
       <button class="nav-item" onclick="showPage('gcashPage',this)"><span class="ni-icon">💳</span> GCash QR</button>
+      <button class="nav-item" onclick="showPage('healthPage',this)"><span class="ni-icon">🩺</span> System Health</button>
       <button class="nav-item" onclick="showPage('passwordPage',this)"><span class="ni-icon">🔑</span> Change Password</button>
     </nav>
     <div class="sidebar-footer">
@@ -287,6 +309,51 @@ tr:hover td{background:rgba(247,248,252,.8);}
         </div>
         <input type="file" id="qrInput" accept="image/*" style="display:none" onchange="previewQR(this)">
         <button class="save-btn" onclick="saveQR()" style="margin-top:12px;">💾 Save & Publish New QR Code</button>
+      </div>
+    </div>
+
+    <!-- SYSTEM HEALTH -->
+    <div class="admin-page" id="healthPage">
+      <div class="topbar"><div><h2>System Health</h2><p>Catch storage, email and AI problems before a customer does</p></div>
+        <button onclick="renderHealth()" style="padding:8px 16px;border-radius:8px;border:1.5px solid var(--gray-light);background:white;color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;">🔄 Refresh</button>
+      </div>
+
+      <!-- STORAGE -->
+      <div class="health-card">
+        <h3>💾 Cloud Storage (JSONBin)</h3>
+        <p class="hc-sub">Free bins hold about 100&nbsp;KB. When full, the customer form starts deleting your oldest records to make room — so keep this below 80%.</p>
+        <div class="meter"><div class="meter-fill" id="storeBar"></div></div>
+        <div class="meter-legend">
+          <span id="storeText">Checking…</span>
+          <span id="storeEst" style="color:var(--gray)"></span>
+        </div>
+        <div id="storeWarn"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
+          <button onclick="exportCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;cursor:pointer;">⬇ Export CSV First</button>
+          <button onclick="reclaimPhotoSpace()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #fbbf24;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;">🖼 Remove Photos from Delivered</button>
+          <button onclick="purgeDelivered()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;">🗑 Archive &amp; Delete Delivered</button>
+        </div>
+      </div>
+
+      <!-- EMAIL QUOTA -->
+      <div class="health-card">
+        <h3>✉️ Email Usage This Month</h3>
+        <p class="hc-sub">EmailJS free plans cap how many emails you can send per month. This counter is kept in this browser, so treat it as a guide — your EmailJS dashboard is the real number.</p>
+        <div class="meter"><div class="meter-fill" id="mailBar"></div></div>
+        <div class="meter-legend">
+          <span id="mailText">—</span>
+          <span style="color:var(--gray)">Assumed cap: <input id="mailCap" type="number" min="1" style="width:64px;padding:3px 6px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;" onchange="setMailCap(this.value)"> / month</span>
+        </div>
+        <div id="mailWarn"></div>
+        <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">Duplicate protection is on: cycling a status past <strong>Done</strong> or <strong>Delivered</strong> a second time will <em>not</em> re-send the same email. Use the Resend buttons in the submission if you truly need to send again.</p>
+      </div>
+
+      <!-- AI PROVIDERS -->
+      <div class="health-card">
+        <h3>🤖 AI Providers</h3>
+        <p class="hc-sub">AI features fall through a chain of providers. Test them here — if one is dead, the model name or API key inside that Cloudflare Worker most likely needs updating.</p>
+        <button onclick="testAIProviders()" id="aiTestBtn" style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;font-size:13px;font-weight:700;cursor:pointer;">▶ Run Provider Test</button>
+        <div id="aiResults" style="margin-top:14px;"></div>
       </div>
     </div>
 
@@ -597,6 +664,7 @@ function showPage(id,btn){
   if(btn)btn.classList.add('active');
   if(id==='submissionsPage')renderSubmissions();
   if(id==='gcashPage')loadCurrentQR();
+  if(id==='healthPage')renderHealth();
   // Auto-close sidebar on mobile after nav
   const sb=document.getElementById('mainSidebar');
   const ov=document.getElementById('sidebarOverlay');
@@ -786,9 +854,257 @@ async function cycleStatus(idx){
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
   renderSubmissions(); renderDashboard();
   showNotif(`Status → "${newStatus}"`);
-  // Auto-send email on status change
-  if(newStatus==='Done') await sendDoneEmail(idx);
-  if(newStatus==='Delivered') await emailCustomer(idx,'delivered');
+
+  // Auto-send ONCE per email type. The status list is a loop, so without this
+  // guard every extra lap re-emailed the customer and burned EmailJS quota.
+  if(newStatus==='Done'){
+    if(alreadyEmailed(idx,'ready')) showNotif('Payment request was already sent — not re-sending.');
+    else await sendDoneEmail(idx);
+  }
+  if(newStatus==='Delivered'){
+    if(alreadyEmailed(idx,'delivered')) showNotif('Delivery notice was already sent — not re-sending.');
+    else await emailCustomer(idx,'delivered');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// EMAIL BOOKKEEPING — prevents duplicate sends and tracks monthly quota use
+// ══════════════════════════════════════════════════════════════════════════════
+const MAIL_COUNT_KEY = 'arroyo_mail_count_v1';
+const MAIL_CAP_KEY   = 'arroyo_mail_cap_v1';
+const DEFAULT_MAIL_CAP = 200;   // EmailJS free tier — confirm on your dashboard
+
+function alreadyEmailed(idx, type){
+  return !!(submissions[idx] && submissions[idx].emailLog && submissions[idx].emailLog[type]);
+}
+
+// Records that an email of `type` was sent for this submission, and bumps the
+// month counter. Persisted to the cloud so the guard survives a browser change.
+async function noteEmailSent(idx, type){
+  try{
+    const s = submissions[idx];
+    if(!s) return;
+    if(!s.emailLog) s.emailLog = {};
+    s.emailLog[type] = new Date().toISOString();
+    bumpMailCount();
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+  }catch(e){ console.warn('Could not record email send:', e); }
+}
+
+function monthKey(){ return new Date().toISOString().slice(0,7); } // YYYY-MM
+
+function getMailCount(){
+  try{
+    const d = JSON.parse(localStorage.getItem(MAIL_COUNT_KEY) || 'null');
+    if(d && d.month === monthKey()) return d.n || 0;
+  }catch(e){}
+  return 0;
+}
+
+function bumpMailCount(){
+  try{
+    localStorage.setItem(MAIL_COUNT_KEY, JSON.stringify({month:monthKey(), n:getMailCount()+1}));
+  }catch(e){}
+}
+
+function getMailCap(){
+  try{ return parseInt(localStorage.getItem(MAIL_CAP_KEY)) || DEFAULT_MAIL_CAP; }
+  catch(e){ return DEFAULT_MAIL_CAP; }
+}
+
+function setMailCap(v){
+  const n = parseInt(v);
+  if(!n || n < 1) return;
+  try{ localStorage.setItem(MAIL_CAP_KEY, String(n)); }catch(e){}
+  renderHealth();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SYSTEM HEALTH PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+const BIN_CAP_BYTES = 100000;   // JSONBin free-tier bin size
+
+async function renderHealth(){
+  // ── Storage ──
+  const bar  = document.getElementById('storeBar');
+  const txt  = document.getElementById('storeText');
+  const est  = document.getElementById('storeEst');
+  const warn = document.getElementById('storeWarn');
+  if(!bar) return;
+
+  txt.textContent = 'Measuring…';
+  let bytes = 0;
+  try{
+    const rec = await getFullRecord();
+    bytes = new Blob([JSON.stringify(rec)]).size;
+  }catch(e){
+    txt.textContent = 'Could not reach JSONBin.';
+    warn.innerHTML = '<div class="hc-alert crit">Storage check failed — check your connection.</div>';
+    return;
+  }
+
+  const pct = Math.min(100, Math.round(bytes/BIN_CAP_BYTES*100));
+  bar.style.width = pct + '%';
+  bar.className = 'meter-fill' + (pct >= 80 ? ' crit' : pct >= 60 ? ' warn' : '');
+  txt.textContent = `${(bytes/1024).toFixed(1)} KB of ~${(BIN_CAP_BYTES/1024).toFixed(0)} KB used (${pct}%)`;
+
+  // Rough remaining-capacity estimate from this bin's own average record size
+  const withPhoto = submissions.filter(x => x.personal && x.personal.photo).length;
+  const avg = submissions.length ? bytes/submissions.length : 0;
+  const room = avg > 0 ? Math.max(0, Math.floor((BIN_CAP_BYTES*0.88 - bytes)/avg)) : 0;
+  est.textContent = submissions.length
+    ? `${submissions.length} records · avg ${(avg/1024).toFixed(1)} KB · room for roughly ${room} more`
+    : 'No records yet';
+
+  if(pct >= 80){
+    warn.innerHTML = '<div class="hc-alert crit"><strong>Action needed.</strong> You are near the bin limit. '
+      + 'New customer submissions will begin deleting your oldest records. '
+      + 'Export the CSV now, then remove photos from delivered orders or archive them.</div>';
+  } else if(pct >= 60){
+    warn.innerHTML = '<div class="hc-alert warn"><strong>Getting full.</strong> Plan to archive delivered orders soon. '
+      + (withPhoto ? withPhoto + ' record(s) still carry a photo — those are the largest items.' : '') + '</div>';
+  } else {
+    warn.innerHTML = '<div class="hc-alert ok">Storage is healthy. Still worth exporting a CSV backup regularly.</div>';
+  }
+
+  // ── Email quota ──
+  const used = getMailCount(), cap = getMailCap();
+  const mPct = Math.min(100, Math.round(used/cap*100));
+  const mBar = document.getElementById('mailBar');
+  mBar.style.width = mPct + '%';
+  mBar.className = 'meter-fill' + (mPct >= 85 ? ' crit' : mPct >= 65 ? ' warn' : '');
+  document.getElementById('mailText').textContent =
+    `${used} sent in ${monthKey()} (${mPct}% of assumed cap)`;
+  document.getElementById('mailCap').value = cap;
+  document.getElementById('mailWarn').innerHTML = mPct >= 85
+    ? '<div class="hc-alert crit">Close to your monthly email cap. Emails will start failing silently — verify on your EmailJS dashboard and consider upgrading.</div>'
+    : mPct >= 65
+      ? '<div class="hc-alert warn">More than two thirds of the assumed monthly cap used.</div>'
+      : '<div class="hc-alert ok">Email usage is comfortable.</div>';
+}
+
+// Delete photos from delivered orders — the CV is already sent, so the photo
+// has done its job and it is by far the biggest field in each record.
+async function reclaimPhotoSpace(){
+  const targets = submissions.filter(x => x.status === 'Delivered' && x.personal && x.personal.photo);
+  if(!targets.length){ showNotif('No delivered orders with photos to clear.'); return; }
+  if(!confirm(`Remove the photo from ${targets.length} delivered order(s)?\n\n`
+    + `All other details are kept. Do this only after the CV has been sent — `
+    + `you cannot regenerate the CV with a photo afterwards.`)) return;
+  targets.forEach(x => { x.personal.photo = ''; });
+  try{
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif(`✅ Cleared ${targets.length} photo(s). Space reclaimed.`);
+    renderHealth(); renderSubmissions();
+  }catch(e){ showNotif('Failed to save: '+e.message, true); }
+}
+
+// Archive-and-remove delivered orders. Forces a CSV download first so the
+// records are never destroyed without a backup existing.
+async function purgeDelivered(){
+  const keep = submissions.filter(x => x.status !== 'Delivered');
+  const drop = submissions.length - keep.length;
+  if(!drop){ showNotif('No delivered orders to archive.'); return; }
+  if(!confirm(`Archive and delete ${drop} delivered order(s)?\n\n`
+    + `A CSV of ALL records downloads first. This cannot be undone.`)) return;
+  exportCSV();
+  await new Promise(r => setTimeout(r, 900)); // let the download start
+  if(!confirm('Did the CSV download successfully?\n\nClick OK only if you have the file.')) {
+    showNotif('Cancelled — nothing was deleted.'); return;
+  }
+  submissions = keep;
+  try{
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif(`✅ Archived and removed ${drop} order(s).`);
+    renderHealth(); renderSubmissions(); renderDashboard();
+  }catch(e){ showNotif('Failed to save: '+e.message, true); }
+}
+
+// ── AI PROVIDER HEALTH CHECK ──────────────────────────────────────────────────
+async function testAIProviders(){
+  const btn = document.getElementById('aiTestBtn');
+  const box = document.getElementById('aiResults');
+  btn.disabled = true; btn.textContent = 'Testing…';
+
+  const probe = 'Reply with exactly the word: OK';
+  const tests = [
+    { name:'Groq Worker', hint:'Primary. If down, update the model ID or API key in groq-proxy.',
+      run: async () => {
+        const r = await fetchWithTimeout('https://groq-proxy.areymar36.workers.dev',
+          {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:probe})}, 12000);
+        const d = await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error('HTTP '+r.status+(d && d.error ? ' — '+(d.error.message||d.error) : ''));
+        const t = (d.text||d.response||'').trim();
+        if(!t) throw new Error('Empty reply (model name may be retired)');
+        return t.slice(0,40);
+      }},
+    { name:'Pollinations POST', hint:'Unofficial free service, no guarantees. Bonus only.',
+      run: async () => {
+        const r = await fetchWithTimeout('https://text.pollinations.ai/',
+          {method:'POST',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({messages:[{role:'user',content:probe}],model:'openai',private:true})}, 14000);
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const t = (await r.text()).trim();
+        if(!t || t.startsWith('<!')) throw new Error('Non-text reply');
+        return t.slice(0,40);
+      }},
+    { name:'Gemini Worker', hint:'Last resort and the CV scanner. If down, the scanner breaks too.',
+      run: async () => {
+        const r = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev',
+          {method:'POST',headers:{'Content-Type':'application/json'},
+           body:JSON.stringify({contents:[{parts:[{text:probe}]}],generationConfig:{maxOutputTokens:20}})}, 14000);
+        const d = await r.json().catch(()=>({}));
+        if(!r.ok) throw new Error('HTTP '+r.status+(d && d.error ? ' — '+(d.error.message||d.error) : ''));
+        const t = (d.candidates && d.candidates[0] && d.candidates[0].content
+                   && d.candidates[0].content.parts && d.candidates[0].content.parts[0]
+                   && d.candidates[0].content.parts[0].text || '').trim();
+        if(!t) throw new Error('Empty reply (model name may be retired)');
+        return t.slice(0,40);
+      }},
+  ];
+
+  box.innerHTML = tests.map((t,i)=>
+    `<div class="ai-row" id="ai-${i}"><span class="ai-name">${t.name}</span>`
+    + `<span class="ai-pill test">testing…</span><span class="ai-note">${t.hint}</span></div>`).join('');
+
+  let up = 0;
+  for(let i=0;i<tests.length;i++){
+    const row = document.getElementById('ai-'+i);
+    try{
+      const reply = await tests[i].run();
+      up++;
+      row.querySelector('.ai-pill').className = 'ai-pill up';
+      row.querySelector('.ai-pill').textContent = 'working';
+      row.querySelector('.ai-note').textContent = 'Replied: "'+reply+'"';
+    }catch(e){
+      const msg = e.name === 'AbortError' ? 'timed out' : e.message;
+      row.querySelector('.ai-pill').className = 'ai-pill down';
+      row.querySelector('.ai-pill').textContent = 'failed';
+      row.querySelector('.ai-note').textContent = msg + ' — ' + tests[i].hint;
+    }
+  }
+
+  const summary = up === 0
+    ? '<div class="hc-alert crit"><strong>All providers are down.</strong> AI features will not work at all. Most likely a retired model name or an expired API key inside your Cloudflare Workers.</div>'
+    : up < tests.length
+      ? '<div class="hc-alert warn"><strong>'+up+' of '+tests.length+' working.</strong> AI still functions via fallback, but fix the failed one before the others go too.</div>'
+      : '<div class="hc-alert ok">All providers responding. AI features are healthy.</div>';
+  box.insertAdjacentHTML('beforeend', summary);
+
+  btn.disabled = false; btn.textContent = '▶ Run Provider Test Again';
 }
 
 // ── VIEW MODAL ────────────────────────────────────────────────────────────────
@@ -3252,6 +3568,8 @@ async function sendDoneEmail(idx){
       html_body:        htmlBody
     });
     showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
+    await noteEmailSent(idx, type === 'delivered' ? 'delivered' : 'ready');
+    await noteEmailSent(idx, 'ready');
   } catch(e){
     showNotif('❌ Auto email failed: '+e.message, true);
     console.error('EmailJS error:',e);
