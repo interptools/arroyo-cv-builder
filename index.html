@@ -28,6 +28,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arroyo CV/Resume Builder</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231a2744'/><rect x='25' y='20' width='50' height='60' rx='4' fill='white'/><rect x='32' y='32' width='20' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='40' width='36' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='48' width='36' height='3' rx='1.5' fill='%23c8a84b'/><rect x='32' y='56' width='28' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='64' width='32' height='3' rx='1.5' fill='%231a2744'/></svg>">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -226,6 +227,73 @@
   .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 
   .field-hint { font-size: 11px; color: var(--gray); margin-top: 2px; }
+
+  /* CHARACTER COUNTER */
+  .char-count {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 4px;
+    text-align: right;
+    transition: color 0.2s;
+  }
+  .char-count.warn { color: #d97706; font-weight: 600; }
+  .char-count.over { color: var(--error); font-weight: 700; }
+
+  /* RESUME DRAFT BANNER */
+  .draft-banner {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1.5px solid #fbbf24;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .draft-banner .db-text { flex: 1; min-width: 180px; font-size: 12.5px; color: #92400e; line-height: 1.6; }
+  .draft-banner button {
+    border: none; border-radius: 8px; padding: 8px 16px;
+    font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif;
+  }
+  .db-restore { background: var(--navy); color: white; }
+  .db-discard { background: rgba(0,0,0,0.06); color: #6b7280; }
+
+  /* ALREADY SUBMITTED SCREEN */
+  .dup-card {
+    background: var(--white); border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(26,39,68,0.08);
+    padding: 40px 32px; text-align: center;
+  }
+  .dup-card .dup-icon { font-size: 52px; margin-bottom: 14px; }
+  .dup-card h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--navy); margin-bottom: 10px; }
+  .dup-card p { color: var(--gray); font-size: 14px; line-height: 1.7; max-width: 440px; margin: 0 auto 22px; }
+
+  /* TEMPLATE SWATCH PICKER */
+  .tmpl-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .tsw {
+    border: 2px solid var(--gray-light);
+    border-radius: 9px;
+    padding: 7px 5px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    background: var(--white);
+  }
+  .tsw:hover { border-color: var(--navy); transform: translateY(-1px); }
+  .tsw.sel { border-color: var(--gold); background: rgba(200,168,75,0.09); box-shadow: 0 0 0 2px rgba(200,168,75,0.18); }
+  .tsw-chip {
+    height: 30px; border-radius: 6px; margin-bottom: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 800;
+  }
+  .tsw-label { font-size: 10px; font-weight: 700; color: var(--navy); line-height: 1.25; }
+  .tsw-desc { font-size: 9px; color: var(--gray); margin-top: 1px; line-height: 1.2; }
 
   /* EXPERIENCE ENTRY */
   .exp-entry {
@@ -780,7 +848,26 @@
       </div>
     </div>
 
-    <!-- ABOUT ME - removed, admin will generate -->
+    <!-- ABOUT ME (optional — helps admin write a better profile summary) -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">💬</div>
+        <div>
+          <h2>Tell Us About Yourself</h2>
+          <p>Optional — but it helps us write a stronger profile for you</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row full">
+          <div class="field">
+            <label>About You / Notes for Us</label>
+            <textarea id="aboutMe" rows="4" maxlength="600" placeholder="e.g. I have 3 years BPO experience and I'm looking to shift to an admin role. I'm a fast learner and I work well under pressure..."></textarea>
+            <div class="char-count" id="aboutMe-count">0 / 600 characters</div>
+            <div class="field-hint">Don't worry about grammar — we'll polish it. If you leave this blank, we'll write your profile from the rest of your details.</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- EDUCATION -->
     <div class="card">
@@ -881,25 +968,10 @@
         <div class="field-row">
           <div class="field">
             <label>Preferred Template Style</label>
-            <select id="templatePref">
-              <option value="">No preference (admin will choose)</option>
-              <option value="1">Template 1 – Dark sidebar, cyan accents</option>
-              <option value="2">Template 2 – Black & orange</option>
-              <option value="3">Template 3 – Gray & maroon</option>
-              <option value="4">Template 4 – Blue professional</option>
-              <option value="5">Template 5 – Modern blue/white</option>
-              <option value="6">Template 6 – Dark navy & gold</option>
-              <option value="7">Template 7 – Classic navy, clean columns</option>
-              <option value="8">Template 8 – Fresh grad navy/gold grid</option>
-              <option value="9">Template 9 – Minimalist clean white</option>
-              <option value="10">Template 10 – Elegant black & gold</option>
-              <option value="11">Template 11 – Bold colorful purple/pink</option>
-              <option value="12">Template 12 – Modern pastel peach</option>
-              <option value="13">Template 13 – Green nature</option>
-              <option value="14">Template 14 – Pastel sky blue</option>
-              <option value="15">Template 15 – Forest emerald</option>
-            </select>
-            <button type="button" onclick="openTemplatePreview()" style="margin-top:8px;width:100%;padding:10px;background:linear-gradient(135deg,#1a2744,#243358);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+            <!-- Hidden source-of-truth: kept so all existing logic still reads .value -->
+            <select id="templatePref" style="display:none"><option value=""></option></select>
+            <div class="tmpl-swatch-grid" id="tmplSwatchGrid"></div>
+            <button type="button" onclick="openTemplatePreview()" style="margin-top:10px;width:100%;padding:10px;background:linear-gradient(135deg,#1a2744,#243358);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
               👁 Preview All Templates with Sample CV
             </button>
           </div>
@@ -925,8 +997,8 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px">
           <div style="text-align:right">
-            <div style="color:#c8a84b;font-size:16px;font-weight:800">+₱75</div>
-            <div style="color:rgba(255,255,255,0.4);font-size:10px;text-decoration:line-through">₱125</div>
+            <div id="cl-addon-price" style="color:#c8a84b;font-size:16px;font-weight:800">+₱75</div>
+            <div id="cl-strike-price" style="color:rgba(255,255,255,0.4);font-size:10px;text-decoration:line-through">₱125</div>
           </div>
           <div id="cl-check-circle" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(200,168,75,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0">
             <svg id="cl-check-icon" width="14" height="14" fill="none" stroke="rgba(200,168,75,0.3)" stroke-width="2.5" viewBox="0 0 24 24" style="transition:all .2s"><polyline points="20 6 9 17 4 12"/></svg>
@@ -1000,11 +1072,11 @@
         <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Professional CV / Resume</span>
-          <span style="font-weight:600;color:#1a2744">₱50</span>
+          <span id="sum-base-price" style="font-weight:600;color:#1a2744">₱50</span>
         </div>
         <div id="cl-summary-row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Cover Letter Add-on</span>
-          <span style="font-weight:600;color:#1a2744">₱75</span>
+          <span id="sum-cl-price" style="font-weight:600;color:#1a2744">₱75</span>
         </div>
         <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
           <span style="font-weight:700;color:#1a2744">Total</span>
@@ -1034,7 +1106,7 @@
         <h3>💳 InstaPay / GCash Payment</h3>
         <div class="gcash-qr-box">
           <p style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:14px;">Scan QR Code to Pay <span id="confirm-gcash-amount" style="color:#c8a84b"></span></p>
-          <img id="gcashQRDisplay" src="gcash-qr.jpg" alt="GCash QR Code" style="max-width:240px;width:100%;border-radius:12px;display:block;margin:0 auto;border:3px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,.1);">
+          <img id="gcashQRDisplay" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Crect width='240' height='240' rx='12' fill='%23f7f8fc' stroke='%23e5e7eb' stroke-width='2'/%3E%3Ctext x='120' y='100' text-anchor='middle' font-family='Arial' font-size='40'%3E💳%3C/text%3E%3Ctext x='120' y='140' text-anchor='middle' font-family='Arial' font-size='13' fill='%236b7280'%3ELoading QR Code...%3C/text%3E%3Ctext x='120' y='162' text-anchor='middle' font-family='Arial' font-size='11' fill='%239ca3af'%3EPlease wait or contact us%3C/text%3E%3C/svg%3E" alt="GCash QR Code" style="max-width:240px;width:100%;border-radius:12px;display:block;margin:0 auto;border:3px solid var(--gold);box-shadow:0 4px 20px rgba(0,0,0,.1);">
         </div>
         <p style="font-size:11.5px;color:var(--gray);margin-top:12px;">After payment, send the screenshot to Reymar via the contact details above. 📸</p>
       </div>
@@ -1080,8 +1152,27 @@
 
 <script>
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
+// ⚠️ SECURITY TIP: Consider creating a JSONBin read-only access key for this public page.
+// The master key here allows anyone viewing source to read all customer submissions.
+// In JSONBin dashboard → Access Keys → create a Read-Only key for the BIN, use it for
+// loadLatestQR() and a separate write-only key for submitForm(). For now both use master key.
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
+
+// ─── PRICING (change here only — used everywhere) ──────────────────────────────
+const BASE_PRICE = 50;   // CV / Resume
+const CL_PRICE   = 75;   // Cover Letter add-on
+const peso = n => '₱' + n.toLocaleString();
+
+// ─── EMAILJS (new-order alert to admin) ───────────────────────────────────────
+const EMAILJS_SVC = 'service_wog8mwj';
+const EMAILJS_TPL = 'template_5l2krhk';
+const EMAILJS_KEY = 'XDm2wGz_tn8DOjWPw';
+const ADMIN_EMAIL = 'areymar36@gmail.com';
+
+// ─── AUTOSAVE / DUPLICATE-GUARD KEYS ──────────────────────────────────────────
+const DRAFT_KEY = 'arroyo_cv_draft_v1';
+const SUBMIT_KEY_PREFIX = 'arroyo_cv_submitted_';
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let skills = [];
@@ -1094,11 +1185,312 @@ let coverLetterSelected = false;
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
+  // Duplicate-submission guard runs first — may replace the whole form
+  if (checkAlreadySubmitted()) return;
+
   addEduEntry();
   addWorkEntry();
   addRefEntry();
   loadLatestQR();
+  renderTemplateSwatches();
+  initCharCounters();
+  applyPricing();
+  offerDraftRestore();
+  startAutosave();
 };
+
+// ─── PRICING: write BASE_PRICE / CL_PRICE into every label ─────────────────────
+function applyPricing() {
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  const total = BASE_PRICE + CL_PRICE;
+  set('cl-addon-price',  '+' + peso(CL_PRICE));
+  set('cl-strike-price', peso(Math.round(total * 1.6666))); // "was" anchor price
+  set('sum-base-price',  peso(BASE_PRICE));
+  set('sum-cl-price',    peso(CL_PRICE));
+  set('confirm-total',   peso(BASE_PRICE));
+  set('cl-total-label',  `${peso(total)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE SWATCH PICKER
+// ══════════════════════════════════════════════════════════════════════════════
+function renderTemplateSwatches() {
+  const grid = document.getElementById('tmplSwatchGrid');
+  if (!grid) return;
+  const cur = document.getElementById('templatePref').value;
+
+  let html = `
+    <div class="tsw ${cur === '' ? 'sel' : ''}" data-t="" onclick="pickTemplate('')">
+      <div class="tsw-chip" style="background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 5px,#f7f8fc 5px,#f7f8fc 10px);color:#6b7280;">?</div>
+      <div class="tsw-label">No Preference</div>
+      <div class="tsw-desc">We'll choose</div>
+    </div>`;
+
+  html += TMPL_INFO.map(t => `
+    <div class="tsw ${cur === String(t.num) ? 'sel' : ''}" data-t="${t.num}" onclick="pickTemplate('${t.num}')">
+      <div class="tsw-chip" style="background:${t.bg || '#243358'};color:${t.color || '#c8a84b'};${t.border ? 'border:' + t.border + ';' : ''}">${t.num}</div>
+      <div class="tsw-label">Template ${t.num}</div>
+      <div class="tsw-desc">${t.desc}</div>
+    </div>`).join('');
+
+  grid.innerHTML = html;
+}
+
+function pickTemplate(num) {
+  const sel = document.getElementById('templatePref');
+  // Keep the hidden <select> valid so .value assignment always sticks
+  sel.innerHTML = `<option value="${num}"></option>`;
+  sel.value = num;
+  if (num) previewSelectedTmpl = parseInt(num);
+  document.querySelectorAll('#tmplSwatchGrid .tsw').forEach(el => {
+    el.classList.toggle('sel', el.dataset.t === String(num));
+  });
+  saveDraft();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CHARACTER COUNTERS  (warn before content overflows the A4 page)
+// ══════════════════════════════════════════════════════════════════════════════
+// [element id, soft-warn threshold, hard limit]
+const COUNTED_FIELDS = [
+  ['aboutMe', 400, 600],
+  ['awards',  350, 500]
+];
+
+function attachCounter(el, warnAt, maxAt) {
+  if (!el || el.dataset.counted) return;
+  el.dataset.counted = '1';
+
+  let box = document.getElementById(el.id + '-count');
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'char-count';
+    box.id = (el.id || 'f' + Math.random().toString(36).slice(2)) + '-count';
+    el.insertAdjacentElement('afterend', box);
+  }
+
+  const update = () => {
+    const n = el.value.length;
+    box.className = 'char-count' + (n > maxAt ? ' over' : n > warnAt ? ' warn' : '');
+    if (n > maxAt)        box.textContent = `${n} / ${maxAt} — too long, please shorten`;
+    else if (n > warnAt)  box.textContent = `${n} characters — getting long, may shrink your CV text`;
+    else                  box.textContent = `${n} / ${maxAt} characters`;
+  };
+  el.addEventListener('input', update);
+  update();
+}
+
+function initCharCounters() {
+  COUNTED_FIELDS.forEach(([id, w, m]) => attachCounter(document.getElementById(id), w, m));
+  attachWorkCounters();
+}
+
+// Work-experience textareas are created dynamically, so re-scan after each add
+function attachWorkCounters() {
+  document.querySelectorAll('#workEntries textarea').forEach(ta => attachCounter(ta, 300, 450));
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DUPLICATE SUBMISSION GUARD
+// ══════════════════════════════════════════════════════════════════════════════
+function todayKey() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+function markSubmitted(email) {
+  try {
+    localStorage.setItem(SUBMIT_KEY_PREFIX + todayKey(), JSON.stringify({
+      email: email || '',
+      at: new Date().toISOString()
+    }));
+  } catch (e) { /* private mode — skip silently */ }
+}
+
+function checkAlreadySubmitted() {
+  let rec = null;
+  try { rec = JSON.parse(localStorage.getItem(SUBMIT_KEY_PREFIX + todayKey()) || 'null'); }
+  catch (e) { return false; }
+  if (!rec) return false;
+
+  let whenStr = '';
+  try {
+    whenStr = new Date(rec.at).toLocaleTimeString('en-PH', {
+      timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {}
+
+  document.getElementById('formPage').innerHTML = `
+    <div class="dup-card">
+      <div class="dup-icon">✅</div>
+      <h2>You've Already Submitted Today</h2>
+      <p>
+        We received your CV request${whenStr ? ' at <strong>' + whenStr + '</strong>' : ''}${rec.email ? ' for <strong>' + rec.email + '</strong>' : ''}.
+        There's no need to submit again — Reymar is already on it.
+      </p>
+      <div class="contact-box" style="text-align:left;max-width:420px;margin:0 auto 22px;">
+        <h3>📞 Need to add or change something?</h3>
+        <div class="contact-item">
+          <div class="ci-icon">📱</div>
+          <div><div class="ci-label">Phone / Viber / WhatsApp</div><div class="ci-value">09063964052</div></div>
+        </div>
+        <div class="contact-item">
+          <div class="ci-icon">✉️</div>
+          <div><div class="ci-label">Email Address</div><div class="ci-value">areymar36@gmail.com</div></div>
+        </div>
+      </div>
+      <p style="font-size:12.5px;">
+        If you really need to place a <strong>second, different order</strong>, you can start a new form below.
+      </p>
+      <button class="new-submission-btn" onclick="forceNewSubmission()">＋ Submit Another Request Anyway</button>
+    </div>`;
+  return true;
+}
+
+function forceNewSubmission() {
+  try {
+    localStorage.removeItem(SUBMIT_KEY_PREFIX + todayKey());
+    localStorage.removeItem(DRAFT_KEY);
+  } catch (e) {}
+  location.reload();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// AUTOSAVE DRAFT  (survives accidental tab close / refresh)
+// ══════════════════════════════════════════════════════════════════════════════
+const DRAFT_SIMPLE_IDS = ['firstName','lastName','jobTitle','nationality','dob','civilStatus',
+  'gender','address','phone','email','social','linkedin','aboutMe','hobbies','awards',
+  'specialInstructions','templatePref','cl-position','cl-company','cl-reason','cl-strengths','cl-tone'];
+
+let draftTimer = null;
+
+function saveDraft() {
+  clearTimeout(draftTimer);
+  draftTimer = setTimeout(() => {
+    try {
+      const d = { savedAt: new Date().toISOString(), fields: {}, skills, languages, coverLetterSelected };
+
+      DRAFT_SIMPLE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) d.fields[id] = el.value;
+      });
+
+      const eduSel = document.querySelector('input[name="eduLevel"]:checked');
+      d.eduLevel = eduSel ? eduSel.value : 'highschool';
+
+      // Repeating groups — store raw values in DOM order
+      const grab = sel => [...document.querySelectorAll(sel)].map(entry => ({
+        inputs: [...entry.querySelectorAll('input')].map(i => i.value),
+        textarea: entry.querySelector('textarea')?.value || ''
+      }));
+      d.edu  = grab('#eduEntries .exp-entry');
+      d.work = grab('#workEntries .exp-entry');
+      d.refs = grab('#refEntries .exp-entry');
+
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
+    } catch (e) { /* quota or private mode */ }
+  }, 800); // debounce
+}
+
+function startAutosave() {
+  document.addEventListener('input', e => {
+    if (e.target.closest('#formPage')) saveDraft();
+  });
+  document.addEventListener('change', e => {
+    if (e.target.closest('#formPage')) saveDraft();
+  });
+}
+
+function offerDraftRestore() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { return; }
+  if (!d || !d.fields) return;
+
+  // Ignore empty drafts
+  const hasContent = Object.values(d.fields).some(v => v && String(v).trim());
+  if (!hasContent) return;
+
+  let whenStr = '';
+  try {
+    whenStr = new Date(d.savedAt).toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  } catch (e) {}
+
+  const banner = document.createElement('div');
+  banner.className = 'draft-banner';
+  banner.id = 'draftBanner';
+  banner.innerHTML = `
+    <span style="font-size:26px;flex-shrink:0;">💾</span>
+    <div class="db-text">
+      <strong>We saved your unfinished form.</strong><br>
+      ${whenStr ? 'Last edited ' + whenStr + '. ' : ''}Want to pick up where you left off?
+    </div>
+    <button class="db-restore" onclick="restoreDraft()">↩ Restore My Answers</button>
+    <button class="db-discard" onclick="discardDraft()">Start Fresh</button>`;
+
+  const page = document.getElementById('formPage');
+  page.insertBefore(banner, page.firstChild);
+}
+
+function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (e) { return; }
+  if (!d) return;
+
+  // Education level first — it toggles the Work Experience card
+  if (d.eduLevel) {
+    const radio = document.querySelector(`input[name="eduLevel"][value="${d.eduLevel}"]`);
+    if (radio) { radio.checked = true; handleEduChange(); }
+  }
+
+  // Template needs the <select> rebuilt before assigning
+  if (d.fields.templatePref) pickTemplate(d.fields.templatePref);
+
+  DRAFT_SIMPLE_IDS.forEach(id => {
+    if (id === 'templatePref') return;
+    const el = document.getElementById(id);
+    if (el && d.fields[id] !== undefined) el.value = d.fields[id];
+  });
+
+  // Skills / languages tags
+  skills = []; languages = [];
+  document.getElementById('skillTags').innerHTML = '';
+  document.getElementById('langTags').innerHTML = '';
+  (d.skills || []).forEach(s => { document.getElementById('skillInput').value = s; addTag('skill'); });
+  (d.languages || []).forEach(l => { document.getElementById('langInput').value = l; addTag('lang'); });
+
+  // Repeating groups — add rows to match saved count, then fill
+  const restoreGroup = (arr, containerSel, adder) => {
+    if (!arr || !arr.length) return;
+    const have = () => document.querySelectorAll(containerSel).length;
+    while (have() < arr.length) adder();
+    const entries = document.querySelectorAll(containerSel);
+    arr.forEach((row, i) => {
+      const entry = entries[i];
+      if (!entry) return;
+      const inputs = entry.querySelectorAll('input');
+      (row.inputs || []).forEach((v, j) => { if (inputs[j]) inputs[j].value = v; });
+      const ta = entry.querySelector('textarea');
+      if (ta && row.textarea) ta.value = row.textarea;
+    });
+  };
+  restoreGroup(d.edu,  '#eduEntries .exp-entry',  addEduEntry);
+  restoreGroup(d.work, '#workEntries .exp-entry', addWorkEntry);
+  restoreGroup(d.refs, '#refEntries .exp-entry',  addRefEntry);
+
+  // Cover letter panel
+  if (d.coverLetterSelected && !coverLetterSelected) toggleCoverLetter();
+
+  attachWorkCounters();
+  initCharCounters();
+  document.getElementById('draftBanner')?.remove();
+  showNotif('✅ Your answers were restored. Please re-upload your photo.');
+}
+
+function discardDraft() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+  document.getElementById('draftBanner')?.remove();
+}
 
 // Load latest QR from JSONBin (in case admin updated it)
 async function loadLatestQR() {
@@ -1183,22 +1575,42 @@ Rules:
 - Extract ALL work experiences and education entries you can see
 - Return ONLY the JSON, nothing else`;
 
-    // Send to Gemini proxy (same as Arroyo Translation Services)
-    const res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{parts: [
-          {text: prompt},
-          {inline_data: {mime_type: file.type || 'image/jpeg', data: base64}}
-        ]}],
-        generationConfig: {temperature: 0.1, maxOutputTokens: 2000}
-      })
-    });
+    // ── CV Scan: try Gemini (vision) with timeout, retry once ────────────────
+    async function fetchWithTimeout(url, opts, ms=18000){
+      const ctrl=new AbortController();
+      const id=setTimeout(()=>ctrl.abort(),ms);
+      try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(id); return r; }
+      catch(e){ clearTimeout(id); throw e; }
+    }
 
-    if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
-    const resJson = await res.json();
-    if (resJson.error) throw new Error(resJson.error.message || 'Gemini error');
+    status.innerHTML = '⏳ Scanning your CV... (attempt 1/2)';
+    let resJson = null;
+    for(let attempt = 1; attempt <= 2; attempt++){
+      try {
+        if(attempt === 2) status.innerHTML = '⏳ Still scanning... trying again (attempt 2/2)';
+        const res = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{parts: [
+              {text: prompt},
+              {inline_data: {mime_type: file.type || 'image/jpeg', data: base64}}
+            ]}],
+            generationConfig: {temperature: 0.1, maxOutputTokens: 2000}
+          })
+        }, 18000);
+        if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
+        const d = await res.json();
+        if (d.error) throw new Error(d.error.message || 'Gemini error');
+        resJson = d;
+        break; // success — exit loop
+      } catch(e){
+        console.warn(`CV scan attempt ${attempt} failed:`, e.message);
+        if(attempt === 2) throw e; // re-throw on final attempt
+        await new Promise(r=>setTimeout(r, 2000)); // wait 2s before retry
+      }
+    }
+    if(!resJson) throw new Error('CV scan returned no response.');
 
     let text = resJson.candidates && resJson.candidates[0] &&
                resJson.candidates[0].content && resJson.candidates[0].content.parts &&
@@ -1311,7 +1723,12 @@ Rules:
   } catch(err) {
     console.error('Scan error:', err);
     status.className = 'scan-status error';
-    status.innerHTML = '❌ Could not read the CV. Make sure the image is clear and well-lit. Try a higher quality photo. (' + (err.message || 'Unknown error') + ')';
+    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
+    const tip = isTimeout
+      ? '⏱️ The scan timed out — the server may be busy. Please try again in a moment.'
+      : '❌ Could not read the CV. Make sure the image is clear, well-lit, and not blurry. Try a higher quality photo or screenshot.';
+    status.innerHTML = tip + '<br><small style="opacity:.7">(' + (err.message || 'Unknown error') + ')</small>'
+      + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>';
   }
 }
 // ─────────────────────────────────────────────────────────────
@@ -1411,6 +1828,7 @@ function addWorkEntry() {
     </div>
   `;
   container.appendChild(div);
+  attachWorkCounters();
 }
 
 // ─── REFERENCE ENTRIES ─────────────────────────────────────────────────────────
@@ -1544,7 +1962,7 @@ function collectFormData() {
       method: 'Checkbox on submission form — customer manually ticked the box',
       consentText: 'I hereby give my consent to Arroyo CV Builder to collect and process the personal information I provide in this form — including my name, contact details, work history, educational background, and other CV-related data — for the sole purpose of creating my professional CV/Resume. My data will not be shared with any third party and will only be used to deliver the requested service.',
       consentVersion: '1.0',
-      serviceUrl: 'https://interptools.github.io/arroyo-cv-builder/'
+      serviceUrl: window.location.href
     },
     eduLevel,
     personal: {
@@ -1563,6 +1981,7 @@ function collectFormData() {
       photo: photoBase64
     },
     profileSummary: '',
+    aboutMe: document.getElementById('aboutMe')?.value.trim() || '',
     education: eduData,
     workExperience: workData,
     skills,
@@ -1579,7 +1998,7 @@ function collectFormData() {
       reason: document.getElementById('cl-reason').value.trim(),
       strengths: document.getElementById('cl-strengths').value.trim(),
       tone: document.getElementById('cl-tone').value,
-      addOnFee: 75
+      addOnFee: CL_PRICE
     } : { requested: false }
   };
 }
@@ -1591,9 +2010,17 @@ function validate(data) {
   if (!data.personal.lastName) return 'Please enter your last name.';
   if (!data.personal.jobTitle) return 'Please enter the position you are applying for.';
   if (!data.personal.phone) return 'Please enter your phone number.';
+  if (!/^[0-9\+\-\s\(\)]{7,15}$/.test(data.personal.phone)) return 'Please enter a valid phone number (e.g. 09063964052).';
   if (!data.personal.email) return 'Please enter your email address.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.personal.email)) return 'Please enter a valid email address (e.g. juan@gmail.com).';
   if (!data.personal.address) return 'Please enter your address.';
   if (!data.education[0]?.school) return 'Please enter at least one school/university.';
+  // Cover letter required fields (double-check in case toggleCoverLetter state is out of sync)
+  if (data.coverLetter?.requested) {
+    if (!data.coverLetter.position) return 'Please enter your target position for the cover letter.';
+    if (!data.coverLetter.company) return 'Please enter the target company for the cover letter.';
+    if (!data.coverLetter.reason) return 'Please tell us why you want this job for the cover letter.';
+  }
   return null;
 }
 
@@ -1619,13 +2046,13 @@ function compressPhoto(base64) {
 }
 
 function updateConfirmPage() {
-  var total = coverLetterSelected ? 125 : 50;
+  var total = BASE_PRICE + (coverLetterSelected ? CL_PRICE : 0);
   var clRow = document.getElementById('cl-summary-row');
   var totalEl = document.getElementById('confirm-total');
   var amountEl = document.getElementById('confirm-gcash-amount');
   if (clRow) clRow.style.display = coverLetterSelected ? 'flex' : 'none';
-  if (totalEl) totalEl.textContent = '₱' + total;
-  if (amountEl) amountEl.textContent = '— ₱' + total;
+  if (totalEl) totalEl.textContent = peso(total);
+  if (amountEl) amountEl.textContent = '— ' + peso(total);
 }
 
 function toggleCoverLetter() {
@@ -1734,6 +2161,13 @@ async function submitForm() {
       throw new Error(`JSONBin error ${putRes.status}: ${errText}`);
     }
 
+    // Guard against double-submits + clear the saved draft
+    markSubmitted(data.personal.email);
+    try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+
+    // Fire-and-forget: alert the admin that a new order arrived
+    notifyAdminNewOrder(data);
+
     // Update steps
     document.getElementById('step1').className = 'step done';
     document.getElementById('step1').querySelector('.step-num').textContent = '✓';
@@ -1754,8 +2188,121 @@ async function submitForm() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// NEW ORDER ALERT → emails the admin so you don't have to poll the dashboard
+// Deliberately non-blocking: if the email fails, the customer's order is safe.
+// ══════════════════════════════════════════════════════════════════════════════
+async function notifyAdminNewOrder(data) {
+  try {
+    if (typeof emailjs === 'undefined') return;
+
+    const p = data.personal;
+    const hasCL = !!data.coverLetter?.requested;
+    const total = BASE_PRICE + (hasCL ? CL_PRICE : 0);
+    const name = `${p.firstName} ${p.lastName}`.trim();
+    const eduMap = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' };
+    const when = new Date().toLocaleString('en-PH', {
+      timeZone: 'Asia/Manila', year: 'numeric', month: 'long',
+      day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    const row = (l, v) => v
+      ? `<tr><td style="padding:6px 10px;font-size:12px;color:#6b7280;border-bottom:1px solid #eef0f5;white-space:nowrap;">${l}</td>
+             <td style="padding:6px 10px;font-size:13px;color:#1f2937;font-weight:600;border-bottom:1px solid #eef0f5;">${v}</td></tr>`
+      : '';
+
+    const workList = (data.workExperience || []).filter(w => w.company)
+      .map(w => `${w.position || ''} @ ${w.company}`).join('<br>') || '—';
+    const eduList = (data.education || []).filter(e => e.school)
+      .map(e => `${e.degree ? e.degree + ' — ' : ''}${e.school}`).join('<br>') || '—';
+
+    const htmlBody = `
+      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#1f2937;">
+        <div style="background:#1a2744;padding:20px 24px;">
+          <h1 style="color:#e2c97e;margin:0;font-size:19px;">🔔 New CV Order Received</h1>
+          <p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Arroyo CV Builder — Admin Alert</p>
+        </div>
+        <div style="background:#f7f8fc;padding:22px 24px;border:1px solid #e5e7eb;border-top:none;">
+          <div style="background:${hasCL ? '#fffbeb' : '#f0fdf4'};border:1.5px solid ${hasCL ? '#fde68a' : '#86efac'};border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+            <div style="font-size:17px;font-weight:800;color:#1a2744;">${name}</div>
+            <div style="font-size:13px;color:#6b7280;margin-top:2px;">${p.jobTitle || 'No position specified'}</div>
+            <div style="margin-top:10px;font-size:14px;font-weight:800;color:#10b981;">
+              ${peso(total)} ${hasCL ? '<span style="font-size:11px;color:#92400e;background:#fef3c7;padding:2px 8px;border-radius:20px;margin-left:6px;">📝 + Cover Letter</span>' : '<span style="font-size:11px;color:#6b7280;">(CV only)</span>'}
+            </div>
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
+            ${row('Submitted', when)}
+            ${row('Email', p.email)}
+            ${row('Phone', p.phone)}
+            ${row('Address', p.address)}
+            ${row('Education Level', eduMap[data.eduLevel] || data.eduLevel)}
+            ${row('Education', eduList)}
+            ${row('Work History', workList)}
+            ${row('Skills', (data.skills || []).join(', '))}
+            ${row('Languages', (data.languages || []).join(', '))}
+            ${row('Template', data.templatePref ? 'Template ' + data.templatePref : 'No preference')}
+            ${row('Photo Attached', p.photo ? 'Yes ✓' : 'No ✗')}
+            ${row('Special Instructions', data.specialInstructions)}
+            ${row('About / Notes', data.aboutMe)}
+          </table>
+
+          ${hasCL ? `
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-top:16px;">
+            <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Cover Letter Details</div>
+            <table style="width:100%;border-collapse:collapse;">
+              ${row('Target Position', data.coverLetter.position)}
+              ${row('Target Company', data.coverLetter.company)}
+              ${row('Why This Job', data.coverLetter.reason)}
+              ${row('Strengths', data.coverLetter.strengths)}
+              ${row('Tone', data.coverLetter.tone)}
+            </table>
+          </div>` : ''}
+
+          <div style="margin-top:20px;text-align:center;">
+            <a href="https://interptools.github.io/arroyo-cv-builder/admin.html"
+               style="display:inline-block;background:#c8a84b;color:#1a2744;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:800;">
+              Open Admin Dashboard →
+            </a>
+          </div>
+        </div>
+        <div style="background:#1a2744;padding:12px 24px;text-align:center;">
+          <p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Automated alert · Arroyo CV Builder</p>
+        </div>
+      </div>`;
+
+    const plainBody =
+      `NEW CV ORDER\n\n` +
+      `Name: ${name}\n` +
+      `Position: ${p.jobTitle || '—'}\n` +
+      `Email: ${p.email}\n` +
+      `Phone: ${p.phone}\n` +
+      `Total: ${peso(total)}${hasCL ? ' (includes Cover Letter)' : ' (CV only)'}\n` +
+      `Template: ${data.templatePref ? 'Template ' + data.templatePref : 'No preference'}\n` +
+      `Photo: ${p.photo ? 'Yes' : 'No'}\n` +
+      `Submitted: ${when}\n\n` +
+      `Open the admin dashboard to process this order.`;
+
+    emailjs.init(EMAILJS_KEY);
+    await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+      to_email:         ADMIN_EMAIL,
+      to_name:          'Reymar Arroyo',
+      customer_name:    name,
+      cc_email:         '',
+      subject:          `🔔 New CV Order — ${name}${hasCL ? ' (+ Cover Letter)' : ''} — ${peso(total)}`,
+      translation_note: plainBody,
+      html_body:        htmlBody
+    });
+    console.log('Admin alert sent.');
+  } catch (e) {
+    // Never surface this to the customer — their order already saved successfully
+    console.warn('Admin alert failed (order still saved):', e);
+  }
+}
+
 // ─── RESET ────────────────────────────────────────────────────────────────────
 function resetForm() {
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
   location.reload();
 }
 
@@ -1810,6 +2357,10 @@ function openTemplatePreview(){
   const overlay = document.getElementById('tmplPreviewOverlay');
   overlay.style.display = 'flex';
 
+  // Restore previously selected template if user already picked one via dropdown
+  const dropVal = parseInt(document.getElementById('templatePref').value);
+  if (dropVal && dropVal !== previewSelectedTmpl) previewSelectedTmpl = dropVal;
+
   // Build sidebar buttons
   const btns = document.getElementById('tmplBtns');
   btns.innerHTML = TMPL_INFO.map(t => `
@@ -1856,7 +2407,9 @@ function closeTemplatePreview(){
 }
 
 function selectAndClose(){
-  document.getElementById('templatePref').value = previewSelectedTmpl;
+  // Must go through pickTemplate(): assigning .value directly to a <select>
+  // whose options don't contain that value silently resets it to ''.
+  pickTemplate(String(previewSelectedTmpl));
   closeTemplatePreview();
   showNotif('✅ Template ' + previewSelectedTmpl + ' selected!');
 }
@@ -1895,7 +2448,6 @@ function buildCVHtml(s,tmpl,mode){
     *{box-sizing:border-box;}
     html,body{margin:0;padding:0;background:#555;}
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    /* Screen: show as A4 card centered */
     .page-wrap{
       display:flex;
       justify-content:center;
@@ -1904,50 +2456,182 @@ function buildCVHtml(s,tmpl,mode){
     }
     .page{
       width:210mm;
-      min-height:297mm;
       background:white;
       display:flex;
       box-shadow:0 4px 30px rgba(0,0,0,.4);
       flex-shrink:0;
     }
-    /* Print: clean A4 — no blank pages */
+    /* Fit notice (screen only, never printed) */
+    .fit-note{
+      position:fixed;left:0;right:0;bottom:0;z-index:9998;
+      background:#7f1d1d;color:#fecaca;font-family:Inter,Arial,sans-serif;
+      font-size:12px;padding:9px 18px;text-align:center;line-height:1.5;
+    }
     @media print{
-      .no-print{display:none!important;}
+      .no-print,.fit-note{display:none!important;}
       @page{margin:0;size:A4 portrait;}
       html,body{
-        margin:0;padding:0;
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        background:white;
-        -webkit-print-color-adjust:exact;
-        print-color-adjust:exact;
+        margin:0!important;padding:0!important;
+        width:210mm!important;height:297mm!important;
+        overflow:hidden!important;background:white!important;
+        -webkit-print-color-adjust:exact;print-color-adjust:exact;
       }
+      /* Wrapper is clipped to exactly one A4 sheet so no phantom 2nd page.
+         NOTE: .page width/transform/min-height are set inline by the fitter
+         below and are deliberately NOT overridden here. */
       .page-wrap{
-        padding:0;
-        margin:0;
-        display:block;
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        background:white;
+        display:block!important;
+        width:210mm!important;height:297mm!important;
+        padding:0!important;margin:0!important;
+        overflow:hidden!important;min-height:0!important;
+        background:white!important;
       }
-      .page{
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        box-shadow:none;
-        page-break-after:avoid;
-        page-break-inside:avoid;
+      .page{box-shadow:none!important;}
+    }
+  </style>
+  <script>
+  /* ============================================================
+     ONE-PAGE AUTO-FIT
+     Shrinks a CV so it always lands on a single A4 sheet.
+
+     Naive scale() would leave white gutters (narrower content) and
+     still spill onto page 2, because transforms don't change layout
+     size. So instead we lay the page out WIDER by 1/s, then scale by
+     s: visual width returns to exactly 210mm while height shrinks,
+     and text reflows to use the space. A binary search finds the
+     largest s that fits. The wrapper is clipped to one sheet.
+     ============================================================ */
+  (function(){
+    var MM   = 96/25.4;
+    var A4W  = 210*MM;
+    var A4H  = 297*MM;
+    var FLOOR = 0.62;        /* below this, text stops being readable */
+    var busy = false;
+
+    function pageEl(){ return document.querySelector('.page'); }
+    function wrapEl(){ return document.querySelector('.page-wrap'); }
+
+    /* Lay out at width w and report natural content height.
+       min-height is zeroed because every template sets 100vh, which
+       would otherwise report the window height instead of the content. */
+    function heightAt(page, w){
+      page.style.minHeight = '0px';
+      page.style.maxWidth  = 'none';
+      page.style.transform = 'none';
+      page.style.width     = w + 'px';
+      void page.offsetHeight;
+      return page.scrollHeight;
+    }
+
+    function applyFit(page, wrap, s, layoutW){
+      page.style.width           = layoutW + 'px';
+      page.style.minHeight       = (A4H/s) + 'px';
+      page.style.maxWidth        = 'none';
+      page.style.transformOrigin = 'top left';
+      page.style.transform       = 'scale(' + s + ')';
+      if(wrap){
+        wrap.style.boxSizing = 'border-box';
+        wrap.style.display   = 'block';
+        wrap.style.margin    = '0 auto';
+        wrap.style.padding   = '60px 20px 20px';
+        wrap.style.width     = (A4W + 40) + 'px';
+        wrap.style.height    = (A4H + 80) + 'px';
+        wrap.style.overflow  = 'hidden';
       }
     }
-  </style>`;
+
+    function applyNatural(page, wrap){
+      page.style.width           = A4W + 'px';
+      page.style.minHeight       = A4H + 'px';
+      page.style.transform       = 'none';
+      page.style.transformOrigin = 'top left';
+      if(wrap){
+        wrap.style.boxSizing = 'border-box';
+        wrap.style.display   = 'block';
+        wrap.style.margin    = '0 auto';
+        wrap.style.padding   = '60px 20px 20px';
+        wrap.style.width     = (A4W + 40) + 'px';
+        wrap.style.height    = (A4H + 80) + 'px';
+        wrap.style.overflow  = 'hidden';
+      }
+    }
+
+    function notice(scale, clipped){
+      var old = document.querySelector('.fit-note');
+      if(old) old.parentNode.removeChild(old);
+      if(!clipped) return;
+      var d = document.createElement('div');
+      d.className = 'fit-note';
+      d.textContent = 'This CV has more content than one A4 page can hold. '
+        + 'Text is already reduced to ' + Math.round(scale*100) + '% and some '
+        + 'content is still being cut off. Please shorten the longest '
+        + 'responsibilities or the profile summary. (This bar is not printed.)';
+      document.body.appendChild(d);
+    }
+
+    function fit(){
+      if(busy) return;
+      var page = pageEl(), wrap = wrapEl();
+      if(!page) return;
+      busy = true;
+
+      try{
+        /* 1. Does it already fit at true A4 width? */
+        if(heightAt(page, A4W) <= A4H + 1){
+          applyNatural(page, wrap);
+          notice(1, false);
+          document.documentElement.setAttribute('data-fit', '1');
+          return;
+        }
+
+        /* 2. Largest s in [FLOOR,1] where content laid out at A4W/s
+              is no taller than A4H once scaled by s. Feasibility is
+              monotonic in s, so binary search is safe. */
+        var lo = FLOOR, hi = 1, best = null, bestW = A4W/FLOOR;
+        for(var i=0;i<11;i++){
+          var mid = (lo+hi)/2;
+          var lw  = A4W/mid;
+          if(heightAt(page, lw)*mid <= A4H){ best = mid; bestW = lw; lo = mid; }
+          else { hi = mid; }
+        }
+
+        if(best === null){
+          /* Even the floor overflows — clamp and tell the user. */
+          best  = FLOOR;
+          bestW = A4W/FLOOR;
+          applyFit(page, wrap, best, bestW);
+          notice(best, true);
+        } else {
+          applyFit(page, wrap, best, bestW);
+          notice(best, false);
+        }
+        document.documentElement.setAttribute('data-fit', best.toFixed(3));
+      } finally {
+        busy = false;
+      }
+    }
+
+    function schedule(){ setTimeout(fit, 60); }
+
+    if(document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule);
+
+    /* Webfonts and the photo change metrics after first paint. */
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    window.addEventListener('resize', schedule);
+
+    /* Re-measure right before the print dialog reads layout. */
+    window.addEventListener('beforeprint', fit);
+    if(window.matchMedia){
+      var mq = window.matchMedia('print');
+      var h  = function(e){ if(e.matches) fit(); };
+      if(mq.addEventListener) mq.addEventListener('change', h);
+      else if(mq.addListener) mq.addListener(h);
+    }
+
+    window.__cvFit = fit;
+  })();
+  <\/script>`;
 
   if(tmpl===1) return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===2) return T2(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
@@ -2024,7 +2708,7 @@ ${pb}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
     ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:7px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;">${s.hobbies}</p></div>`:''}
@@ -2164,7 +2848,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="ls"><div class="lh">About Me</div><p style="font-size:9px;line-height:1.7;color:#444;">${s.profileSummary}</p></div>`:''}
-      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
       ${langs.length?`<div class="ls"><div class="lh">Language</div>${langs.map(l=>`<div style="font-size:11px;color:#444;margin-bottom:4px;">• ${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="ls"><div class="lh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
       ${refs.length?`<div class="ls"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
@@ -2824,7 +3508,7 @@ ${pb}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="lsh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="lsh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="lsh">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="lsh">Interests</div><p style="font-size:10.5px;color:#7c3a2a;line-height:1.7;">${s.hobbies}</p></div>`:''}
     ${refs.length?`<div class="ls"><div class="lsh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
@@ -3039,7 +3723,7 @@ ${pb}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-bar"><div class="skill-label">${sk}</div><div class="skill-track"><div class="skill-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-bar"><div class="skill-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-h">Languages</div>${langs.map(l=>`<div class="ci">🌿 ${l}</div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="ls-h">Interests</div><p style="font-size:10px;color:rgba(209,250,229,.7);line-height:1.8;">${s.hobbies}</p></div>`:''}
     ${refs.length?`<div class="ls"><div class="ls-h">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}

@@ -27,12 +27,12 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--text
 /* LAYOUT */
 #adminApp{display:none;min-height:100vh;}
 .layout{display:flex;min-height:100vh;}
-.sidebar{width:var(--sidebar);flex-shrink:0;background:linear-gradient(180deg,var(--navy) 0%,#0f1a33 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;}
+.sidebar{width:var(--sidebar);flex-shrink:0;background:linear-gradient(180deg,var(--navy) 0%,#0f1a33 100%);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .25s ease;}
 .sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08);}
 .sidebar-logo h1{font-family:'Playfair Display',serif;color:white;font-size:17px;line-height:1.3;}
 .sidebar-logo h1 span{color:var(--gold);}
 .sidebar-logo p{color:rgba(255,255,255,.4);font-size:10px;margin-top:3px;letter-spacing:1px;text-transform:uppercase;}
-.sidebar-nav{flex:1;padding:16px 10px;}
+.sidebar-nav{flex:1;padding:16px 10px;overflow-y:auto;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;color:rgba(255,255,255,.55);font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;margin-bottom:4px;border:none;background:none;width:100%;text-align:left;}
 .nav-item:hover{background:rgba(255,255,255,.06);color:white;}
 .nav-item.active{background:rgba(200,168,75,.15);color:var(--gold);}
@@ -41,6 +41,23 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--text
 .logout-btn{width:100%;padding:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#fca5a5;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;}
 .logout-btn:hover{background:rgba(239,68,68,.2);}
 .main-content{margin-left:var(--sidebar);flex:1;padding:28px;min-height:100vh;}
+/* Mobile sidebar */
+.mob-topbar{display:none;background:var(--navy);padding:12px 16px;position:sticky;top:0;z-index:90;align-items:center;gap:12px;}
+.mob-topbar h2{color:white;font-size:15px;font-weight:700;flex:1;}
+.hamburger{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;gap:4px;padding:4px;}
+.hamburger span{display:block;width:22px;height:2px;background:white;border-radius:2px;transition:all .2s;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99;}
+@media(max-width:768px){
+  .mob-topbar{display:flex;}
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .sidebar-overlay.open{display:block;}
+  .main-content{margin-left:0;padding:16px;}
+  .stats-row{grid-template-columns:1fr 1fr!important;}
+  table{font-size:12px;}
+  th,td{padding:8px 10px!important;}
+  .modal{max-width:100%!important;}
+}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
 .topbar h2{font-size:22px;font-weight:700;color:var(--navy);}
 .topbar p{font-size:13px;color:var(--gray);margin-top:2px;}
@@ -85,6 +102,15 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .info-group h4{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--gray-light);}
 .info-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px;}
 .info-label{font-weight:600;color:var(--navy);min-width:130px;flex-shrink:0;}
+
+/* QUICK CONTACT BAR (copy / call / message) */
+.quick-contact{display:flex;flex-direction:column;gap:8px;background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;margin-bottom:18px;}
+.qc-item{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.qc-ico{font-size:15px;flex-shrink:0;}
+.qc-val{font-size:13px;font-weight:700;color:var(--navy);word-break:break-all;flex:1;min-width:120px;}
+.qc-copy,.qc-link{border:1.5px solid var(--gray-light);background:white;border-radius:7px;padding:5px 9px;font-size:13px;cursor:pointer;line-height:1;text-decoration:none;transition:all .15s;flex-shrink:0;}
+.qc-copy:hover,.qc-link:hover{border-color:var(--navy);background:#eef1f8;}
+.qc-copy.copied{background:#d1fae5;border-color:#6ee7b7;color:#065f46;}
 
 /* SETTINGS CARD */
 .settings-card{background:white;border-radius:14px;padding:32px;max-width:500px;box-shadow:0 2px 16px rgba(26,39,68,.07);}
@@ -168,8 +194,16 @@ tr:hover td{background:rgba(247,248,252,.8);}
 
 <!-- ADMIN APP -->
 <div id="adminApp">
+<!-- Mobile topbar -->
+<div class="mob-topbar">
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <h2>Arroyo CV Builder</h2>
+</div>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="mainSidebar">
     <div class="sidebar-logo">
       <h1>Arroyo <span>CV</span><br>Builder</h1>
       <p>Admin Panel</p>
@@ -189,9 +223,10 @@ tr:hover td{background:rgba(247,248,252,.8);}
     <!-- DASHBOARD -->
     <div class="admin-page active" id="dashPage">
       <div class="topbar"><div><h2>Dashboard</h2><p>Overview of all CV requests</p></div></div>
-      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card"><div class="sc-label">Total Orders</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;"><span style="color:#1d4ed8" id="statNew">—</span> new &nbsp;·&nbsp; <span style="color:#92400e" id="statProc">—</span> in progress &nbsp;·&nbsp; <span style="color:#065f46" id="statDone">—</span> done</div></div>
-        <div class="stat-card revenue"><div class="sc-label">Total Revenue</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span id="statCLCount">0</span> cover letter orders · ₱75 each</div></div>
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
+        <div class="stat-card"><div class="sc-label">Total Orders</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;"><span style="color:#1d4ed8" id="statNew">—</span> new &nbsp;·&nbsp; <span style="color:#92400e" id="statProc">—</span> in progress</div></div>
+        <div class="stat-card"><div class="sc-label">Done / Delivered</div><div class="sc-value" id="statDone">—</div><div class="sc-sub"><span style="color:#166534" id="statDelivered">—</span> delivered &nbsp;·&nbsp; <span style="color:#065f46" id="statDoneOnly">—</span> done</div></div>
+        <div class="stat-card revenue"><div class="sc-label">Total Revenue</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span id="statCLCount">0</span> cover letter orders · <span id="statCLEach"></span> each</div></div>
         <div class="stat-card"><div class="sc-label">Cover Letters</div><div class="sc-value" id="statCLOnly">—</div><div class="sc-sub">Add-on requested</div></div>
       </div>
       <div class="table-card">
@@ -209,12 +244,18 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <span class="badge-count" id="totalBadge">0</span>
         </div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
         <button class="filter-btn" onclick="setFilter('New',this)">🔵 New</button>
         <button class="filter-btn" onclick="setFilter('Processing',this)">🟡 In Progress</button>
         <button class="filter-btn" onclick="setFilter('Done',this)">🟢 Done</button>
+        <button class="filter-btn" onclick="setFilter('Delivered',this)">✅ Delivered</button>
         <button class="filter-btn" onclick="setFilter('coverLetter',this)">📝 With Cover Letter</button>
+        <div style="flex:1;min-width:10px;"></div>
+        <button onclick="exportCSV()" title="Download a spreadsheet backup of all submissions"
+          style="padding:7px 16px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+          ⬇ Export CSV Backup
+        </button>
       </div>
       <div class="table-card">
         <table>
@@ -388,43 +429,116 @@ const EMAILJS_KEY='XDm2wGz_tn8DOjWPw';
 const ADMIN_CC='areymar36@gmail.com';
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
+// ─── PRICING (change here only — used everywhere) ──────────────────────────────
+const BASE_PRICE = 50;   // CV / Resume
+const CL_PRICE   = 75;   // Cover Letter add-on
+const peso = n => '₱' + n.toLocaleString();
+const orderTotal = s => BASE_PRICE + (s?.coverLetter?.requested ? CL_PRICE : 0);
+
 const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'Arroyo2024!';
-const ANTHROPIC_API_KEY = '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';
+// ⚠️ SECURITY: Anthropic API key removed from client-side code.
+// Route calls through your Cloudflare Worker proxy instead (same as groq-proxy / gemini-proxy).
+// const ANTHROPIC_API_KEY = 'MOVE_TO_WORKER_ENV';
 
 
 let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 = '';
 
-// ── PASSWORD (stored in JSONBin - works on ALL devices) ──────────────────────
-let currentPassword = ADMIN_PASS;
+// ── PASSWORD ─────────────────────────────────────────────────────────────────
+// Stored in JSONBin as a SHA-256 hash, never plaintext. This matters because
+// the JSONBin key is visible in this file's source, so anyone can read the bin
+// contents — a plaintext password there would be readable by anyone.
+// BOOTSTRAP_HASH is the first-run password ("Arroyo2024!"). Change it from the
+// Change Password screen immediately; after that the cloud hash takes over.
+const BOOTSTRAP_HASH = '1bec7566ce1361a3460878fe26d201fde4e141fbc4992c006934c2d8d3cb9fd3';
+
+let cloudHash      = null;   // SHA-256 from the cloud, if set
+let legacyPlain    = null;   // old plaintext value, for one-time migration
+let usingBootstrap = false;  // true while still on the first-run password
+
+async function sha256(text){
+  if(!(window.crypto && window.crypto.subtle)) return null; // needs HTTPS
+  const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
 
 async function loadPasswordFromCloud(){
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
+    const res  = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
     const json = await res.json();
-    const saved = json?.record?.adminPassword;
-    if(saved) currentPassword = saved;
-  } catch(e){ console.warn('Could not load password:', e); }
+    cloudHash   = json?.record?.adminPasswordHash || null;
+    legacyPlain = json?.record?.adminPassword     || null;
+    return true;
+  } catch(e){
+    console.warn('Could not reach password store:', e);
+    return false;
+  }
 }
 
-function getCurrentPassword(){ return currentPassword; }
+// Returns true if the typed password is correct, using (in order):
+// cloud hash -> legacy plaintext (then migrates it) -> bootstrap hash.
+async function verifyPassword(typed){
+  const typedHash = await sha256(typed);
+
+  if(cloudHash){
+    if(typedHash) return typedHash === cloudHash;
+    return false; // no crypto available and only a hash on record
+  }
+
+  if(legacyPlain){
+    if(typed === legacyPlain){
+      if(typedHash) migrateToHash(typedHash); // upgrade silently in background
+      return true;
+    }
+    return false;
+  }
+
+  // Nothing stored yet — first run.
+  usingBootstrap = true;
+  if(typedHash) return typedHash === BOOTSTRAP_HASH;
+  return typed === 'Arroyo2024!'; // crypto.subtle unavailable (e.g. file://)
+}
+
+async function migrateToHash(hash){
+  try {
+    const ex = await getFullRecord();
+    delete ex.adminPassword; // drop the plaintext copy
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, adminPasswordHash:hash})
+    });
+    cloudHash = hash; legacyPlain = null;
+    console.log('Password migrated to hashed storage.');
+  } catch(e){ console.warn('Password migration failed:', e); }
+}
 
 async function changePassword(){
   const c=document.getElementById('currentPass').value;
   const n=document.getElementById('newPass').value;
   const cf=document.getElementById('confirmPass').value;
   if(!c||!n||!cf){showNotif('Fill in all fields.',true);return;}
-  if(c!==getCurrentPassword()){showNotif('Current password is incorrect.',true);return;}
+
+  await loadPasswordFromCloud();
+  if(!(await verifyPassword(c))){showNotif('Current password is incorrect.',true);return;}
   if(n.length<6){showNotif('Password must be at least 6 characters.',true);return;}
   if(n!==cf){showNotif('New passwords do not match.',true);return;}
+  if(n===c){showNotif('New password must be different from the current one.',true);return;}
+
+  const newHash = await sha256(n);
+  if(!newHash){
+    showNotif('This browser cannot hash securely. Open the dashboard over HTTPS and try again.',true);
+    return;
+  }
+
   try {
     const ex = await getFullRecord();
+    delete ex.adminPassword; // never leave plaintext behind
     await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
       method:'PUT',
       headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
-      body:JSON.stringify({...ex,adminPassword:n})
+      body:JSON.stringify({...ex, adminPasswordHash:newHash})
     });
-    currentPassword = n;
+    cloudHash = newHash; legacyPlain = null; usingBootstrap = false;
     showNotif('✅ Password updated on all devices! Logging out...');
     ['currentPass','newPass','confirmPass'].forEach(id=>document.getElementById(id).value='');
     setTimeout(()=>doLogout(),2000);
@@ -435,17 +549,30 @@ async function changePassword(){
 async function doLogin(){
   const u=document.getElementById('loginUser').value.trim();
   const p=document.getElementById('loginPass').value;
-  if(!u||!p){document.getElementById('loginError').style.display='block';return;}
+  const errEl=document.getElementById('loginError');
+  if(!u||!p){errEl.style.display='block';errEl.textContent='Please enter username and password.';return;}
 
-  // Load cloud password first then check
-  await loadPasswordFromCloud();
+  errEl.style.display='block';
+  errEl.textContent='Verifying...';
 
-  if(u===ADMIN_USER && p===getCurrentPassword()){
+  const reachable = await loadPasswordFromCloud();
+  if(!reachable){
+    errEl.textContent='Could not reach the server. Check your internet connection and try again.';
+    return;
+  }
+
+  if(u===ADMIN_USER && await verifyPassword(p)){
     document.getElementById('loginOverlay').style.display='none';
     document.getElementById('adminApp').style.display='block';
+    errEl.style.display='none';
+    document.getElementById('loginPass').value='';
     loadData();
+    if(usingBootstrap){
+      setTimeout(()=>showNotif('⚠️ You are using the default password. Please change it now.',true),900);
+    }
   } else {
-    document.getElementById('loginError').style.display='block';
+    errEl.textContent='Incorrect username or password.';
+    errEl.style.display='block';
   }
 }
 function doLogout(){
@@ -453,6 +580,13 @@ function doLogout(){
   document.getElementById('adminApp').style.display='none';
   document.getElementById('loginUser').value='';
   document.getElementById('loginPass').value='';
+}
+
+function toggleSidebar(){
+  const sb=document.getElementById('mainSidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('open');
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
@@ -463,6 +597,10 @@ function showPage(id,btn){
   if(btn)btn.classList.add('active');
   if(id==='submissionsPage')renderSubmissions();
   if(id==='gcashPage')loadCurrentQR();
+  // Auto-close sidebar on mobile after nav
+  const sb=document.getElementById('mainSidebar');
+  const ov=document.getElementById('sidebarOverlay');
+  if(sb&&sb.classList.contains('open')){ sb.classList.remove('open'); ov.classList.remove('open'); }
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
@@ -487,14 +625,20 @@ async function getFullRecord(){
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
   const clOrders=submissions.filter(s=>s.coverLetter?.requested);
-  const revenue=submissions.reduce((t,s)=>t+(s.coverLetter?.requested?125:50),0);
+  // Revenue: only count Done + Delivered as "earned"
+  const revenue=submissions.reduce((t,s)=>t+orderTotal(s),0);
+  const doneCount=submissions.filter(s=>s.status==='Done').length;
+  const deliveredCount=submissions.filter(s=>s.status==='Delivered').length;
   document.getElementById('statTotal').textContent=submissions.length;
   document.getElementById('statNew').textContent=submissions.filter(s=>s.status==='New').length;
   document.getElementById('statProc').textContent=submissions.filter(s=>s.status==='Processing').length;
-  document.getElementById('statDone').textContent=submissions.filter(s=>s.status==='Done').length;
+  document.getElementById('statDone').textContent=doneCount+deliveredCount;
+  document.getElementById('statDoneOnly').textContent=doneCount;
+  document.getElementById('statDelivered').textContent=deliveredCount;
   document.getElementById('statRevenue').textContent='₱'+revenue.toLocaleString();
   document.getElementById('statCLCount').textContent=clOrders.length;
   document.getElementById('statCLOnly').textContent=clOrders.length;
+  const clEach=document.getElementById('statCLEach'); if(clEach) clEach.textContent=peso(CL_PRICE);
   const recent=[...submissions].reverse().slice(0,5);
   const body=document.getElementById('recentTableBody');
   if(!recent.length){body.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>No submissions yet.</p></div>';return;}
@@ -535,7 +679,7 @@ function renderSubmissions(){
   tbody.innerHTML=[...filtered].reverse().map((s,i)=>{
     const ri=submissions.indexOf(s);
     const hasCL=s.coverLetter?.requested;
-    const total=hasCL?'₱125':'₱50';
+    const total=peso(orderTotal(s));
     return`<tr>
       <td>${filtered.length-i}</td>
       <td><strong>${s.personal.firstName} ${s.personal.lastName}</strong><br><span style="font-size:11px;color:var(--gray)">${s.personal.email}</span></td>
@@ -553,6 +697,87 @@ function renderSubmissions(){
   }).join('');
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// EXPORT CSV — offline backup of every submission (photos excluded by design)
+// ══════════════════════════════════════════════════════════════════════════════
+function exportCSV(){
+  if(!submissions.length){ showNotif('No submissions to export yet.', true); return; }
+
+  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate'};
+
+  // Escape a value for CSV: wrap in quotes, double any internal quotes
+  const esc = v => {
+    if(v === null || v === undefined) return '""';
+    let s = String(v).replace(/\r?\n/g, ' | ').replace(/"/g, '""');
+    return '"' + s + '"';
+  };
+
+  const headers = ['#','Submitted (PHT)','Status','First Name','Last Name','Job Title','Email','Phone',
+    'Address','Date of Birth','Civil Status','Gender','Nationality','Facebook/Social','LinkedIn',
+    'Education Level','Education','Work Experience','Skills','Languages','References','Hobbies','Awards',
+    'About / Notes','Profile Summary','Template','Special Instructions','Cover Letter?','CL Position',
+    'CL Company','CL Reason','CL Strengths','CL Tone','Cover Letter Text','Admin Notes','Total (PHP)',
+    'Consent Agreed','Consent Timestamp','Has Photo'];
+
+  const rows = submissions.map((s, i) => {
+    const p = s.personal || {};
+    const cl = s.coverLetter || {};
+
+    const eduStr = (s.education||[]).filter(e=>e.school)
+      .map(e=>`${e.school}${e.degree?' ('+e.degree+')':''}${e.yearStart||e.yearGrad?' '+(e.yearStart||'')+'-'+(e.yearGrad||''):''}${e.honors?' ['+e.honors+']':''}`)
+      .join(' | ');
+    const workStr = (s.workExperience||[]).filter(w=>w.company)
+      .map(w=>`${w.company} - ${w.position||''} (${w.dateStart||''} to ${w.dateEnd||''})${w.location?' @ '+w.location:''}${w.responsibilities?': '+w.responsibilities:''}`)
+      .join(' | ');
+    const refStr = (s.references||[]).filter(r=>r.name)
+      .map(r=>`${r.name}${r.position?' - '+r.position:''}${r.company?' ('+r.company+')':''}${r.contact?' '+r.contact:''}`)
+      .join(' | ');
+
+    let submitted = s.submittedAt || '';
+    try {
+      submitted = new Date(s.submittedAt).toLocaleString('en-PH',{
+        timeZone:'Asia/Manila', year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit'
+      });
+    } catch(e){}
+
+    let consentAt = '';
+    if(s.dataConsent?.agreedAt){
+      try { consentAt = new Date(s.dataConsent.agreedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'}); }
+      catch(e){ consentAt = s.dataConsent.agreedAt; }
+    }
+
+    return [
+      i+1, submitted, s.status||'', p.firstName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
+      p.address||'', p.dob||'', p.civilStatus||'', p.gender||'', p.nationality||'', p.social||'', p.linkedin||'',
+      eduMap[s.eduLevel]||s.eduLevel||'', eduStr, workStr,
+      (s.skills||[]).join(', '), (s.languages||[]).join(', '), refStr,
+      s.hobbies||'', s.awards||'', s.aboutMe||'', s.profileSummary||'',
+      s.templatePref ? 'Template '+s.templatePref : 'No preference',
+      s.specialInstructions||'', cl.requested ? 'YES' : 'No',
+      cl.position||'', cl.company||'', cl.reason||'', cl.strengths||'', cl.tone||'', cl.generated||'',
+      s.adminNotes||'', orderTotal(s),
+      s.dataConsent?.agreed ? 'YES' : 'No record', consentAt, p.photo ? 'Yes' : 'No'
+    ].map(esc).join(',');
+  });
+
+  // BOM keeps Excel happy with ₱ and any non-ASCII names
+  const csv = '\uFEFF' + headers.map(esc).join(',') + '\r\n' + rows.join('\r\n');
+
+  const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `arroyo-cv-submissions-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+
+  showNotif(`✅ Exported ${submissions.length} submission${submissions.length>1?'s':''} to CSV.`);
+}
+
 async function cycleStatus(idx){
   const order=['New','Processing','Done','Delivered'];
   const newStatus=order[(order.indexOf(submissions[idx].status)+1)%order.length];
@@ -561,8 +786,9 @@ async function cycleStatus(idx){
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
   renderSubmissions(); renderDashboard();
   showNotif(`Status → "${newStatus}"`);
-  // Auto-send email when marked Done
+  // Auto-send email on status change
   if(newStatus==='Done') await sendDoneEmail(idx);
+  if(newStatus==='Delivered') await emailCustomer(idx,'delivered');
 }
 
 // ── VIEW MODAL ────────────────────────────────────────────────────────────────
@@ -573,7 +799,7 @@ function viewSubmission(idx){
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
   let html='';
   const hasCL=s.coverLetter?.requested;
-  const totalPrice=hasCL?'₱125 (CV ₱50 + Cover Letter ₱75)':'₱50 (CV only)';
+  const totalPrice=hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
   if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
   html+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
   html+='<span class="status-badge status-'+s.status+'">'+s.status+'</span>';
@@ -606,8 +832,44 @@ function viewSubmission(idx){
     }
   } catch(e){ console.warn('Consent badge error:',e); }
   const dobFormatted=p.dob?new Date(p.dob+'T00:00:00').toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}):'';
+  // Normalise a PH mobile number to E.164 digits for wa.me / tel: links.
+  // Handles 09xx…, 9xx…, +639xx…, 639xx… without doubling the country code.
+  const phDigits = raw => {
+    let d = String(raw||'').replace(/\D/g,'');
+    if(d.startsWith('63')) d = d.slice(2);   // already has country code
+    d = d.replace(/^0+/,'');                  // drop trunk zero
+    return d ? '63' + d : '';
+  };
+
+  // Quick-contact bar — one-tap copy / call / message
+  html+='<div class="quick-contact">';
+  if(p.phone){
+    const wa = phDigits(p.phone);
+    html+='<div class="qc-item"><span class="qc-ico">📱</span><span class="qc-val">'+p.phone+'</span>'
+      + copyBtn(p.phone,'Phone')
+      + '<a class="qc-link" href="tel:+'+wa+'" title="Call">📞</a>'
+      + (wa ? '<a class="qc-link" href="https://wa.me/'+wa+'" target="_blank" rel="noopener" title="WhatsApp">💬</a>' : '')
+      + '</div>';
+  }
+  if(p.email){
+    html+='<div class="qc-item"><span class="qc-ico">✉️</span><span class="qc-val">'+p.email+'</span>'
+      + copyBtn(p.email,'Email')
+      + '<a class="qc-link" href="mailto:'+p.email+'" title="Compose email">📧</a>'
+      + '</div>';
+  }
+  html+='</div>';
+
   html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['Date of Birth',dobFormatted],['Civil Status',p.civilStatus],['Gender',p.gender],['Nationality',p.nationality],['Social / Facebook',p.social],['LinkedIn',p.linkedin]]);
   html+=grp('Education Level',[['Type',eduMap[s.eduLevel]]]);
+  // Customer's own words — useful raw material for the profile summary
+  if(s.aboutMe){
+    html+=`<div class="info-group"><h4>💬 Customer's Own Notes</h4>
+      <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-left:4px solid #3b82f6;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.8;color:#1e3a8a;font-style:italic;">
+        ${s.aboutMe.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}
+      </div>
+      <div style="font-size:11px;color:var(--gray);margin-top:6px;">💡 Use this as context when generating the profile summary below.</div>
+    </div>`;
+  }
   html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary||'—'}</p></div>`;
   if(s.education?.length){html+=`<div class="info-group"><h4>Education</h4>`;s.education.forEach(e=>{if(e.school)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${e.school}</strong><br><span style="color:var(--gray)">${e.degree||''} · ${e.yearStart||''}–${e.yearGrad||''} ${e.honors?'· '+e.honors:''}</span></div>`;});html+='</div>';}
   if(s.eduLevel!=='fresh'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
@@ -668,16 +930,29 @@ function viewSubmission(idx){
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
   // Email customer button
+  const statusNote = s.status==='Done'
+    ? '<span style="font-size:11px;color:#10b981;font-weight:600;">✅ Auto-sent when status set to Done</span>'
+    : s.status==='Delivered'
+    ? '<span style="font-size:11px;color:#10b981;font-weight:600;">✅ Auto-sent when status set to Delivered</span>'
+    : '';
   html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-        <span>📤 CV is Ready — Request Payment</span>
-      </button>
-      <button id="emailDeliveredBtn_${si}" onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-        <span>✅ CV Delivered</span>
-      </button>
+    <div style="background:#f7f8fc;border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;">
+      <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.6;">
+        📬 Emails are sent <strong>automatically</strong> when you cycle the status:<br>
+        &nbsp;&nbsp;• <strong>→ Done</strong> → sends <em>"CV is Ready — Request Payment"</em><br>
+        &nbsp;&nbsp;• <strong>→ Delivered</strong> → sends <em>"CV Has Been Delivered"</em><br>
+        Use the buttons below to <strong>resend manually</strong> if needed.
+        ${statusNote ? '<br><br>'+statusNote : ''}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <span>📤 Resend: Request Payment</span>
+        </button>
+        <button id="emailDeliveredBtn_${si}" onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
+          <span>✅ Resend: CV Delivered</span>
+        </button>
+      </div>
     </div>
-    <p style="font-size:11px;color:var(--gray);margin-top:8px;">📨 Emails are sent automatically via EmailJS — no email client needed.</p>
   </div>`;
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
@@ -703,6 +978,43 @@ function viewSubmission(idx){
   document.getElementById('viewModal').classList.add('open');
 }
 function grp(title,rows){return`<div class="info-group"><h4>${title}</h4>${rows.map(([l,v])=>v?`<div class="info-row"><span class="info-label">${l}</span><span>${v}</span></div>`:'').join('')}</div>`;}
+
+// ── CLICK-TO-COPY ─────────────────────────────────────────────────────────────
+function copyBtn(value, label){
+  const safe = String(value).replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  return `<button class="qc-copy" onclick="copyText('${safe}','${label}',this)" title="Copy ${label}">📋</button>`;
+}
+
+async function copyText(text, label, btn){
+  const done = () => {
+    showNotif(`✅ ${label} copied to clipboard`);
+    if(btn){
+      const old = btn.textContent;
+      btn.textContent = '✓';
+      btn.classList.add('copied');
+      setTimeout(()=>{ btn.textContent = old; btn.classList.remove('copied'); }, 1400);
+    }
+  };
+  try {
+    await navigator.clipboard.writeText(text);
+    done();
+  } catch(e){
+    // Fallback for older browsers / non-HTTPS contexts
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    } catch(e2){
+      showNotif('Could not copy automatically — please select and copy manually.', true);
+    }
+  }
+}
 
 // ── TEMPLATE OVERLAY ──────────────────────────────────────────────────────────
 function openTemplateOverlay(idx){
@@ -802,31 +1114,10 @@ Hobbies: ${s.hobbies||'Not specified'}
 
 Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer to hire them.`;
 
-    // Groq via Cloudflare Worker proxy
-    try {
-      const r1=await fetch('https://groq-proxy.areymar36.workers.dev',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({prompt:prompt})
-      });
-      const d1=await r1.json();
-      if(!r1.ok) throw new Error(d1?.error||'Worker error');
-      const gen=d1?.text?.trim()||'';
-      if(gen && gen.length > 30) aiProfile=gen;
-    } catch(e){ console.warn('Groq worker CV failed:', e); }
-
-    // Pollinations fallback
-    if(!aiProfile){
-      try {
-        const encodedPrompt2=encodeURIComponent(prompt);
-        const res=await fetch(`https://text.pollinations.ai/${encodedPrompt2}?model=openai`,{method:'GET'});
-        if(res.ok){
-          const gen=(await res.text()).trim();
-          if(gen && gen.length > 30 && !gen.toLowerCase().startsWith('error')) aiProfile=gen;
-        }
-      } catch(e){ console.warn('Pollinations CV failed:', e); }
-    }
-  }catch(e){console.error('AI profile error:',e);}
+    const gen = await aiGenerate(prompt, (msg)=>{ label.textContent=msg; });
+    if(gen && gen.length > 30) aiProfile = gen;
+    else console.warn('All AI providers returned empty for CV profile.');
+  } catch(e){ console.warn('generateCV AI error:', e); }
 
   btn.disabled=false; label.textContent='🖨️ Generate & Save as PDF'; spinner.style.display='none';
 
@@ -865,7 +1156,6 @@ function buildCVHtml(s,tmpl,mode){
     *{box-sizing:border-box;}
     html,body{margin:0;padding:0;background:#555;}
     body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    /* Screen: show as A4 card centered */
     .page-wrap{
       display:flex;
       justify-content:center;
@@ -874,50 +1164,182 @@ function buildCVHtml(s,tmpl,mode){
     }
     .page{
       width:210mm;
-      min-height:297mm;
       background:white;
       display:flex;
       box-shadow:0 4px 30px rgba(0,0,0,.4);
       flex-shrink:0;
     }
-    /* Print: clean A4 — no blank pages */
+    /* Fit notice (screen only, never printed) */
+    .fit-note{
+      position:fixed;left:0;right:0;bottom:0;z-index:9998;
+      background:#7f1d1d;color:#fecaca;font-family:Inter,Arial,sans-serif;
+      font-size:12px;padding:9px 18px;text-align:center;line-height:1.5;
+    }
     @media print{
-      .no-print{display:none!important;}
+      .no-print,.fit-note{display:none!important;}
       @page{margin:0;size:A4 portrait;}
       html,body{
-        margin:0;padding:0;
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        background:white;
-        -webkit-print-color-adjust:exact;
-        print-color-adjust:exact;
+        margin:0!important;padding:0!important;
+        width:210mm!important;height:297mm!important;
+        overflow:hidden!important;background:white!important;
+        -webkit-print-color-adjust:exact;print-color-adjust:exact;
       }
+      /* Wrapper is clipped to exactly one A4 sheet so no phantom 2nd page.
+         NOTE: .page width/transform/min-height are set inline by the fitter
+         below and are deliberately NOT overridden here. */
       .page-wrap{
-        padding:0;
-        margin:0;
-        display:block;
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        background:white;
+        display:block!important;
+        width:210mm!important;height:297mm!important;
+        padding:0!important;margin:0!important;
+        overflow:hidden!important;min-height:0!important;
+        background:white!important;
       }
-      .page{
-        width:210mm;
-        height:297mm;
-        min-height:unset;
-        max-height:297mm;
-        overflow:hidden;
-        box-shadow:none;
-        page-break-after:avoid;
-        page-break-inside:avoid;
+      .page{box-shadow:none!important;}
+    }
+  </style>
+  <script>
+  /* ============================================================
+     ONE-PAGE AUTO-FIT
+     Shrinks a CV so it always lands on a single A4 sheet.
+
+     Naive scale() would leave white gutters (narrower content) and
+     still spill onto page 2, because transforms don't change layout
+     size. So instead we lay the page out WIDER by 1/s, then scale by
+     s: visual width returns to exactly 210mm while height shrinks,
+     and text reflows to use the space. A binary search finds the
+     largest s that fits. The wrapper is clipped to one sheet.
+     ============================================================ */
+  (function(){
+    var MM   = 96/25.4;
+    var A4W  = 210*MM;
+    var A4H  = 297*MM;
+    var FLOOR = 0.62;        /* below this, text stops being readable */
+    var busy = false;
+
+    function pageEl(){ return document.querySelector('.page'); }
+    function wrapEl(){ return document.querySelector('.page-wrap'); }
+
+    /* Lay out at width w and report natural content height.
+       min-height is zeroed because every template sets 100vh, which
+       would otherwise report the window height instead of the content. */
+    function heightAt(page, w){
+      page.style.minHeight = '0px';
+      page.style.maxWidth  = 'none';
+      page.style.transform = 'none';
+      page.style.width     = w + 'px';
+      void page.offsetHeight;
+      return page.scrollHeight;
+    }
+
+    function applyFit(page, wrap, s, layoutW){
+      page.style.width           = layoutW + 'px';
+      page.style.minHeight       = (A4H/s) + 'px';
+      page.style.maxWidth        = 'none';
+      page.style.transformOrigin = 'top left';
+      page.style.transform       = 'scale(' + s + ')';
+      if(wrap){
+        wrap.style.boxSizing = 'border-box';
+        wrap.style.display   = 'block';
+        wrap.style.margin    = '0 auto';
+        wrap.style.padding   = '60px 20px 20px';
+        wrap.style.width     = (A4W + 40) + 'px';
+        wrap.style.height    = (A4H + 80) + 'px';
+        wrap.style.overflow  = 'hidden';
       }
     }
-  </style>`;
+
+    function applyNatural(page, wrap){
+      page.style.width           = A4W + 'px';
+      page.style.minHeight       = A4H + 'px';
+      page.style.transform       = 'none';
+      page.style.transformOrigin = 'top left';
+      if(wrap){
+        wrap.style.boxSizing = 'border-box';
+        wrap.style.display   = 'block';
+        wrap.style.margin    = '0 auto';
+        wrap.style.padding   = '60px 20px 20px';
+        wrap.style.width     = (A4W + 40) + 'px';
+        wrap.style.height    = (A4H + 80) + 'px';
+        wrap.style.overflow  = 'hidden';
+      }
+    }
+
+    function notice(scale, clipped){
+      var old = document.querySelector('.fit-note');
+      if(old) old.parentNode.removeChild(old);
+      if(!clipped) return;
+      var d = document.createElement('div');
+      d.className = 'fit-note';
+      d.textContent = 'This CV has more content than one A4 page can hold. '
+        + 'Text is already reduced to ' + Math.round(scale*100) + '% and some '
+        + 'content is still being cut off. Please shorten the longest '
+        + 'responsibilities or the profile summary. (This bar is not printed.)';
+      document.body.appendChild(d);
+    }
+
+    function fit(){
+      if(busy) return;
+      var page = pageEl(), wrap = wrapEl();
+      if(!page) return;
+      busy = true;
+
+      try{
+        /* 1. Does it already fit at true A4 width? */
+        if(heightAt(page, A4W) <= A4H + 1){
+          applyNatural(page, wrap);
+          notice(1, false);
+          document.documentElement.setAttribute('data-fit', '1');
+          return;
+        }
+
+        /* 2. Largest s in [FLOOR,1] where content laid out at A4W/s
+              is no taller than A4H once scaled by s. Feasibility is
+              monotonic in s, so binary search is safe. */
+        var lo = FLOOR, hi = 1, best = null, bestW = A4W/FLOOR;
+        for(var i=0;i<11;i++){
+          var mid = (lo+hi)/2;
+          var lw  = A4W/mid;
+          if(heightAt(page, lw)*mid <= A4H){ best = mid; bestW = lw; lo = mid; }
+          else { hi = mid; }
+        }
+
+        if(best === null){
+          /* Even the floor overflows — clamp and tell the user. */
+          best  = FLOOR;
+          bestW = A4W/FLOOR;
+          applyFit(page, wrap, best, bestW);
+          notice(best, true);
+        } else {
+          applyFit(page, wrap, best, bestW);
+          notice(best, false);
+        }
+        document.documentElement.setAttribute('data-fit', best.toFixed(3));
+      } finally {
+        busy = false;
+      }
+    }
+
+    function schedule(){ setTimeout(fit, 60); }
+
+    if(document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule);
+
+    /* Webfonts and the photo change metrics after first paint. */
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    window.addEventListener('resize', schedule);
+
+    /* Re-measure right before the print dialog reads layout. */
+    window.addEventListener('beforeprint', fit);
+    if(window.matchMedia){
+      var mq = window.matchMedia('print');
+      var h  = function(e){ if(e.matches) fit(); };
+      if(mq.addEventListener) mq.addEventListener('change', h);
+      else if(mq.addListener) mq.addListener(h);
+    }
+
+    window.__cvFit = fit;
+  })();
+  <\/script>`;
 
   if(tmpl===1) return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===2) return T2(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
@@ -996,7 +1418,7 @@ ${pb}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
     ${refs.length?`<div class="ls"><div class="ls-head">References</div>${refs.map(r=>`<div style="margin-bottom:7px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="ls-head">Interests</div><p style="font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;">${s.hobbies}</p></div>`:''}
@@ -1143,7 +1565,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="ls"><div class="lh">About Me</div><p style="font-size:9px;line-height:1.7;color:#444;">${s.profileSummary}</p></div>`:''}
-      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
       ${langs.length?`<div class="ls"><div class="lh">Language</div>${langs.map(l=>`<div style="font-size:11px;color:#444;margin-bottom:4px;">• ${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="ls"><div class="lh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
       ${refs.length?`<div class="ls"><div class="lh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
@@ -1474,7 +1896,85 @@ async function deleteSubmission(idx){
   }
 }
 
-// ── PROFILE SUMMARY via POLLINATIONS AI ─────────────────────────────────────
+// ── AI HELPER: fetch with timeout ─────────────────────────────────────────────
+async function fetchWithTimeout(url, options, ms=12000){
+  const ctrl = new AbortController();
+  const id = setTimeout(()=>ctrl.abort(), ms);
+  try {
+    const res = await fetch(url, {...options, signal: ctrl.signal});
+    clearTimeout(id);
+    return res;
+  } catch(e) {
+    clearTimeout(id);
+    throw e;
+  }
+}
+
+// ── AI HELPER: try all providers in sequence ──────────────────────────────────
+async function aiGenerate(prompt, statusFn){
+  let generated = '';
+  const short = prompt.slice(0, 600); // safe short version for URL-based APIs
+
+  // 1️⃣ Groq Worker (fastest, primary)
+  statusFn && statusFn('Trying Groq AI...');
+  try {
+    const r = await fetchWithTimeout('https://groq-proxy.areymar36.workers.dev', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt})
+    }, 14000);
+    const d = await r.json();
+    if(r.ok){ const t=(d?.text||d?.response||'').trim(); if(t.length>30) generated=t; }
+    else console.warn('Groq error:', d?.error||r.status);
+  } catch(e){ console.warn('Groq failed:', e.name==='AbortError'?'timeout':e.message); }
+
+  // 2️⃣ Pollinations POST (avoids URL length limit, more reliable than GET)
+  if(!generated){
+    statusFn && statusFn('Trying Pollinations AI...');
+    try {
+      const r = await fetchWithTimeout('https://text.pollinations.ai/', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({messages:[{role:'user',content:prompt}], model:'openai', private:true})
+      }, 16000);
+      if(r.ok){
+        const t=(await r.text()).trim();
+        if(t.length>30 && !t.toLowerCase().startsWith('<!') && !t.toLowerCase().startsWith('error')) generated=t;
+      }
+    } catch(e){ console.warn('Pollinations POST failed:', e.name==='AbortError'?'timeout':e.message); }
+  }
+
+  // 3️⃣ Pollinations GET (short prompt fallback)
+  if(!generated){
+    statusFn && statusFn('Trying backup AI...');
+    try {
+      const enc = encodeURIComponent(short);
+      const r = await fetchWithTimeout(`https://text.pollinations.ai/${enc}?model=openai`, {method:'GET'}, 14000);
+      if(r.ok){
+        const t=(await r.text()).trim();
+        if(t.length>30 && !t.toLowerCase().startsWith('<!') && !t.toLowerCase().startsWith('error')) generated=t;
+      }
+    } catch(e){ console.warn('Pollinations GET failed:', e.name==='AbortError'?'timeout':e.message); }
+  }
+
+  // 4️⃣ Gemini proxy (last resort)
+  if(!generated){
+    statusFn && statusFn('Trying Gemini AI...');
+    try {
+      const r = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:0.3,maxOutputTokens:500}})
+      }, 16000);
+      if(r.ok){
+        const d = await r.json();
+        const t=(d?.candidates?.[0]?.content?.parts?.[0]?.text||'').trim();
+        if(t.length>30) generated=t;
+      }
+    } catch(e){ console.warn('Gemini failed:', e.name==='AbortError'?'timeout':e.message); }
+  }
+
+  return generated;
+}
+
+// ── PROFILE SUMMARY GENERATOR ─────────────────────────────────────────────────
 async function generateProfileSummary(idx){
   const s = submissions[idx];
   const p = s.personal;
@@ -1484,69 +1984,39 @@ async function generateProfileSummary(idx){
   const display = document.getElementById('profileDisplay');
 
   btn.disabled = true;
-  label.textContent = 'Generating...';
   spinner.style.display = 'inline-block';
-  display.value = 'Writing your profile summary...';
+  display.value = '⏳ Generating profile summary...';
 
-  try {
-    const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
-    const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
-      ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}-${w.dateEnd}): ${w.responsibilities}`).join(' | ')
-      : 'No work experience (fresh graduate)';
-    const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
+  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+  const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
+    ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart||''}–${w.dateEnd||''}): ${w.responsibilities||''}`.trim()).join(' | ')
+    : 'No prior work experience (fresh graduate)';
+  const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
 
-    const prompt = `You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background and experience. Sound confident, professional, and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation, nothing else.
+  const prompt = `Write a CV Profile Summary for a Filipino job applicant. Write in FIRST PERSON only (I, my, I have — NEVER use the name). Exactly 3 sentences. Sound confident, professional, and motivated. Output ONLY the 3 sentences — no labels, no headers, nothing else.
 
-Target Position: ${p.jobTitle||'a professional role'}
+Target Position: ${p.jobTitle||'professional role'}
 Education: ${eduLevel} — ${eduSum||'Not specified'}
 Work Experience: ${workSum}
-Key Skills: ${(s.skills||[]).join(', ')||'Not specified'}
-Languages spoken: ${(s.languages||[]).join(', ')||'Not specified'}
-Nationality: ${p.nationality||'Filipino'}
-Civil Status: ${p.civilStatus||''}
-Awards/Achievements: ${s.awards||'None'}
-Interests/Hobbies: ${s.hobbies||'Not specified'}
+Skills: ${(s.skills||[]).join(', ')||'Not specified'}
+Languages: ${(s.languages||[]).join(', ')||'Not specified'}
+Awards: ${s.awards||'None'}`;
 
-Remember: FIRST PERSON only. NO name. 3 sentences. The applicant is convincing the employer to hire them.`;
+  try {
+    const generated = await aiGenerate(prompt, (msg)=>{ label.textContent = msg; });
 
-    let generated = '';
-
-    // Groq via Cloudflare Worker proxy (no CORS issues)
-    try {
-      const r1 = await fetch('https://groq-proxy.areymar36.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt })
-      });
-      const d1 = await r1.json();
-      if (!r1.ok) throw new Error(d1?.error || 'Worker error');
-      const t1 = d1?.text?.trim();
-      if (t1 && t1.length > 30) generated = t1;
-    } catch(e1){ console.warn('Groq worker failed:', e1); }
-
-    // Pollinations fallback
-    if (!generated) {
-      try {
-        const encoded = encodeURIComponent(prompt);
-        const r2 = await fetch(`https://text.pollinations.ai/${encoded}?model=openai`, { method: 'GET' });
-        if (r2.ok) {
-          const t2 = (await r2.text()).trim();
-          if (t2 && t2.length > 30 && !t2.toLowerCase().startsWith('error')) generated = t2;
-        }
-      } catch(e2){ console.warn('Pollinations failed:', e2); }
-    }
-
-    if (generated && generated.length > 30) {
+    if(generated && generated.length > 30){
       display.value = generated;
       submissions[idx].profileSummary = generated;
       showNotif('✅ Profile summary generated!');
     } else {
-      throw new Error('All AI services unavailable. Please try again in a moment.');
+      display.value = '';
+      showNotif('⚠️ All AI services are busy. Please wait a moment and try again.', true);
     }
-  } catch(e) {
+  } catch(e){
     display.value = '';
-    showNotif('Generation failed: ' + e.message + '. Please try again.', true);
-    console.error('Generate error:', e);
+    showNotif('Generation failed: ' + e.message, true);
+    console.error('generateProfileSummary error:', e);
   }
 
   btn.disabled = false;
@@ -1879,33 +2349,13 @@ RULES:
 - Tone: ${toneDesc}
 - Output ONLY the cover letter — no labels, no explanation`;
 
-  // Groq via Cloudflare Worker proxy
-  let clGenerated='';
-  try{
-    const r1=await fetch('https://groq-proxy.areymar36.workers.dev',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompt})
-    });
-    const d1=await r1.json();
-    if(!r1.ok) throw new Error(d1?.error||'Worker error');
-    let t=(d1?.text?.trim()||'').replace(/```[\s\S]*?```/g,'').trim();
-    if(t&&t.length>100) clGenerated=t;
-  }catch(e1){console.warn('Groq worker CL failed:',e1);}
+  let clGenerated = '';
+  try {
+    clGenerated = await aiGenerate(prompt, (msg)=>{ label.textContent=msg; });
+    if(clGenerated) clGenerated = clGenerated.replace(/```[\s\S]*?```/g,'').trim();
+  } catch(e){ console.warn('Cover letter aiGenerate error:', e); }
 
-  // Pollinations fallback
-  if(!clGenerated){
-    try{
-      const clEncoded=encodeURIComponent(prompt);
-      const r2=await fetch(`https://text.pollinations.ai/${clEncoded}?model=openai`,{method:'GET'});
-      if(r2.ok){
-        let t2=(await r2.text()).trim().replace(/```[\s\S]*?```/g,'').trim();
-        if(t2&&t2.length>100) clGenerated=t2;
-      }
-    }catch(e2){console.warn('Pollinations CL failed:',e2);}
-  }
-
-  if(clGenerated&&clGenerated.length>100){
+  if(clGenerated && clGenerated.length > 100){
     display.value=clGenerated;
     if(copyBtn) copyBtn.style.display='inline-flex';
     if(printBtn) printBtn.style.display='inline-flex';
@@ -1916,9 +2366,9 @@ RULES:
     submissions[idx].coverLetter.strengths=strengths;
     submissions[idx].coverLetter.reason=why;
     submissions[idx].coverLetter.tone=tone;
-  }else{
+  } else {
     display.value='';
-    showNotif('Generation failed. Please try again in a moment.',true);
+    showNotif('⚠️ All AI services are busy right now. Please wait a moment and try again.', true);
   }
 
   btn.disabled=false;
@@ -2471,7 +2921,7 @@ ${pb}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="lsh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">${sk}</div><div class="sbar-bg"><div class="sbar-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="lsh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="lsh">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="lsh">Interests</div><p style="font-size:10.5px;color:#7c3a2a;line-height:1.7;">${s.hobbies}</p></div>`:''}
     ${refs.length?`<div class="ls"><div class="lsh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
@@ -2686,7 +3136,7 @@ ${pb}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
     </div>
-    ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-bar"><div class="skill-label">${sk}</div><div class="skill-track"><div class="skill-fill" style="width:80%"></div></div></div>`).join('')}</div>`:''}
+    ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-bar"><div class="skill-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-h">Languages</div>${langs.map(l=>`<div class="ci">🌿 ${l}</div>`).join('')}</div>`:''}
     ${s.hobbies?`<div class="ls"><div class="ls-h">Interests</div><p style="font-size:10px;color:rgba(209,250,229,.7);line-height:1.8;">${s.hobbies}</p></div>`:''}
     ${refs.length?`<div class="ls"><div class="ls-h">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
@@ -2704,7 +3154,7 @@ async function sendDoneEmail(idx){
   const s=submissions[idx]; const p=s.personal;
   if(!p.email){ showNotif('No email on file — skipping auto email.',true); return; }
   const hasCL=s.coverLetter?.requested;
-  const total=hasCL?'₱125':'₱50';
+  const total=peso(orderTotal(s));
   const docLabel=hasCL?'CV and Cover Letter':'CV';
 
   // ── HTML body ──────────────────────────────────────────────
@@ -2811,7 +3261,7 @@ async function sendDoneEmail(idx){
 async function emailCustomer(idx, type){
   const s=submissions[idx]; const p=s.personal;
   const hasCL=s.coverLetter?.requested;
-  const total=hasCL?'₱125':'₱50';
+  const total=peso(orderTotal(s));
   const docLabel=hasCL?'CV and Cover Letter':'CV';
 
   if(!p.email){ showNotif('No email on file for this customer.', true); return; }
