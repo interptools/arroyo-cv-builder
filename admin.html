@@ -781,7 +781,7 @@ function exportCSV(){
   };
 
   const headers = ['#','Submitted (PHT)','Status','First Name','Last Name','Job Title','Email','Phone',
-    'Address','Date of Birth','Civil Status','Gender','Nationality','Facebook/Social','LinkedIn',
+    'Address','Date of Birth','Civil Status','Gender','Height','Weight','Age','Nationality','Facebook/Social','LinkedIn',
     'Education Level','Education','Work Experience','Skills','Languages','References','Hobbies','Awards',
     'About / Notes','Profile Summary','Template','Special Instructions','Cover Letter?','CL Position',
     'CL Company','CL Reason','CL Strengths','CL Tone','Cover Letter Text','Admin Notes','Total (PHP)',
@@ -817,7 +817,7 @@ function exportCSV(){
 
     return [
       i+1, submitted, s.status||'', p.firstName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
-      p.address||'', p.dob||'', p.civilStatus||'', p.gender||'', p.nationality||'', p.social||'', p.linkedin||'',
+      p.address||'', p.dob||'', p.civilStatus||'', p.gender||'', p.height||'', p.weight||'', p.age||'', p.nationality||'', p.social||'', p.linkedin||'',
       eduMap[s.eduLevel]||s.eduLevel||'', eduStr, workStr,
       (s.skills||[]).join(', '), (s.languages||[]).join(', '), refStr,
       s.hobbies||'', s.awards||'', s.aboutMe||'', s.profileSummary||'',
@@ -1175,7 +1175,7 @@ function viewSubmission(idx){
   }
   html+='</div>';
 
-  html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['Date of Birth',dobFormatted],['Civil Status',p.civilStatus],['Gender',p.gender],['Nationality',p.nationality],['Social / Facebook',p.social],['LinkedIn',p.linkedin]]);
+  html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['Date of Birth',dobFormatted],['Civil Status',p.civilStatus],['Gender',p.gender],['Height',p.height],['Weight',p.weight],['Age',p.age],['Nationality',p.nationality],['Social / Facebook',p.social],['LinkedIn',p.linkedin]]);
   html+=grp('Education Level',[['Type',eduMap[s.eduLevel]]]);
   // Customer's own words — useful raw material for the profile summary
   if(s.aboutMe){
@@ -1759,6 +1759,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
@@ -1829,6 +1832,9 @@ ${pb}
         ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
         ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+        ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+        ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+        ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
       </div>
       ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
       ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
@@ -1903,6 +1909,9 @@ ${pb}
     ${p.dob?`<div class="cb-item">🎂 ${p.dob}</div>`:''}
     ${p.civilStatus?`<div class="cb-item">💍 ${p.civilStatus}</div>`:''}
     ${p.gender?`<div class="cb-item">👤 ${p.gender}</div>`:''}
+    ${p.height?`<div class="cb-item">📏 ${p.height}</div>`:''}
+    ${p.weight?`<div class="cb-item">⚖️ ${p.weight}</div>`:''}
+    ${p.age?`<div class="cb-item">🎂 ${p.age}</div>`:''}
   </div>
   <div class="body">
     <div class="L">
@@ -1974,6 +1983,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="ls-head">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-head">Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
@@ -2053,6 +2065,9 @@ ${pb}
         ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
         ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+        ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+        ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+        ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
       </div>
       ${langs.length?`<div class="rsec"><div class="rh">Language</div>${langs.map(l=>`<div style="font-size:11px;color:#333;margin-bottom:4px;">● ${l}</div>`).join('')}</div>`:''}
       ${s.hobbies?`<div class="rsec"><div class="rh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
@@ -2119,6 +2134,9 @@ ${pb}
       ${p.dob?`<div class="ci"><div class="ci-label">Date of Birth</div><div class="ci-val">${p.dob}</div></div>`:''}
       ${p.civilStatus?`<div class="ci"><div class="ci-label">Civil Status</div><div class="ci-val">${p.civilStatus}</div></div>`:''}
       ${p.gender?`<div class="ci"><div class="ci-label">Gender</div><div class="ci-val">${p.gender}</div></div>`:''}
+      ${p.height?`<div class="ci"><div class="ci-label">Height</div><div class="ci-val">${p.height}</div></div>`:''}
+      ${p.weight?`<div class="ci"><div class="ci-label">Weight</div><div class="ci-val">${p.weight}</div></div>`:''}
+      ${p.age?`<div class="ci"><div class="ci-label">Age</div><div class="ci-val">${p.age}</div></div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">⚡</div>Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-head"><div class="ls-head-icon">🌐</div>Languages</div>${langs.map(l=>`<div class="skill-li">${l}</div>`).join('')}</div>`:''}
@@ -2193,6 +2211,9 @@ ${pb}
         ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
         ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+        ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+        ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+        ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
       </div>
       ${skills.length?`<div class="lsec"><div class="lh">Skills</div>${skills.map(sk=>`<div class="skill-li">${sk}</div>`).join('')}</div>`:''}
       ${langs.length?`<div class="lsec"><div class="lh">Languages</div>${langs.map(l=>`<div style="font-size:11px;color:#333;margin-bottom:4px;">• ${l}</div>`).join('')}</div>`:''}
@@ -2487,6 +2508,9 @@ function buildEditHTML(idx){
     ${fld('e_dob','Date of Birth',p.dob,'date')}
     ${sel('e_civilStatus','Civil Status',['Single','Married','Widowed','Separated'],p.civilStatus)}
     ${sel('e_gender','Gender',['Male','Female','Prefer not to say'],p.gender)}
+    ${fld('e_height','Height (optional)',p.height)}
+    ${fld('e_weight','Weight (optional)',p.weight)}
+    ${fld('e_age','Age (optional)',p.age)}
     ${fld('e_address','Address',p.address,'text',true)}
     ${fld('e_social','Facebook / Social Media',p.social,'text',true)}
     ${fld('e_linkedin','LinkedIn',p.linkedin,'text',true)}
@@ -2568,6 +2592,9 @@ function syncEditFields(idx){
   if(gv('e_dob')!==undefined) p.dob = g('e_dob');
   if(gv('e_civilStatus')!==undefined) p.civilStatus = g('e_civilStatus');
   if(gv('e_gender')!==undefined) p.gender = g('e_gender');
+  if(gv('e_height')!==undefined) p.height = g('e_height');
+  if(gv('e_weight')!==undefined) p.weight = g('e_weight');
+  if(gv('e_age')!==undefined) p.age = g('e_age');
   if(gv('e_social')!==undefined) p.social = g('e_social');
   if(gv('e_linkedin')!==undefined) p.linkedin = g('e_linkedin');
   if(gv('e_skills')!==undefined) s.skills = g('e_skills').split(',').map(x=>x.trim()).filter(Boolean);
@@ -2959,6 +2986,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     <div class="cell">
       <div class="ch">Skills</div>
@@ -3045,7 +3075,7 @@ ${pb}
       ${s.awards?`<div class="lsec"><div class="sh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
-      ${(p.nationality||p.dob||p.civilStatus||p.gender)?`
+      ${(p.nationality||p.dob||p.civilStatus||p.gender||p.height||p.weight||p.age)?`
       <div class="lsec">
         <div class="sh">Personal Details</div>
         <div class="info-box">
@@ -3053,6 +3083,9 @@ ${pb}
           ${p.dob?`<div class="info-row"><span class="info-lbl">Date of Birth</span><span class="info-val">${p.dob}</span></div>`:''}
           ${p.civilStatus?`<div class="info-row"><span class="info-lbl">Civil Status</span><span class="info-val">${p.civilStatus}</span></div>`:''}
           ${p.gender?`<div class="info-row"><span class="info-lbl">Gender</span><span class="info-val">${p.gender}</span></div>`:''}
+          ${p.height?`<div class="info-row"><span class="info-lbl">Height</span><span class="info-val">${p.height}</span></div>`:''}
+          ${p.weight?`<div class="info-row"><span class="info-lbl">Weight</span><span class="info-val">${p.weight}</span></div>`:''}
+          ${p.age?`<div class="info-row"><span class="info-lbl">Age</span><span class="info-val">${p.age}</span></div>`:''}
         </div>
       </div>`:''}
       ${skills.length?`<div class="lsec"><div class="sh">Skills</div><div>${skills.map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
@@ -3117,6 +3150,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-li"><div class="skill-dot"></div>${sk}</div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-h">Languages</div>${langs.map(l=>`<div class="skill-li"><div class="skill-dot"></div>${l}</div>`).join('')}</div>`:''}
@@ -3185,6 +3221,9 @@ ${pb}
     ${p.dob?`<div class="cs-item">🎂 ${p.dob}</div>`:''}
     ${p.civilStatus?`<div class="cs-item">💍 ${p.civilStatus}</div>`:''}
     ${p.gender?`<div class="cs-item">👤 ${p.gender}</div>`:''}
+    ${p.height?`<div class="cs-item">📏 ${p.height}</div>`:''}
+    ${p.weight?`<div class="cs-item">⚖️ ${p.weight}</div>`:''}
+    ${p.age?`<div class="cs-item">🎂 ${p.age}</div>`:''}
   </div>
   <div class="body">
     <div class="L">
@@ -3262,6 +3301,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="lsh">Skills</div>${skills.map(sk=>`<div class="sbar"><div class="sbar-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="lsh">Languages</div>${langs.map(l=>`<div class="lang-li">${l}</div>`).join('')}</div>`:''}
@@ -3333,6 +3375,9 @@ ${pb}
     ${p.dob?`<div class="ib-item">🎂 ${p.dob}</div>`:''}
     ${p.civilStatus?`<div class="ib-item">💍 ${p.civilStatus}</div>`:''}
     ${p.gender?`<div class="ib-item">👤 ${p.gender}</div>`:''}
+    ${p.height?`<div class="ib-item">📏 ${p.height}</div>`:''}
+    ${p.weight?`<div class="ib-item">⚖️ ${p.weight}</div>`:''}
+    ${p.age?`<div class="ib-item">🎂 ${p.age}</div>`:''}
   </div>
   <div class="body">
     <div class="L">
@@ -3402,6 +3447,9 @@ ${pb}
         ${p.dob?`<span class="hc">🎂 ${p.dob}</span>`:''}
         ${p.civilStatus?`<span class="hc">💍 ${p.civilStatus}</span>`:''}
         ${p.gender?`<span class="hc">👤 ${p.gender}</span>`:''}
+        ${p.height?`<span class="hc">📏 ${p.height}</span>`:''}
+        ${p.weight?`<span class="hc">⚖️ ${p.weight}</span>`:''}
+        ${p.age?`<span class="hc">🎂 ${p.age}</span>`:''}
       </div>
     </div>
   </div>
@@ -3477,6 +3525,9 @@ ${pb}
       ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+      ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+      ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      ${p.age?`<div class="ci">🎂 ${p.age}</div>`:''}
     </div>
     ${skills.length?`<div class="ls"><div class="ls-h">Skills</div>${skills.map(sk=>`<div class="skill-bar"><div class="skill-label">▸ ${sk}</div></div>`).join('')}</div>`:''}
     ${langs.length?`<div class="ls"><div class="ls-h">Languages</div>${langs.map(l=>`<div class="ci">🌿 ${l}</div>`).join('')}</div>`:''}
