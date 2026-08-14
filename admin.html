@@ -1147,7 +1147,7 @@ function viewSubmission(idx){
       html+='<div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:#9a3412;">⚠️ No consent record — this submission was made before the Data Privacy Terms were added.</div>';
     }
   } catch(e){ console.warn('Consent badge error:',e); }
-  const dobFormatted=p.dob?new Date(p.dob+'T00:00:00').toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'}):'';
+  const dobFormatted=prettyDOB(p.dob);
   // Normalise a PH mobile number to E.164 digits for wa.me / tel: links.
   // Handles 09xx…, 9xx…, +639xx…, 639xx… without doubling the country code.
   const phDigits = raw => {
@@ -1472,7 +1472,9 @@ function openCVPrintWindow(sub){
 
 // ── BUILD CV HTML ─────────────────────────────────────────────────────────────
 function buildCVHtml(s,tmpl,mode){
-  const p=s.personal;
+  // Shallow copy so the display formatting below never overwrites the ISO date
+  // stored on the submission record.
+  const p={...s.personal, dob: prettyDOB(s.personal?.dob)};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -3862,6 +3864,24 @@ async function loadCurrentQR(){
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+// ── PRETTY DATE OF BIRTH ──────────────────────────────────────────────────────
+// Turns the stored ISO value ("2001-05-14") into "May 14, 2001" for display.
+// Built from a month table rather than toLocaleDateString so the print window
+// renders identically in every browser, and parsed from the Y/M/D parts so a
+// timezone offset can never shift the day. Anything that is not a plain ISO
+// date is returned untouched, so a manually typed value stays as typed.
+function prettyDOB(iso){
+  if(!iso) return '';
+  const raw = String(iso).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if(!m) return raw;
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return raw;
+  return `${MONTHS[mo-1]} ${d}, ${y}`;
+}
+
 function formatDate(iso){if(!iso)return'—';const d=new Date(iso);return d.toLocaleDateString('en-PH',{year:'numeric',month:'short',day:'numeric'});}
 function showNotif(msg,isError=false){
   const n=document.getElementById('notif');
