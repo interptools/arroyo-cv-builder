@@ -1474,7 +1474,7 @@ function openCVPrintWindow(sub){
 function buildCVHtml(s,tmpl,mode){
   // Shallow copy so the display formatting below never overwrites the ISO date
   // stored on the submission record.
-  const p={...s.personal, dob: prettyDOB(s.personal?.dob)};
+  const p={...s.personal, dob: prettyDOB(s.personal?.dob), dobShort: prettyDOBShort(s.personal?.dob)};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -3048,10 +3048,16 @@ body{font-family:'DM Sans',sans-serif;background:#e8e8e8;}
 .ref-s{font-size:10px;color:#888;margin-top:1px;}
 .lang-li{font-size:11px;color:#555;margin-bottom:4px;}
 .info-box{background:#f4f4f4;border-radius:8px;padding:12px 14px;margin-bottom:20px;}
-.info-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #ebebeb;}
+.info-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #ebebeb;}
 .info-row:last-child{border-bottom:none;padding-bottom:0;}
-.info-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;}
+/* Label absorbs the squeeze: it may wrap to two lines ("DATE OF / BIRTH") so the
+   value beside it never has to. min-width:0 lets a flex item shrink below its
+   own text width, which flexbox otherwise refuses to do. */
+.info-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#aaa;flex:1 1 auto;min-width:0;line-height:1.3;}
 .info-val{font-size:11px;font-weight:600;color:#333;text-align:right;}
+/* Opt-in: this value must never break across lines, and keeps its full width
+   while staying flush right. Used for the date, which reads badly split. */
+.info-val.one-line{white-space:nowrap;flex:0 0 auto;}
 </style></head><body>
 ${pb}
 <div class="page-wrap"><div class="page">
@@ -3082,7 +3088,7 @@ ${pb}
         <div class="sh">Personal Details</div>
         <div class="info-box">
           ${p.nationality?`<div class="info-row"><span class="info-lbl">Nationality</span><span class="info-val">${p.nationality}</span></div>`:''}
-          ${p.dob?`<div class="info-row"><span class="info-lbl">Date of Birth</span><span class="info-val">${p.dob}</span></div>`:''}
+          ${p.dob?`<div class="info-row"><span class="info-lbl">Date of Birth</span><span class="info-val one-line">${p.dobShort}</span></div>`:''}
           ${p.civilStatus?`<div class="info-row"><span class="info-lbl">Civil Status</span><span class="info-val">${p.civilStatus}</span></div>`:''}
           ${p.gender?`<div class="info-row"><span class="info-lbl">Gender</span><span class="info-val">${p.gender}</span></div>`:''}
           ${p.height?`<div class="info-row"><span class="info-lbl">Height</span><span class="info-val">${p.height}</span></div>`:''}
@@ -3870,6 +3876,19 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 // renders identically in every browser, and parsed from the Y/M/D parts so a
 // timezone offset can never shift the day. Anything that is not a plain ISO
 // date is returned untouched, so a manually typed value stays as typed.
+// Compact form ("Sep 30, 1991") for narrow sidebar columns where the full month
+// name would not fit on one line. Same parsing rules as prettyDOB.
+function prettyDOBShort(iso){
+  if(!iso) return '';
+  const raw = String(iso).trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if(!m) return raw;
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const y = +m[1], mo = +m[2], d = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31) return raw;
+  return `${MONTHS[mo-1]} ${d}, ${y}`;
+}
+
 function prettyDOB(iso){
   if(!iso) return '';
   const raw = String(iso).trim();
