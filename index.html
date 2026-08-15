@@ -1687,8 +1687,25 @@ function discardDraft() {
   document.getElementById('draftBanner')?.remove();
 }
 
+// The QR file committed to the repo. Used when JSONBin has no QR stored or the
+// request fails — without it the customer sat looking at the "Loading…"
+// placeholder forever, with no way to pay.
+const GCASH_QR_FALLBACK = 'gcash-qr.png';
+
 // Load latest QR from JSONBin (in case admin updated it)
 async function loadLatestQR() {
+  const img = document.getElementById('gcashQRDisplay');
+  if (!img) return;
+
+  const useFallback = () => {
+    // Only swap in the file if it actually loads; a 404 would replace the
+    // placeholder with a broken-image icon, which is worse than waiting.
+    const probe = new Image();
+    probe.onload  = () => { img.src = GCASH_QR_FALLBACK; };
+    probe.onerror = () => { /* keep the placeholder */ };
+    probe.src = GCASH_QR_FALLBACK;
+  };
+
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
       headers: { 'X-Master-Key': JSONBIN_API_KEY }
@@ -1696,13 +1713,11 @@ async function loadLatestQR() {
     if (res.ok) {
       const json = await res.json();
       const qr = json?.record?.gcashQR || json?.gcashQR;
-      if (qr && qr.startsWith('data:image')) {
-        const img = document.getElementById('gcashQRDisplay');
-        if (img) img.src = qr;
-      }
+      if (qr && qr.startsWith('data:image')) { img.src = qr; return; }
     }
+    useFallback();
   } catch(e) {
-    // Falls back to gcash-qr.jpg
+    useFallback();
   }
 }
 
