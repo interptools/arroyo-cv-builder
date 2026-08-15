@@ -405,6 +405,114 @@
   .scan-status.error { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
   .scan-preview { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(201,168,76,0.5); display: none; flex-shrink: 0; }
 
+  /* ── START SCREEN ───────────────────────────────────────────────────────── */
+  .start-card {
+    background: var(--white); border-radius: 18px; padding: 40px 28px 32px;
+    text-align: center; box-shadow: 0 4px 28px rgba(26,39,68,0.08);
+    max-width: 620px; margin: 0 auto;
+  }
+  .start-icon { font-size: 46px; margin-bottom: 12px; }
+  .start-card h2 {
+    font-size: 24px; font-weight: 800; color: var(--navy);
+    line-height: 1.25; margin-bottom: 10px;
+  }
+  .start-sub { font-size: 14px; color: var(--gray); line-height: 1.7; max-width: 430px; margin: 0 auto 26px; }
+  .start-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 520px) { .start-choices { grid-template-columns: 1fr; } }
+  .start-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 22px 16px; border-radius: 14px; cursor: pointer;
+    font-family: inherit; background: var(--white);
+    border: 2px solid var(--gray-light); transition: border-color .18s, background .18s, transform .12s;
+  }
+  .start-btn:hover { transform: translateY(-2px); }
+  .start-btn.yes:hover, .start-btn.yes.picked { border-color: var(--gold); background: rgba(200,168,75,0.07); }
+  .start-btn.no:hover  { border-color: var(--navy); background: rgba(26,39,68,0.04); }
+  .sb-emoji { font-size: 26px; margin-bottom: 4px; }
+  .sb-title { font-size: 15px; font-weight: 800; color: var(--navy); }
+  .sb-sub   { font-size: 12px; color: var(--gray); }
+  .start-upload {
+    border-top: 1px solid var(--gray-light); margin-top: 8px; padding-top: 22px;
+    animation: slideDown .25s ease;
+  }
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  .su-hint { font-size: 13px; color: var(--gray); line-height: 1.65; margin-bottom: 14px; }
+  .start-upload .scan-preview { margin: 0 auto 14px; }
+  .start-skip {
+    display: block; margin: 16px auto 0; background: none; border: none;
+    color: var(--gray); font-size: 12.5px; text-decoration: underline;
+    cursor: pointer; font-family: inherit;
+  }
+  .start-skip:hover { color: var(--navy); }
+  .start-note { font-size: 12px; color: #9ca3af; margin-top: 20px; }
+
+  /* Back to the choice screen, shown at the top of the form */
+  .back-to-start {
+    background: none; border: none; color: var(--gray); font-size: 13px;
+    cursor: pointer; font-family: inherit; padding: 0 0 14px; display: inline-flex;
+    align-items: center; gap: 6px;
+  }
+  .back-to-start:hover { color: var(--navy); }
+
+  /* Page thumbnails — confirms what went in, and in what order */
+  .scan-pages { display: none; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 12px 0 4px; }
+  .sp-thumb { position: relative; width: 54px; height: 70px; border-radius: 6px; overflow: hidden;
+              border: 2px solid rgba(201,168,76,0.6); background: #fff; }
+  .sp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .sp-thumb span { position: absolute; bottom: 0; right: 0; background: rgba(26,39,68,0.9);
+                   color: #e2c97e; font-size: 10px; font-weight: 800; padding: 1px 5px; border-radius: 5px 0 0 0; }
+
+  /* ── ORDER TRACKER ──────────────────────────────────────────────────────── */
+  .track-toggle {
+    margin-top: 16px; background: rgba(255,255,255,0.12); color: #fff;
+    border: 1.5px solid rgba(255,255,255,0.3); border-radius: 24px;
+    padding: 9px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: background .2s, border-color .2s;
+  }
+  .track-toggle:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.55); }
+  .tracker { background: #fff; border-bottom: 1px solid var(--gray-light); }
+  .tracker-inner { max-width: 760px; margin: 0 auto; padding: 22px 20px; }
+  .tracker-inner h3 { font-size: 17px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .tracker-inner > p { font-size: 13px; color: var(--gray); margin-bottom: 14px; }
+  .tracker-row { display: flex; gap: 9px; flex-wrap: wrap; }
+  .tracker-row input {
+    flex: 1; min-width: 220px; padding: 12px 14px; border: 1.5px solid var(--gray-light);
+    border-radius: 10px; font-size: 14px; font-family: inherit; outline: none;
+  }
+  .tracker-row input:focus { border-color: var(--navy); }
+  .tracker-row button {
+    padding: 12px 26px; background: var(--navy); color: #fff; border: none;
+    border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .tracker-row button:disabled { opacity: .6; cursor: default; }
+  .track-card {
+    margin-top: 16px; border: 1.5px solid var(--gray-light); border-radius: 12px;
+    padding: 16px 18px; background: var(--off-white);
+  }
+  .track-card + .track-card { margin-top: 10px; }
+  .track-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .track-ref { font-size: 12px; font-weight: 700; color: var(--gray); letter-spacing: .5px; }
+  .track-pill { font-size: 11px; font-weight: 800; padding: 3px 12px; border-radius: 20px; letter-spacing: .3px; }
+  .track-steps { display: flex; gap: 0; margin: 14px 0 10px; }
+  .track-step { flex: 1; text-align: center; position: relative; }
+  .track-step .dot {
+    width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; background: var(--gray-light); color: #9ca3af;
+  }
+  .track-step.on .dot { background: var(--navy); color: var(--gold-light); }
+  .track-step .lbl { font-size: 10.5px; font-weight: 600; color: var(--gray); line-height: 1.4; }
+  .track-step.on .lbl { color: var(--navy); font-weight: 700; }
+  .track-step::before {
+    content: ''; position: absolute; top: 13px; left: -50%; width: 100%; height: 2px;
+    background: var(--gray-light); z-index: 0;
+  }
+  .track-step:first-child::before { display: none; }
+  .track-step.on::before { background: var(--navy); }
+  .track-step .dot, .track-step .lbl { position: relative; z-index: 1; }
+  .track-msg { font-size: 12.5px; line-height: 1.7; color: #374151; }
+  .track-none { font-size: 13px; color: var(--gray); line-height: 1.7; padding: 14px 0 0; }
+
   .edu-selector {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -672,10 +780,25 @@
 <header>
   <div class="header-badge">Professional CV Service</div>
   <h1>Arroyo <span>CV</span>/Resume Builder</h1>
-  <p>Fill out the form below — we'll craft your professional resume for you</p>
+  <p>Professionally written CVs and resumes — ready in 24 hours</p>
+  <button class="track-toggle" onclick="toggleTracker()" id="trackToggleBtn">🔎 Already ordered? Check your status</button>
 </header>
 
-<div class="steps-bar" id="stepsBar">
+<!-- ORDER TRACKER — collapsed by default so it never competes with the form -->
+<div class="tracker hidden" id="trackerPanel">
+  <div class="tracker-inner">
+    <h3>Check your order status</h3>
+    <p>Enter the email address you used, or your reference number.</p>
+    <div class="tracker-row">
+      <input type="text" id="trackInput" placeholder="juan@email.com  or  ACV-XXXXX-XXX"
+             onkeydown="if(event.key==='Enter')lookupOrder()">
+      <button onclick="lookupOrder()" id="trackBtn">Check</button>
+    </div>
+    <div id="trackResult"></div>
+  </div>
+</div>
+
+<div class="steps-bar" id="stepsBar" style="display:none">
   <div class="step active" id="step1">
     <div class="step-num">1</div>
     <span>Your Info</span>
@@ -694,21 +817,67 @@
 
 <main>
 
-  <!-- PAGE 1: FORM -->
-  <div class="page active" id="formPage">
+  <!-- PAGE 0: START — the scanner used to sit inside the form, where people
+       scrolled straight past it. Asking outright is the only reliable way to
+       surface a feature that saves them ten minutes of typing. -->
+  <div class="page active" id="startPage">
+    <div class="start-card">
+      <div class="start-icon">📄</div>
+      <h2>Do you already have a CV or resume?</h2>
+      <p class="start-sub">If you do, upload a photo of it and we'll fill in most of the form for you.
+        It takes about ten seconds.</p>
 
-    <!-- CV SCANNER -->
+      <div class="start-choices">
+        <button class="start-btn yes" onclick="startWithScan()">
+          <span class="sb-emoji">✅</span>
+          <span class="sb-title">Yes, I have one</span>
+          <span class="sb-sub">Upload it and auto-fill</span>
+        </button>
+        <button class="start-btn no" onclick="startFresh()">
+          <span class="sb-emoji">✏️</span>
+          <span class="sb-title">No, start fresh</span>
+          <span class="sb-sub">Fill the form myself</span>
+        </button>
+      </div>
+
+      <!-- Upload panel, revealed only after they answer Yes -->
+      <div class="start-upload hidden" id="startUpload">
+        <img id="scanPreview" class="scan-preview" alt="CV Preview">
+        <p class="su-hint">Take a clear photo of your CV, or choose an existing image or screenshot.<br>
+          <strong>More than one page?</strong> Select all the pages together, in order.</p>
+        <button class="scan-upload-btn" onclick="document.getElementById('cvScanInput').click()">
+          📷 Choose / Take Photo
+        </button>
+        <input type="file" id="cvScanInput" accept="image/*" multiple style="display:none" onchange="scanExistingCV(this)">
+        <div class="scan-pages" id="scanPages"></div>
+        <div class="scan-status" id="scanStatus"></div>
+        <button class="start-skip" onclick="startFresh()">Skip this — I'll type it myself</button>
+      </div>
+
+      <p class="start-note">Either way you can edit everything before submitting.</p>
+    </div>
+  </div>
+
+  <!-- PAGE 1: FORM -->
+  <div class="page" id="formPage">
+
+    <button class="back-to-start" onclick="backToStart()">← Back</button>
+
+    <!-- CV SCANNER — also lives on the start screen, but kept here for anyone
+         who's already in the form and then remembers they have an old CV.
+         Distinct ids so the two copies don't collide. -->
     <div class="scan-card">
-      <img id="scanPreview" class="scan-preview" alt="CV Preview">
+      <img id="scanPreviewForm" class="scan-preview" alt="CV Preview">
       <div class="scan-card-text">
         <h3>📄 Already have a CV?</h3>
-        <p>Upload a photo or image of your existing CV and we'll auto-fill the form for you instantly!</p>
+        <p>Upload a photo of your existing CV and we'll auto-fill the form instantly. Two pages? Select both together.</p>
       </div>
-      <button class="scan-upload-btn" onclick="document.getElementById('cvScanInput').click()">
+      <button class="scan-upload-btn" onclick="document.getElementById('cvScanInputForm').click()">
         🔍 Scan My CV
       </button>
-      <input type="file" id="cvScanInput" accept="image/*" style="display:none" onchange="scanExistingCV(this)">
-      <div class="scan-status" id="scanStatus"></div>
+      <input type="file" id="cvScanInputForm" accept="image/*" multiple style="display:none" onchange="scanExistingCV(this)">
+      <div class="scan-pages" id="scanPagesForm"></div>
+      <div class="scan-status" id="scanStatusForm"></div>
     </div>
 
     <!-- EDUCATION TYPE -->
@@ -1215,6 +1384,11 @@
       <!-- Dynamic order summary -->
       <div id="order-summary" style="background:#f7f8fc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:left">
         <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
+        <div id="confirm-ref-row" style="display:none;background:#1a2744;border-radius:8px;padding:11px 14px;margin-bottom:12px;text-align:center;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#c8a84b;margin-bottom:3px;">Your reference number</div>
+          <div id="confirm-ref" style="font-size:17px;font-weight:900;color:#fff;letter-spacing:1px;">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:4px;">Save this — you can check your status any time on the home page.</div>
+        </div>
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Professional CV / Resume</span>
           <span id="sum-base-price" style="font-weight:600;color:#1a2744">₱50</span>
@@ -1501,6 +1675,13 @@ function checkAlreadySubmitted() {
     });
   } catch (e) {}
 
+  // This replaces the form's contents, so the form page has to be the visible
+  // one — otherwise the message renders into a hidden div and the customer
+  // just sees the start screen with no explanation.
+  showFormPage();
+  const bts = document.querySelector('.back-to-start');
+  if(bts) bts.style.display = 'none';
+
   document.getElementById('formPage').innerHTML = `
     <div class="dup-card">
       <div class="dup-icon">✅</div>
@@ -1619,6 +1800,10 @@ function offerDraftRestore() {
 
   const page = document.getElementById('formPage');
   page.insertBefore(banner, page.firstChild);
+
+  // A draft means they were mid-form already; the start question is behind
+  // them, so go straight to where they left off.
+  showFormPage();
 }
 
 function restoreDraft() {
@@ -1721,37 +1906,246 @@ async function loadLatestQR() {
   }
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// START SCREEN
+// A plain yes/no before the form. The scanner used to live inside the form
+// where most people scrolled past it, then typed everything by hand.
+// ══════════════════════════════════════════════════════════════════════════════
+function showStartPage(){
+  document.getElementById('startPage').classList.add('active');
+  document.getElementById('formPage').classList.remove('active');
+  const bar = document.getElementById('stepsBar');
+  if(bar) bar.style.display = 'none';       // no step is in progress yet
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function showFormPage(){
+  document.getElementById('startPage').classList.remove('active');
+  document.getElementById('formPage').classList.add('active');
+  const bar = document.getElementById('stepsBar');
+  if(bar) bar.style.display = '';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function startWithScan(){
+  document.querySelector('.start-btn.yes')?.classList.add('picked');
+  const panel = document.getElementById('startUpload');
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function startFresh(){ showFormPage(); }
+
+function backToStart(){ showStartPage(); }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ORDER TRACKER
+// Lets a customer answer "kumusta na po?" themselves. Deliberately narrow:
+// it returns only progress and amount due, never the CV contents, phone
+// number, address or anything else from the record — a lookup box that
+// echoes personal data back to whoever types an email address is a leak.
+// Matching is exact, so it cannot be used to browse or guess at customers.
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleTracker(){
+  const panel = document.getElementById('trackerPanel');
+  const btn   = document.getElementById('trackToggleBtn');
+  const open  = panel.classList.toggle('hidden');
+  btn.textContent = open ? '🔎 Already ordered? Check your status' : '✕ Close status check';
+  if(!open) setTimeout(()=>document.getElementById('trackInput').focus(), 80);
+}
+
+const TRACK_STAGES = [
+  {key:'New',        label:'Received',    msg:'We have your details. Reymar will start on your CV shortly.'},
+  {key:'Processing', label:'In Progress', msg:'Your CV is being written right now.'},
+  {key:'Done',       label:'Ready',       msg:'Your CV is finished. Check your email for the payment details, then we send the file.'},
+  {key:'Delivered',  label:'Delivered',   msg:'Your CV has been sent. Check your email, Messenger or Viber.'}
+];
+
+async function lookupOrder(){
+  const raw = (document.getElementById('trackInput').value || '').trim();
+  const out = document.getElementById('trackResult');
+  const btn = document.getElementById('trackBtn');
+  if(!raw){ out.innerHTML = '<div class="track-none">Please enter your email address or reference number.</div>'; return; }
+
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Checking…';
+  out.innerHTML = '<div class="track-none">Looking up your order…</div>';
+
+  try{
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(!res.ok) throw new Error('lookup failed');
+    const json = await res.json();
+    const all = json?.record?.submissions || json?.submissions || [];
+
+    const q = raw.toLowerCase();
+    const found = all.filter(s =>
+      (s.personal?.email || '').toLowerCase() === q ||
+      (s.id || '').toLowerCase() === q
+    );
+
+    if(!found.length){
+      out.innerHTML = `<div class="track-none">
+        No order found for <strong>${escapeHtml(raw)}</strong>.<br>
+        Check the spelling, and make sure it's the same email you used on the form.
+        If you only just submitted, give it a minute and try again.<br><br>
+        Still stuck? Message us on <strong>09063964052</strong> and we'll look it up.
+      </div>`;
+      return;
+    }
+
+    // Newest first, so the most recent order is the one they see at the top.
+    found.sort((a,b)=> new Date(b.submittedAt) - new Date(a.submittedAt));
+    out.innerHTML = found.map(renderTrackCard).join('');
+
+  }catch(e){
+    console.warn('Order lookup failed:', e);
+    out.innerHTML = `<div class="track-none">
+      We couldn't reach our records just now. Please try again in a moment,
+      or message us on <strong>09063964052</strong>.
+    </div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = label;
+  }
+}
+
+function renderTrackCard(s){
+  const idx = Math.max(0, TRACK_STAGES.findIndex(x => x.key === s.status));
+  const stage = TRACK_STAGES[idx];
+  const paid = !!s.payment?.paid;
+  const total = BASE_PRICE + (s.coverLetter?.requested ? CL_PRICE : 0);
+  const pill = ['#dbeafe|#1d4ed8','#fef3c7|#92400e','#d1fae5|#065f46','#f0fdf4|#166534'][idx].split('|');
+
+  let when = '';
+  try{ when = new Date(s.submittedAt).toLocaleDateString('en-PH',
+    {timeZone:'Asia/Manila', day:'numeric', month:'long', year:'numeric'}); }catch(e){}
+
+  return `<div class="track-card">
+    <div class="track-head">
+      <span class="track-ref">${s.id ? escapeHtml(s.id) : 'Order'}${when ? ' · ' + when : ''}</span>
+      <span class="track-pill" style="background:${pill[0]};color:${pill[1]};">${stage.label}</span>
+    </div>
+    <div class="track-steps">
+      ${TRACK_STAGES.map((st,i)=>`
+        <div class="track-step ${i<=idx?'on':''}">
+          <div class="dot">${i<idx?'✓':i+1}</div>
+          <div class="lbl">${st.label}</div>
+        </div>`).join('')}
+    </div>
+    <div class="track-msg">
+      ${stage.msg}
+      ${(idx>=2 && !paid) ? `<br><br><strong>Amount due: ${peso(total)}</strong> — send via GCash to
+        <strong>09063964052</strong> (Reymar Arroyo), then reply to our email with the screenshot.` : ''}
+      ${paid ? `<br><br>✅ Payment received — thank you!` : ''}
+    </div>
+  </div>`;
+}
+
+// Anything echoed back to the page gets escaped; the tracker reflects whatever
+// the visitor typed, which is exactly the shape of a reflected-XSS hole.
+function escapeHtml(t){
+  return String(t).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 // ─── EDUCATION TYPE ────────────────────────────────────────────────────────────
 // ── CV SCANNER ────────────────────────────────────────────────
+// Downscale a page before sending. Phone photos are 3–8 MB each; two of them
+// raw would blow past the proxy's request limit and time out. 1600px on the
+// long edge keeps small print legible to the model while cutting size ~90%.
+function prepScanImage(file, maxEdge = 1600, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Could not read ' + file.name));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Not a readable image: ' + file.name));
+      img.onload = () => {
+        let { width: w, height: h } = img;
+        if (Math.max(w, h) > maxEdge) {
+          const k = maxEdge / Math.max(w, h);
+          w = Math.round(w * k); h = Math.round(h * k);
+        }
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        const ctx = c.getContext('2d');
+        // White base: a transparent PNG would otherwise flatten to black and
+        // hide the text entirely.
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        const url = c.toDataURL('image/jpeg', quality);
+        resolve({ dataUrl: url, base64: url.split(',')[1], name: file.name });
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 async function scanExistingCV(input) {
-  if (!input.files || !input.files[0]) return;
-  const file = input.files[0];
-  const status = document.getElementById('scanStatus');
-  const preview = document.getElementById('scanPreview');
+  if (!input.files || !input.files.length) return;
 
-  // Show image preview
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    preview.src = e.target.result;
-    preview.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+  // The scanner exists in two places — the start screen and inside the form —
+  // so elements are found relative to whichever card the files came from
+  // rather than by a fixed id that would collide.
+  const card = input.closest('.start-upload, .scan-card') || document;
+  const status  = card.querySelector('.scan-status')  || document.getElementById('scanStatus');
+  const preview = card.querySelector('.scan-preview') || document.getElementById('scanPreview');
+  const strip   = card.querySelector('.scan-pages');
+  const fromForm = !!input.closest('.scan-card');
 
-  // Show loading
+  // Multi-page: keep the order the customer picked, cap at 4. Beyond that the
+  // request gets slow enough to hit the proxy timeout, and CVs that long are
+  // being rewritten anyway.
+  const MAX_PAGES = 4;
+  let files = Array.from(input.files);
+  let capped = false;
+  if (files.length > MAX_PAGES) { files = files.slice(0, MAX_PAGES); capped = true; }
+
+  const bad = files.filter(f => !f.type.startsWith('image/'));
+  if (bad.length) {
+    status.className = 'scan-status error';
+    status.style.display = 'block';
+    status.innerHTML = '❌ ' + bad.map(f => f.name).join(', ') +
+      ' is not an image. Please upload photos or screenshots (JPG or PNG). PDFs are not supported — screenshot each page instead.';
+    input.value = '';
+    return;
+  }
+
   status.className = 'scan-status loading';
   status.style.display = 'block';
-  status.innerHTML = '⏳ Scanning your CV... Please wait a moment.';
+  status.innerHTML = files.length > 1
+    ? `⏳ Preparing ${files.length} pages…`
+    : '⏳ Preparing your CV…';
 
+  // Declared out here so the catch block can still see how many pages were
+  // involved; a const inside try would be invisible to it.
+  let pages = [];
   try {
-    // Convert image to base64
-    const base64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    // Compress every page first, in the order given.
+    for (let i = 0; i < files.length; i++) {
+      status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
+      pages.push(await prepScanImage(files[i]));
+    }
 
-    const prompt = `You are a CV/Resume data extractor. Look at this CV image and extract all the information you can see. Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with these exact keys:
+    // Thumbnails so the customer can see the pages went in, and in what order.
+    if (preview) {
+      preview.src = pages[0].dataUrl;
+      preview.style.display = 'block';
+    }
+    if (strip) {
+      strip.innerHTML = pages.length > 1
+        ? pages.map((p, i) =>
+            `<div class="sp-thumb"><img src="${p.dataUrl}" alt="Page ${i+1}"><span>${i+1}</span></div>`
+          ).join('')
+        : '';
+      strip.style.display = pages.length > 1 ? 'flex' : 'none';
+    }
+
+    const prompt = `You are a CV/Resume data extractor. ${pages.length > 1
+      ? `You are given ${pages.length} images. They are consecutive pages of ONE person's CV, in order (image 1 = page 1). Read them all and combine them into a SINGLE result. A section may continue across a page break — join it rather than repeating it. The same job or school appearing on two pages is one entry, not two.`
+      : 'Look at this CV image and extract all the information you can see.'} Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with these exact keys:
 
 {
   "fullName": "",
@@ -1783,6 +2177,8 @@ Rules:
 - If a field is not visible in the CV, leave it as empty string ""
 - workHistory and education should be arrays even if only one item
 - Extract ALL work experiences and education entries you can see
+- Never invent data. If something is unreadable, leave it empty
+- Do not output duplicate entries
 - Return ONLY the JSON, nothing else`;
 
     // ── CV Scan: try Gemini (vision) with timeout, retry once ────────────────
@@ -1793,22 +2189,33 @@ Rules:
       catch(e){ clearTimeout(id); throw e; }
     }
 
-    status.innerHTML = '⏳ Scanning your CV... (attempt 1/2)';
+    // All pages go in ONE request. Scanning them separately and merging in JS
+    // produces duplicates and drops sections that straddle a page break —
+    // the model needs to see the pages together to join them correctly.
+    const parts = [{ text: prompt }];
+    pages.forEach((p, i) => {
+      if (pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
+    });
+
+    // More pages means more to read and more to write back.
+    const timeoutMs = Math.min(20000 + (pages.length - 1) * 12000, 55000);
+    const maxTokens = Math.min(2000 + (pages.length - 1) * 1200, 6000);
+
+    const label = pages.length > 1 ? `${pages.length} pages` : 'your CV';
+    status.innerHTML = `⏳ Reading ${label}… this can take up to ${Math.round(timeoutMs/1000)}s (attempt 1/2)`;
     let resJson = null;
     for(let attempt = 1; attempt <= 2; attempt++){
       try {
-        if(attempt === 2) status.innerHTML = '⏳ Still scanning... trying again (attempt 2/2)';
+        if(attempt === 2) status.innerHTML = `⏳ Still reading ${label}… trying again (attempt 2/2)`;
         const res = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{parts: [
-              {text: prompt},
-              {inline_data: {mime_type: file.type || 'image/jpeg', data: base64}}
-            ]}],
-            generationConfig: {temperature: 0.1, maxOutputTokens: 2000}
+            contents: [{parts}],
+            generationConfig: {temperature: 0.1, maxOutputTokens: maxTokens}
           })
-        }, 18000);
+        }, timeoutMs);
         if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
         const d = await res.json();
         if (d.error) throw new Error(d.error.message || 'Gemini error');
@@ -1843,13 +2250,20 @@ Rules:
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
 
     // Personal fields
-    // Three-way split: first word is the given name, last word is the surname,
-    // anything between is the middle name. A two-word name leaves middle empty.
+    // Splitting a Filipino name on whitespace alone gets the surname wrong:
+    // "Juan Santos dela Cruz" would give middle "Santos dela", surname "Cruz".
+    // Surname particles have to travel with the surname.
     const nameParts = (data.fullName||'').trim().split(/\s+/).filter(Boolean);
+    const PARTICLES = new Set(['de','dela','del','dels','delos','los','la','las',
+      'san','santa','sta','sta.','sto','sto.','santo','da','das','di','du',
+      'van','von','der','den','ten','ter','y','e']);
     set('firstName', nameParts[0] || '');
     if (nameParts.length >= 3) {
-      set('middleName', nameParts.slice(1, -1).join(' '));
-      set('lastName', nameParts[nameParts.length - 1]);
+      // Walk back from the final word, pulling in any particles that precede it.
+      let start = nameParts.length - 1;
+      while (start > 1 && PARTICLES.has(nameParts[start-1].toLowerCase())) start--;
+      set('lastName',   nameParts.slice(start).join(' '));
+      set('middleName', nameParts.slice(1, start).join(' '));
     } else {
       set('lastName', nameParts.slice(1).join(' ') || '');
     }
@@ -1935,17 +2349,33 @@ Rules:
     if (data.education && data.education.length) filled++;
 
     status.className = 'scan-status success';
-    status.innerHTML = `✅ CV scanned successfully! ${filled} sections detected and filled in below. Please review and update anything that looks off — then upload your photo to complete the form.`;
+    // The form is a separate screen now, so the old "filled in below" wording
+    // pointed at nothing. Say what happened, then move them there.
+    const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
+    const cappedTxt = capped ? ` <br><small>Only the first ${MAX_PAGES} pages were read — add anything missing by hand.</small>` : '';
+    status.innerHTML = (fromForm
+      ? `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} filled in below — please review each one before submitting.`
+      : `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up — taking you to the form to review…`) + cappedTxt;
+
+    // Only travel to the form if we're not already on it.
+    setTimeout(() => {
+      if (!fromForm) showFormPage();
+      showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV — please check each one`);
+    }, 1400);
 
   } catch(err) {
     console.error('Scan error:', err);
     status.className = 'scan-status error';
     const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
+    const many = pages.length > 1;
     const tip = isTimeout
-      ? '⏱️ The scan timed out — the server may be busy. Please try again in a moment.'
-      : '❌ Could not read the CV. Make sure the image is clear, well-lit, and not blurry. Try a higher quality photo or screenshot.';
+      ? (many
+          ? '⏱️ Timed out reading several pages at once. Try scanning just page 1, then add the rest by hand — or retry in a moment.'
+          : '⏱️ The scan timed out — the server may be busy. Please try again in a moment.')
+      : '❌ Could not read the CV. Make sure each page is clear, well-lit and not blurry. Try a higher quality photo or screenshot.';
     status.innerHTML = tip + '<br><small style="opacity:.7">(' + (err.message || 'Unknown error') + ')</small>'
-      + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>';
+      + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>'
+      + (fromForm ? '' : ' <button onclick="startFresh()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">✏️ Fill it in myself</button>');
   }
 }
 // ─────────────────────────────────────────────────────────────
@@ -2341,8 +2771,15 @@ function collectFormData() {
   });
 
   return {
+    // Short reference the customer can quote back. Time-based so it sorts
+    // naturally, with a random tail because two people can submit in the same
+    // second and there is no server to hand out sequence numbers.
+    id: 'ACV-' + Date.now().toString(36).toUpperCase().slice(-5)
+        + '-' + Math.random().toString(36).toUpperCase().slice(2,5),
     submittedAt: new Date().toISOString(),
     status: 'New',
+    // Payment starts unrecorded; the admin marks it when GCash confirms.
+    payment: { paid: false },
     dataConsent: {
       agreed: true,
       agreedAt: new Date().toISOString(),
@@ -2434,8 +2871,13 @@ function compressPhoto(base64) {
   });
 }
 
+let lastRefNo = '';
+
 function updateConfirmPage() {
   var total = BASE_PRICE + (coverLetterSelected ? CL_PRICE : 0);
+  var refRow = document.getElementById('confirm-ref-row');
+  var refEl  = document.getElementById('confirm-ref');
+  if (refRow && refEl && lastRefNo) { refEl.textContent = lastRefNo; refRow.style.display = 'block'; }
   var clRow = document.getElementById('cl-summary-row');
   var totalEl = document.getElementById('confirm-total');
   var amountEl = document.getElementById('confirm-gcash-amount');
@@ -2550,6 +2992,9 @@ async function submitForm() {
       throw new Error(`JSONBin error ${putRes.status}: ${errText}`);
     }
 
+    // Surface the reference so the customer can track the order later
+    lastRefNo = data.id || '';
+
     // Guard against double-submits + clear the saved draft
     markSubmitted(data.personal.email);
     try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
@@ -2565,6 +3010,7 @@ async function submitForm() {
 
     document.getElementById('formPage').classList.remove('active');
     document.getElementById('confirmPage').classList.add('active');
+    const sb=document.getElementById('stepsBar'); if(sb) sb.style.display='';
     updateConfirmPage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
