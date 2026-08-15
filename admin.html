@@ -157,10 +157,63 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .empty-state{text-align:center;padding:48px;color:var(--gray);}
 .empty-state .es-icon{font-size:48px;margin-bottom:12px;}
 .hidden{display:none!important;}
+.sea-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#0b2545;color:#ffd166;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 .cl-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#1a2744;color:#e2c97e;border:1px solid #c8a84b;margin-left:6px;vertical-align:middle;}
 .stat-card.revenue .sc-value{color:#10b981;}
 .filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-light);background:white;color:var(--gray);transition:all .2s;}
 .filter-btn.active{background:var(--navy);color:var(--gold-light);border-color:var(--navy);}
+
+/* ── SUBMISSIONS TABLE ───────────────────────────────────────────────────────
+   The left rail is the one loud element: it encodes how long an unfinished
+   order has been sitting. Everything else stays quiet so the rail reads. */
+.filter-btn .fcount{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:800;background:var(--gray-light);color:var(--gray);}
+.filter-btn.active .fcount{background:rgba(226,201,126,.22);color:var(--gold-light);}
+
+.sub-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap;transition:color .15s;}
+.sub-table th.sortable:hover{color:var(--navy);}
+.sub-table th .sarrow{opacity:.28;font-size:9px;margin-left:3px;}
+.sub-table th.sorted .sarrow{opacity:1;color:var(--navy);}
+
+.sub-table tbody tr{transition:background .15s;}
+.sub-table td:first-child{position:relative;padding-left:20px;}
+/* Age rail — a 4px bar hugging the left edge of each row */
+.sub-table td:first-child::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:transparent;}
+.sub-table tr.age-fresh td:first-child::before{background:#d7dbe4;}
+.sub-table tr.age-warn  td:first-child::before{background:#f59e0b;}
+.sub-table tr.age-late  td:first-child::before{background:#ef4444;}
+.sub-table tr.age-done  td:first-child::before{background:#86efac;}
+
+.sub-idx{font-size:11px;font-weight:800;color:#c3c8d4;font-variant-numeric:tabular-nums;}
+.sub-name{font-weight:700;color:var(--navy);font-size:13.5px;line-height:1.3;}
+.sub-role{font-size:11.5px;color:var(--gray);margin-top:2px;}
+.sub-mail{font-size:11px;color:#9ca3af;margin-top:2px;word-break:break-all;}
+.sub-when{font-size:12.5px;font-weight:600;color:var(--navy);white-space:nowrap;}
+.sub-when.late{color:#b91c1c;}
+.sub-when.warn{color:#92400e;}
+.sub-exact{font-size:10.5px;color:#9ca3af;margin-top:2px;white-space:nowrap;}
+.sub-tmpl{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:var(--off-white);border:1px solid var(--gray-light);color:var(--gray);}
+.sub-price{font-size:12px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;}
+.sub-actions{display:flex;gap:5px;flex-wrap:wrap;}
+
+/* Mobile: the 6-column table collapses into stacked cards. Labels come from
+   data-label so no markup is duplicated between the two layouts. */
+@media(max-width:900px){
+  .sub-table thead{display:none;}
+  .sub-table,.sub-table tbody,.sub-table tr,.sub-table td{display:block;width:100%;}
+  .sub-table tr{border:1.5px solid var(--gray-light);border-radius:12px;margin-bottom:12px;padding:14px 14px 14px 18px;position:relative;overflow:hidden;background:white;}
+  .sub-table tr:hover td{background:transparent;}
+  .sub-table td{border:none;padding:4px 0;}
+  .sub-table td[data-label]:not(.sub-cell-idx)::before{content:attr(data-label);display:block;font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#b5bac6;margin-bottom:3px;}
+  /* The index cell tucks into the card corner, so the rail can't live on it any
+     more — it moves to the row and spans the full card height instead. */
+  .sub-table td.sub-cell-idx{position:absolute;top:12px;right:14px;padding:0;width:auto;}
+  .sub-table td:first-child{padding-left:0;}
+  .sub-table td:first-child::before{display:none;}
+  .sub-table tr::after{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:#d7dbe4;}
+  .sub-table tr.age-warn::after{background:#f59e0b;}
+  .sub-table tr.age-late::after{background:#ef4444;}
+  .sub-table tr.age-done::after{background:#86efac;}
+}
 .notes-area{width:100%;padding:10px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-family:Inter,sans-serif;font-size:12px;resize:vertical;min-height:70px;outline:none;transition:border-color .2s;}
 .notes-area:focus{border-color:var(--navy);}
 .cl-info-box{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-top:4px;}
@@ -262,26 +315,44 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div class="topbar">
         <div><h2>All Submissions</h2><p>View, process and generate CVs</p></div>
         <div style="display:flex;gap:10px;align-items:center;">
-          <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search by name..." oninput="renderSubmissions()">
+          <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search name, email or phone…" oninput="renderSubmissions()">
           <span class="badge-count" id="totalBadge">0</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
-        <button class="filter-btn" onclick="setFilter('New',this)">🔵 New</button>
-        <button class="filter-btn" onclick="setFilter('Processing',this)">🟡 In Progress</button>
-        <button class="filter-btn" onclick="setFilter('Done',this)">🟢 Done</button>
-        <button class="filter-btn" onclick="setFilter('Delivered',this)">✅ Delivered</button>
-        <button class="filter-btn" onclick="setFilter('coverLetter',this)">📝 With Cover Letter</button>
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All <span class="fcount" id="fc_all">0</span></button>
+        <button class="filter-btn" data-filter="New" onclick="setFilter('New',this)">🔵 New <span class="fcount" id="fc_New">0</span></button>
+        <button class="filter-btn" data-filter="Processing" onclick="setFilter('Processing',this)">🟡 In Progress <span class="fcount" id="fc_Processing">0</span></button>
+        <button class="filter-btn" data-filter="Done" onclick="setFilter('Done',this)">🟢 Done <span class="fcount" id="fc_Done">0</span></button>
+        <button class="filter-btn" data-filter="Delivered" onclick="setFilter('Delivered',this)">✅ Delivered <span class="fcount" id="fc_Delivered">0</span></button>
+        <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
+        <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
         <div style="flex:1;min-width:10px;"></div>
         <button onclick="exportCSV()" title="Download a spreadsheet backup of all submissions"
           style="padding:7px 16px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
           ⬇ Export CSV Backup
         </button>
       </div>
+
+      <!-- Waiting-time legend: explains the coloured rail down the left of each row -->
+      <div id="ageLegend" style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:11px;color:var(--gray);">
+        <span style="font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-size:10px;color:#b5bac6;">Waiting</span>
+        <span style="display:flex;align-items:center;gap:5px;"><i style="width:12px;height:4px;border-radius:2px;background:#d7dbe4;display:inline-block;"></i>Under a day</span>
+        <span style="display:flex;align-items:center;gap:5px;"><i style="width:12px;height:4px;border-radius:2px;background:#f59e0b;display:inline-block;"></i>1–3 days</span>
+        <span style="display:flex;align-items:center;gap:5px;"><i style="width:12px;height:4px;border-radius:2px;background:#ef4444;display:inline-block;"></i>Over 3 days</span>
+        <span style="display:flex;align-items:center;gap:5px;"><i style="width:12px;height:4px;border-radius:2px;background:#86efac;display:inline-block;"></i>Finished</span>
+      </div>
+
       <div class="table-card">
-        <table>
-          <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Template</th><th>Date</th><th>Status</th><th>Add-on</th><th>Actions</th></tr></thead>
+        <table class="sub-table">
+          <thead><tr>
+            <th class="sortable" onclick="setSort('num')"    data-key="num">#<span class="sarrow">▼</span></th>
+            <th class="sortable" onclick="setSort('name')"   data-key="name">Applicant<span class="sarrow">▼</span></th>
+            <th class="sortable" onclick="setSort('date')"   data-key="date">Waiting<span class="sarrow">▼</span></th>
+            <th class="sortable" onclick="setSort('status')" data-key="status">Status<span class="sarrow">▼</span></th>
+            <th class="sortable" onclick="setSort('total')"  data-key="total">Order<span class="sarrow">▼</span></th>
+            <th>Actions</th>
+          </tr></thead>
           <tbody id="submissionsTableBody"></tbody>
         </table>
         <div id="emptyState" class="empty-state hidden"><div class="es-icon">📭</div><p>No submissions yet.</p></div>
@@ -309,6 +380,27 @@ tr:hover td{background:rgba(247,248,252,.8);}
         </div>
         <input type="file" id="qrInput" accept="image/*" style="display:none" onchange="previewQR(this)">
         <button class="save-btn" onclick="saveQR()" style="margin-top:12px;">💾 Save & Publish New QR Code</button>
+
+        <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--gray-light);">
+          <h4 style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px;">📧 Showing the QR inside emails</h4>
+          <p style="font-size:12.5px;color:var(--gray);line-height:1.7;margin-bottom:10px;">
+            The QR above is what customers see on the confirmation page. Emails need a second copy,
+            because Gmail strips embedded images — an emailed QR has to be a normal web address.
+          </p>
+          <ol style="font-size:12.5px;color:var(--gray);line-height:1.9;padding-left:20px;margin-bottom:10px;">
+            <li>Save your QR image as <code style="background:var(--off-white);padding:1px 5px;border-radius:4px;">gcash-qr.png</code></li>
+            <li>Upload it to your GitHub repo, in the same folder as <code style="background:var(--off-white);padding:1px 5px;border-radius:4px;">index.html</code></li>
+            <li>Open the link below — if the QR appears, your emails will show it too</li>
+          </ol>
+          <a href="https://interptools.github.io/arroyo-cv-builder/gcash-qr.png" target="_blank" rel="noopener"
+             style="display:inline-block;font-size:12px;font-weight:700;color:#1d4ed8;word-break:break-all;">
+            https://interptools.github.io/arroyo-cv-builder/gcash-qr.png ↗
+          </a>
+          <p style="font-size:11.5px;color:var(--gray);line-height:1.6;margin-top:10px;">
+            Until that link works, emails simply show the GCash number on its own — nothing breaks,
+            and customers can still pay.
+          </p>
+        </div>
       </div>
     </div>
 
@@ -345,7 +437,31 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <span style="color:var(--gray)">Assumed cap: <input id="mailCap" type="number" min="1" style="width:64px;padding:3px 6px;border:1.5px solid var(--gray-light);border-radius:6px;font-size:12px;font-family:Inter,sans-serif;" onchange="setMailCap(this.value)"> / month</span>
         </div>
         <div id="mailWarn"></div>
-        <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">Duplicate protection is on: cycling a status past <strong>Done</strong> or <strong>Delivered</strong> a second time will <em>not</em> re-send the same email. Use the Resend buttons in the submission if you truly need to send again.</p>
+        <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">Duplicate protection is on: setting a status to <strong>Done</strong> a second time will <em>not</em> re-send the same email. Use the Send button in the submission if you truly need to send again.</p>
+      </div>
+
+      <!-- EMAIL TEST -->
+      <div class="health-card">
+        <h3>🧪 Send a Test Email</h3>
+        <p class="hc-sub">Sends a real "CV is Ready" email to yourself using the exact same template,
+          variables and GCash block your customers receive. The fastest way to check a template change
+          before a customer sees it — and to confirm EmailJS is working at all.</p>
+
+        <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="testEmailTo" type="email" placeholder="Send to…"
+            style="flex:1;min-width:210px;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+          <button id="testEmailBtn" onclick="sendTestEmail()"
+            style="padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;">
+            ✉ Send Test Email
+          </button>
+        </div>
+
+        <div id="testEmailResult"></div>
+
+        <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">
+          A test uses one of your monthly allowance and appears in EmailJS → Email History like any other send.
+          The subject is prefixed <strong>[TEST]</strong> so you can tell it apart. No customer record is touched.
+        </p>
       </div>
 
       <!-- AI PROVIDERS -->
@@ -491,15 +607,34 @@ tr:hover td{background:rgba(247,248,252,.8);}
 
 <script>
 const EMAILJS_SVC='service_wog8mwj';
-const EMAILJS_TPL='template_5l2krhk';
+const EMAILJS_TPL='template_31e2nts';
 const EMAILJS_KEY='XDm2wGz_tn8DOjWPw';
 const ADMIN_CC='areymar36@gmail.com';
+
+// Payment QR for the emails. This is a URL, not the base64 image stored in
+// JSONBin, because Gmail and most clients strip data: URIs — a base64 QR would
+// arrive as a broken image for nearly every customer. Commit the QR PNG next to
+// index.html in the repo and it renders everywhere. Set to '' to hide the QR
+// block entirely and fall back to the GCash number alone.
+const GCASH_QR_URL = 'https://interptools.github.io/arroyo-cv-builder/gcash-qr.png';
+const GCASH_NUMBER = '09063964052';
+const GCASH_NAME   = 'Reymar Arroyo';
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
 const BASE_PRICE = 50;   // CV / Resume
 const CL_PRICE   = 75;   // Cover Letter add-on
 const peso = n => '₱' + n.toLocaleString();
+
+// Mirrors the helper in index.html. Middle name is optional, so this collapses
+// the gap when it's absent and appends a period to a bare initial ("S" → "S.").
+// Older submissions predate the middleName field entirely and degrade cleanly.
+const fullName = p => {
+  if (!p) return '';
+  let mid = (p.middleName || '').trim();
+  if (mid && mid.length === 1) mid += '.';
+  return [p.firstName, mid, p.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+};
 const orderTotal = s => BASE_PRICE + (s?.coverLetter?.requested ? CL_PRICE : 0);
 
 const ADMIN_USER = 'admin';
@@ -673,6 +808,8 @@ function showPage(id,btn){
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function loadData(){
+  // Initialise EmailJS once after login — do NOT call emailjs.init() per send
+  if(typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
   try{
     const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
     const json=await res.json();
@@ -716,7 +853,7 @@ function renderDashboard(){
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Date</th>
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
   </tr></thead><tbody>${recent.map(s=>`<tr>
-    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${s.personal.firstName} ${s.personal.lastName}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}</td>
+    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${fullName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${s.personal.jobTitle||'—'}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${formatDate(s.submittedAt)}</td>
     <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
@@ -725,42 +862,177 @@ function renderDashboard(){
 
 // ── SUBMISSIONS ───────────────────────────────────────────────────────────────
 let currentFilter='all';
+let sortKey='num', sortDir='desc';
+
 function setFilter(f,btn){
   currentFilter=f;
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
   renderSubmissions();
 }
+
+function setSort(key){
+  // Same column twice flips direction; a new column starts descending, which is
+  // what you want for every column here (newest, biggest, furthest along).
+  if(sortKey===key) sortDir = sortDir==='desc' ? 'asc' : 'desc';
+  else { sortKey=key; sortDir='desc'; }
+  renderSubmissions();
+}
+
+// How long an order has been waiting, in whole hours.
+function hoursWaiting(s){
+  const t = new Date(s.submittedAt).getTime();
+  if(isNaN(t)) return 0;
+  return (Date.now() - t) / 36e5;
+}
+
+// "3 hours ago" / "2 days ago" — an absolute date makes you do the subtraction
+// in your head, which is exactly the thing you're trying to judge at a glance.
+function relTime(iso){
+  const t=new Date(iso).getTime();
+  if(isNaN(t)) return '—';
+  const mins=Math.floor((Date.now()-t)/6e4);
+  if(mins<1)  return 'Just now';
+  if(mins<60) return mins+(mins===1?' min ago':' mins ago');
+  const hrs=Math.floor(mins/60);
+  if(hrs<24)  return hrs+(hrs===1?' hour ago':' hours ago');
+  const days=Math.floor(hrs/24);
+  if(days<7)  return days+(days===1?' day ago':' days ago');
+  const wks=Math.floor(days/7);
+  if(wks<5)   return wks+(wks===1?' week ago':' weeks ago');
+  const mos=Math.floor(days/30);
+  return mos+(mos===1?' month ago':' months ago');
+}
+
+// Finished orders stop ageing — a Delivered order from March isn't "late".
+function ageClass(s){
+  if(s.status==='Delivered'||s.status==='Done') return 'age-done';
+  const h=hoursWaiting(s);
+  if(h>72) return 'age-late';
+  if(h>24) return 'age-warn';
+  return 'age-fresh';
+}
+
 function renderSubmissions(){
-  const q=document.getElementById('searchInput')?.value.toLowerCase()||'';
-  let filtered=submissions.filter(s=>{
-    const nameMatch=`${s.personal.firstName} ${s.personal.lastName}`.toLowerCase().includes(q)||(s.personal.jobTitle||'').toLowerCase().includes(q);
-    if(!nameMatch)return false;
-    if(currentFilter==='all')return true;
-    if(currentFilter==='coverLetter')return s.coverLetter?.requested;
-    return s.status===currentFilter;
+  const q=document.getElementById('searchInput')?.value.toLowerCase().trim()||'';
+
+  // Search covers everything you might have to hand when a customer messages —
+  // a name, the email they used, or the number on their GCash receipt.
+  const matches = s => {
+    if(!q) return true;
+    const hay = [fullName(s.personal), s.personal.jobTitle, s.personal.email,
+                 s.personal.phone, s.id].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  };
+
+  const passesFilter = (s,f) =>
+    f==='all' ? true
+    : f==='coverLetter' ? !!s.coverLetter?.requested
+    : f==='seaman' ? s.eduLevel==='seaman'
+    : s.status===f;
+
+  // Live counts on every pill, so you can see the shape of the queue without
+  // clicking through each filter in turn.
+  const searched = submissions.filter(matches);
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman'].forEach(f=>{
+    const el=document.getElementById('fc_'+f);
+    if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
+
+  let filtered = searched.filter(s=>passesFilter(s,currentFilter));
+
   document.getElementById('totalBadge').textContent=submissions.length;
+
+  // Sort. `num` is submission order, so it falls back to the array index.
+  const rank={New:0,Processing:1,Done:2,Delivered:3};
+  const val = s => {
+    switch(sortKey){
+      case 'name':   return fullName(s.personal).toLowerCase();
+      case 'date':   return new Date(s.submittedAt).getTime()||0;
+      case 'status': return rank[s.status] ?? 0;
+      case 'total':  return orderTotal(s);
+      default:       return submissions.indexOf(s);
+    }
+  };
+  filtered=[...filtered].sort((a,b)=>{
+    const x=val(a), y=val(b);
+    const c = typeof x==='string' ? x.localeCompare(y) : x-y;
+    return sortDir==='asc' ? c : -c;
+  });
+
+  // Header arrows reflect the active sort
+  document.querySelectorAll('.sub-table th.sortable').forEach(th=>{
+    const on = th.dataset.key===sortKey;
+    th.classList.toggle('sorted',on);
+    const a=th.querySelector('.sarrow');
+    if(a) a.textContent = on ? (sortDir==='asc'?'▲':'▼') : '▼';
+  });
+
   const tbody=document.getElementById('submissionsTableBody');
-  if(!filtered.length){tbody.innerHTML='';document.getElementById('emptyState').classList.remove('hidden');return;}
-  document.getElementById('emptyState').classList.add('hidden');
-  tbody.innerHTML=[...filtered].reverse().map((s,i)=>{
+  const empty=document.getElementById('emptyState');
+  const legend=document.getElementById('ageLegend');
+
+  if(!filtered.length){
+    tbody.innerHTML='';
+    if(legend) legend.style.display='none';
+    // An empty screen should say why it's empty and what to do next — "No
+    // submissions yet" is a lie when you're three filters deep.
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs'}[currentFilter];
+    empty.innerHTML = q
+      ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
+         <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
+      : currentFilter!=='all'
+      ? `<div class="es-icon">🗂</div><p>No orders are ${label} right now.</p>
+         <button class="filter-btn" style="margin-top:12px;" onclick="setFilter('all',document.querySelector('.filter-btn[data-filter=all]'))">Show all orders</button>`
+      : `<div class="es-icon">📭</div><p>No submissions yet. They'll appear here the moment someone completes the form.</p>`;
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  if(legend) legend.style.display='flex';
+
+  tbody.innerHTML=filtered.map((s,i)=>{
     const ri=submissions.indexOf(s);
+    const p=s.personal;
     const hasCL=s.coverLetter?.requested;
-    const total=peso(orderTotal(s));
-    return`<tr>
-      <td>${filtered.length-i}</td>
-      <td><strong>${s.personal.firstName} ${s.personal.lastName}</strong><br><span style="font-size:11px;color:var(--gray)">${s.personal.email}</span></td>
-      <td>${s.personal.jobTitle||'—'}</td>
-      <td style="font-size:12px;">${s.templatePref?'T'+s.templatePref:'—'}</td>
-      <td style="font-size:12px;">${formatDate(s.submittedAt)}</td>
-      <td><span class="status-badge status-${s.status}">${s.status}</span></td>
-      <td>${hasCL?'<span class="cl-badge">📝 +CL</span><br><span style="font-size:10px;color:#854d0e;font-weight:700">'+total+'</span>':'<span style="font-size:12px;color:var(--gray)">CV only<br>₱50</span>'}</td>
-      <td>
-        <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
-        <button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>
-        <button class="action-btn btn-status" onclick="cycleStatus(${ri})">⟳ Status</button>
-        <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})">🗑</button>
+    const h=hoursWaiting(s);
+    const open=s.status!=='Delivered'&&s.status!=='Done';
+    const whenCls = open&&h>72 ? ' late' : open&&h>24 ? ' warn' : '';
+
+    return`<tr class="${ageClass(s)}">
+      <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
+
+      <td data-label="Applicant">
+        <div class="sub-name">${fullName(p)}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
+        ${(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
+        <div class="sub-mail">${p.email||'No email on file'}</div>
+      </td>
+
+      <td data-label="Waiting">
+        <div class="sub-when${whenCls}">${relTime(s.submittedAt)}</div>
+        <div class="sub-exact">${formatDate(s.submittedAt)}</div>
+      </td>
+
+      <td data-label="Status">
+        <span class="status-badge status-${s.status}">${s.status}</span>
+        <div style="margin-top:5px;">${mailBadges(s)}</div>
+      </td>
+
+      <td data-label="Order">
+        <div class="sub-price">${peso(orderTotal(s))}</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${hasCL?'CV + Cover Letter':'CV only'}</div>
+        <div style="margin-top:4px;"><span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span></div>
+      </td>
+
+      <td data-label="Actions">
+        <div class="sub-actions">
+          <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
+          <button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>
+          ${s.status==='Delivered'
+            ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
+            : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
+          <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})" title="Delete this submission">🗑</button>
+        </div>
       </td></tr>`;
   }).join('');
 }
@@ -771,7 +1043,7 @@ function renderSubmissions(){
 function exportCSV(){
   if(!submissions.length){ showNotif('No submissions to export yet.', true); return; }
 
-  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate'};
+  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
 
   // Escape a value for CSV: wrap in quotes, double any internal quotes
   const esc = v => {
@@ -780,12 +1052,18 @@ function exportCSV(){
     return '"' + s + '"';
   };
 
-  const headers = ['#','Submitted (PHT)','Status','First Name','Last Name','Job Title','Email','Phone',
+  const headers = ['#','Submitted (PHT)','Status','First Name','Middle Name','Last Name','Job Title','Email','Phone',
     'Address','Date of Birth','Civil Status','Gender','Height','Weight','Age','Nationality','Facebook/Social','LinkedIn',
     'Education Level','Education','Work Experience','Skills','Languages','References','Hobbies','Awards',
     'About / Notes','Profile Summary','Template','Special Instructions','Cover Letter?','CL Position',
     'CL Company','CL Reason','CL Strengths','CL Tone','Cover Letter Text','Admin Notes','Total (PHP)',
-    'Consent Agreed','Consent Timestamp','Has Photo'];
+    'Consent Agreed','Consent Timestamp','Has Photo',
+    // Seafarer block. Prefixed because Height/Weight already exist above as
+    // admin-entered fields — two identical column names would be unreadable.
+    'Sea: Rank Applied','Sea: Last Rank','Sea: Height','Sea: Weight','Sea: BMI',
+    'Sea: Eyes','Sea: Hair','Sea: Blood Type','Sea: Shoe Size','Sea: Coverall',
+    'Sea: Religion','Sea: Place of Birth','Sea: Gov IDs','Sea: Next of Kin',
+    'Sea: Travel Documents','Sea: Certificates','Sea: Sea Service'];
 
   const rows = submissions.map((s, i) => {
     const p = s.personal || {};
@@ -799,6 +1077,19 @@ function exportCSV(){
       .join(' | ');
     const refStr = (s.references||[]).filter(r=>r.name)
       .map(r=>`${r.name}${r.position?' - '+r.position:''}${r.company?' ('+r.company+')':''}${r.contact?' '+r.contact:''}`)
+      .join(' | ');
+
+    // Seafarer sub-tables flattened one-per-cell, same ' | ' convention as the
+    // education and work columns above so the whole sheet reads consistently.
+    const m = s.seaman || {};
+    const docStr = (m.documents||[]).filter(x=>x.type||x.number)
+      .map(x=>`${x.type||''}: ${x.number||''}${x.dateIssued?' issued '+x.dateIssued:''}${x.dateExpiry?' expires '+x.dateExpiry:''}${x.placeIssued?' @ '+x.placeIssued:''}`)
+      .join(' | ');
+    const certStr = (m.certificates||[]).filter(c=>c.name)
+      .map(c=>`${c.name}${c.number?' #'+c.number:''}${c.issuedBy?' by '+c.issuedBy:''}${c.dateIssued?' issued '+c.dateIssued:''}${c.validUntil?' valid to '+c.validUntil:''}`)
+      .join(' | ');
+    const seaStr = (m.seaService||[]).filter(v=>v.vessel)
+      .map(v=>`${v.vessel}${v.rank?' as '+v.rank:''}${v.vesselType?' ('+v.vesselType+')':''}${v.company?' - '+v.company:''}${v.grt?' GRT '+v.grt:''}${v.kw?' '+v.kw:''}${(v.signOn||v.signOff)?' '+(v.signOn||'')+' to '+(v.signOff||''):''}${v.tradeArea?' ['+v.tradeArea+']':''}`)
       .join(' | ');
 
     let submitted = s.submittedAt || '';
@@ -816,7 +1107,7 @@ function exportCSV(){
     }
 
     return [
-      i+1, submitted, s.status||'', p.firstName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
+      i+1, submitted, s.status||'', p.firstName||'', p.middleName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
       p.address||'', p.dob||'', p.civilStatus||'', p.gender||'', p.height||'', p.weight||'', p.age||'', p.nationality||'', p.social||'', p.linkedin||'',
       eduMap[s.eduLevel]||s.eduLevel||'', eduStr, workStr,
       (s.skills||[]).join(', '), (s.languages||[]).join(', '), refStr,
@@ -825,7 +1116,13 @@ function exportCSV(){
       s.specialInstructions||'', cl.requested ? 'YES' : 'No',
       cl.position||'', cl.company||'', cl.reason||'', cl.strengths||'', cl.tone||'', cl.generated||'',
       s.adminNotes||'', orderTotal(s),
-      s.dataConsent?.agreed ? 'YES' : 'No record', consentAt, p.photo ? 'Yes' : 'No'
+      s.dataConsent?.agreed ? 'YES' : 'No record', consentAt, p.photo ? 'Yes' : 'No',
+      // Seafarer columns — blank on every non-seafarer row, which keeps one
+      // spreadsheet usable for both kinds of order rather than needing two.
+      m.rank||'', m.lastRank||'', m.height||'', m.weight||'', m.bmi||'',
+      m.eyes||'', m.hair||'', m.blood||'', m.shoe||'', m.coverall||'',
+      m.religion||'', m.birthPlace||'', m.govIds||'', m.nok||'',
+      docStr, certStr, seaStr
     ].map(esc).join(',');
   });
 
@@ -848,23 +1145,71 @@ function exportCSV(){
 
 async function cycleStatus(idx){
   const order=['New','Processing','Done','Delivered'];
-  const newStatus=order[(order.indexOf(submissions[idx].status)+1)%order.length];
+  const cur=submissions[idx].status;
+
+  // Delivered is the end of the line. Without this the list wrapped back to New,
+  // which made it far too easy to undo a finished order with one stray click.
+  if(cur==='Delivered'){
+    showNotif('This order is already Delivered — status is locked. Use "Reopen" in the submission if you need to change it.');
+    return;
+  }
+
+  const newStatus=order[Math.min(order.indexOf(cur)+1, order.length-1)];
+
+  // Marking Delivered is one-way and discards the photo, so confirm it once.
+  if(newStatus==='Delivered'){
+    const nm=fullName(submissions[idx].personal);
+    if(!confirm(
+      `Mark ${nm}'s order as Delivered?\n\n`+
+      `• The status locks — no more changes without using Reopen\n`+
+      `• No email is sent\n`+
+      (submissions[idx].personal?.photo
+        ? `• The photo is deleted to free storage. Regenerate the CV first if you still need it.`
+        : `• No photo stored on this record`)
+    )) return;
+  }
+
   submissions[idx].status=newStatus;
+
+  // A delivered order's photo has done its job — it's already in the CV the
+  // customer received. It's also ~90% of the record's size, and the bin is
+  // small enough that keeping them costs you old orders. So it goes, and the
+  // record notes that it was removed rather than never supplied.
+  let freed = 0;
+  if(newStatus==='Delivered' && submissions[idx].personal?.photo){
+    freed = submissions[idx].personal.photo.length;
+    submissions[idx].personal.photo = '';
+    submissions[idx].photoRemovedAt = new Date().toISOString();
+  }
+
   const ex=await getFullRecord();
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
   renderSubmissions(); renderDashboard();
-  showNotif(`Status → "${newStatus}"`);
+  showNotif(freed
+    ? `Status → "${newStatus}" · photo removed, ${Math.round(freed/1024)} KB freed`
+    : `Status → "${newStatus}"`);
 
-  // Auto-send ONCE per email type. The status list is a loop, so without this
-  // guard every extra lap re-emailed the customer and burned EmailJS quota.
+  // Only ONE automatic email exists: the "CV is Ready" notice at Done.
+  // Marking an order Delivered is bookkeeping for you, not news for the
+  // customer — they already have the file by then, so no mail is sent.
   if(newStatus==='Done'){
-    if(alreadyEmailed(idx,'ready')) showNotif('Payment request was already sent — not re-sending.');
+    if(alreadyEmailed(idx,'ready')) showNotif('Ready notice was already sent — not re-sending.');
     else await sendDoneEmail(idx);
   }
-  if(newStatus==='Delivered'){
-    if(alreadyEmailed(idx,'delivered')) showNotif('Delivery notice was already sent — not re-sending.');
-    else await emailCustomer(idx,'delivered');
-  }
+}
+
+// Deliberate escape hatch from the locked Delivered state. Kept separate from
+// cycleStatus so it can never fire by accident.
+async function reopenSubmission(idx){
+  const s=submissions[idx];
+  if(!s) return;
+  const name=`${fullName(s.personal)}`.trim();
+  if(!confirm(`Reopen the order for ${name}?\n\nStatus goes back to Processing. No email is sent.`)) return;
+  s.status='Processing';
+  const ex=await getFullRecord();
+  await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
+  renderSubmissions(); renderDashboard();
+  showNotif('Reopened → "Processing"');
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -894,6 +1239,32 @@ function mailErr(e){
 
 function alreadyEmailed(idx, type){
   return !!(submissions[idx] && submissions[idx].emailLog && submissions[idx].emailLog[type]);
+}
+
+// Returns the ISO timestamp an email of `type` was sent, or null.
+function emailSentAt(s, type){
+  return (s && s.emailLog && s.emailLog[type]) || null;
+}
+
+// Human-readable "sent" stamp in Manila time, e.g. "Aug 15, 10:42 PM"
+function emailStamp(iso){
+  if(!iso) return '';
+  try{
+    return new Date(iso).toLocaleString('en-PH',{
+      timeZone:'Asia/Manila', month:'short', day:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  }catch(e){ return ''; }
+}
+
+// Compact ✉ badge for the submissions table. Only one email type exists now.
+function mailBadges(s){
+  const r = emailSentAt(s,'ready');
+  return `<span title="${r ? 'Ready notice sent '+emailStamp(r) : 'Ready notice not sent yet'}" style="
+      display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;
+      letter-spacing:.3px;
+      background:${r?'#d1fae5':'#f1f3f7'};color:${r?'#065f46':'#9ca3af'};
+      border:1px solid ${r?'#6ee7b7':'#e5e7eb'};">${r?'✓ EMAILED':'○ NO EMAIL'}</span>`;
 }
 
 // Records that an email of `type` was sent for this submission, and bumps the
@@ -948,6 +1319,11 @@ function setMailCap(v){
 const BIN_CAP_BYTES = 100000;   // JSONBin free-tier bin size
 
 async function renderHealth(){
+  // Default the test recipient to your own address, but leave it editable so a
+  // second inbox can be checked (useful for confirming images aren't blocked).
+  const te = document.getElementById('testEmailTo');
+  if(te && !te.value) te.value = ADMIN_CC;
+
   // ── Storage ──
   const bar  = document.getElementById('storeBar');
   const txt  = document.getElementById('storeText');
@@ -1130,11 +1506,14 @@ function viewSubmission(idx){
   currentSubmission=idx;
   const s=submissions[idx]; const p=s.personal;
   const si=idx; // declare early so all inline onclick handlers have the correct index
-  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'};
+  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
   let html='';
   const hasCL=s.coverLetter?.requested;
   const totalPrice=hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
   if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
+  // A missing photo on a delivered order is expected, not a fault — say so, or
+  // you'll go looking for a bug that isn't there.
+  else if(s.photoRemovedAt) html+='<div style="text-align:center;margin-bottom:20px;padding:14px;background:var(--off-white);border:1.5px dashed var(--gray-light);border-radius:10px;font-size:12px;color:var(--gray);line-height:1.6;">\U0001f5bc\ufe0f Photo removed on delivery to free storage.<br><span style="font-size:11px;">The CV was already generated and sent. Ask the customer to resend it if you need to rebuild the file.</span></div>';
   html+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
   html+='<span class="status-badge status-'+s.status+'">'+s.status+'</span>';
   if(hasCL) html+='<span class="cl-badge">📝 Cover Letter Add-on</span>';
@@ -1193,7 +1572,7 @@ function viewSubmission(idx){
   }
   html+='</div>';
 
-  html+=grp('Personal Info',[['Name',`${p.firstName} ${p.lastName}`],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['Date of Birth',dobFormatted],['Civil Status',p.civilStatus],['Gender',p.gender],['Height',p.height],['Weight',p.weight],['Age',p.age],['Nationality',p.nationality],['Social / Facebook',p.social],['LinkedIn',p.linkedin]]);
+  html+=grp('Personal Info',[['Name',fullName(p)],['Job Title',p.jobTitle],['Email',p.email],['Phone',p.phone],['Address',p.address],['Date of Birth',dobFormatted],['Civil Status',p.civilStatus],['Gender',p.gender],['Height',p.height],['Weight',p.weight],['Age',p.age],['Nationality',p.nationality],['Social / Facebook',p.social],['LinkedIn',p.linkedin]]);
   html+=grp('Education Level',[['Type',eduMap[s.eduLevel]]]);
   // Customer's own words — useful raw material for the profile summary
   if(s.aboutMe){
@@ -1206,7 +1585,53 @@ function viewSubmission(idx){
   }
   html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary||'—'}</p></div>`;
   if(s.education?.length){html+=`<div class="info-group"><h4>Education</h4>`;s.education.forEach(e=>{if(e.school)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${e.school}</strong><br><span style="color:var(--gray)">${e.degree||''} · ${e.yearStart||''}–${e.yearGrad||''} ${e.honors?'· '+e.honors:''}</span></div>`;});html+='</div>';}
-  if(s.eduLevel!=='fresh'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
+  if(s.eduLevel!=='fresh'&&s.eduLevel!=='seaman'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
+
+  // ── Seafarer panels ────────────────────────────────────────────────────────
+  // Rendered as tables rather than the usual label/value rows: the whole point
+  // of these sections is that they're checked column by column against expiry.
+  if(s.eduLevel==='seaman' && s.seaman){
+    const m=s.seaman;
+    const dd=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
+      return String(t.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+'-'+t.getFullYear(); };
+    // Same expiry shading as the printed CV, so what you see here matches
+    // what the customer receives.
+    const exp=v=>{ if(!v) return '<td></td>'; const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
+      const days=(t-Date.now())/864e5;
+      const st = days<0 ? 'background:#fee2e2;color:#b91c1c;font-weight:800;'
+               : days<90 ? 'background:#fef3c7;color:#92400e;font-weight:700;' : '';
+      return `<td style="${st}">${dd(v)}</td>`; };
+    const tbl=(heads,rows)=>`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
+      <thead><tr>${heads.map(h=>`<th style="background:var(--off-white);border:1px solid var(--gray-light);padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);white-space:nowrap;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${rows}</tbody></table></div>`;
+    const cell=v=>`<td style="border:1px solid var(--gray-light);padding:5px 8px;">${v||''}</td>`;
+
+    html+=grp('⚓ Rank & Physical',[
+      ['Rank Applied For',m.rank],['Last Rank Held',m.lastRank],
+      ['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
+      ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
+      ['Shoe Size',m.shoe],['Coverall Size',m.coverall],['Religion',m.religion],
+      ['Place of Birth',m.birthPlace],['Government IDs',m.govIds],['Nearest Relative',m.nok]
+    ].filter(r=>r[1]));
+
+    const docs=(m.documents||[]).filter(x=>x.type||x.number);
+    if(docs.length) html+=`<div class="info-group"><h4>🛂 Travel Documents</h4>${
+      tbl(['Document','Number','Issued','Expiry','Place'],
+        docs.map(x=>`<tr>${cell('<strong>'+(x.type||'')+'</strong>')}${cell(x.number)}${cell(dd(x.dateIssued))}${exp(x.dateExpiry)}${cell(x.placeIssued)}</tr>`).join(''))}</div>`;
+
+    const certs=(m.certificates||[]).filter(c=>c.name);
+    if(certs.length) html+=`<div class="info-group"><h4>📜 Trainings & Certificates</h4>${
+      tbl(['Course','Number','Issued By','Issued','Valid Until'],
+        certs.map(c=>`<tr>${cell('<strong>'+(c.name||'')+'</strong>')}${cell(c.number)}${cell(c.issuedBy)}${cell(dd(c.dateIssued))}${exp(c.validUntil)}</tr>`).join(''))}
+      <div style="font-size:11px;color:var(--gray);margin-top:6px;">Red has lapsed · amber expires within 90 days.</div></div>`;
+
+    const sea=(m.seaService||[]).filter(v=>v.vessel);
+    html+=`<div class="info-group"><h4>🚢 Sea Service Record</h4>${
+      sea.length
+        ? tbl(['Vessel','Rank','Type','GRT','KW/HP','Company','Sign On','Sign Off','Trade Area'],
+            sea.map(v=>`<tr>${cell('<strong>'+(v.vessel||'')+'</strong>')}${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.kw)}${cell(v.company)}${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.tradeArea)}</tr>`).join(''))
+        : `<p style="font-size:12.5px;color:var(--gray);font-style:italic;">No sea service — first-time applicant.</p>`}</div>`;
+  }
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
   // Cover letter generator — always visible, pre-filled from customer data if paid add-on
@@ -1263,31 +1688,61 @@ function viewSubmission(idx){
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
-  // Email customer button
-  const statusNote = s.status==='Done'
-    ? '<span style="font-size:11px;color:#10b981;font-weight:600;">✅ Auto-sent when status set to Done</span>'
-    : s.status==='Delivered'
-    ? '<span style="font-size:11px;color:#10b981;font-weight:600;">✅ Auto-sent when status set to Delivered</span>'
-    : '';
+  // ── Notify Customer panel — one email only, sent at Done ───────────────────
+  const readyTs = emailSentAt(s,'ready');
+
+  const sentRow = (on, title, ts) => `
+    <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;
+      background:${on?'#f0fdf4':'#fafbfc'};border:1.5px solid ${on?'#86efac':'#e9ecf2'};margin-bottom:7px;">
+      <span style="font-size:15px;line-height:1;">${on?'✅':'⬜'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:${on?'#065f46':'#6b7280'};">${title}</div>
+        <div style="font-size:10.5px;color:${on?'#166534':'#9ca3af'};margin-top:1px;">
+          ${on ? 'Sent '+emailStamp(ts) : 'Not sent yet'}
+        </div>
+      </div>
+    </div>`;
+
   html+=`<div class="info-group" style="margin-bottom:0"><h4>✉️ Notify Customer</h4>
     <div style="background:#f7f8fc;border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;">
-      <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.6;">
-        📬 Emails are sent <strong>automatically</strong> when you cycle the status:<br>
-        &nbsp;&nbsp;• <strong>→ Done</strong> → sends <em>"CV is Ready — Request Payment"</em><br>
-        &nbsp;&nbsp;• <strong>→ Delivered</strong> → sends <em>"CV Has Been Delivered"</em><br>
-        Use the buttons below to <strong>resend manually</strong> if needed.
-        ${statusNote ? '<br><br>'+statusNote : ''}
+
+      <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--gray);margin-bottom:9px;">Email Status</div>
+      ${sentRow(!!readyTs,'CV is Ready / Request Payment',readyTs)}
+
+      <div style="font-size:11px;color:var(--gray);margin:12px 0;line-height:1.6;">
+        📬 This is the <strong>only</strong> automatic email. It goes out once, when you set the status to
+        <strong>Done</strong>. Marking an order <strong>Delivered</strong> sends nothing — by then the
+        customer already has their file.
       </div>
+
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="padding:9px 16px;background:#10b981;color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-          <span>📤 Resend: Request Payment</span>
-        </button>
-        <button id="emailDeliveredBtn_${si}" onclick="emailCustomer(${si},'delivered')" style="padding:9px 16px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;">
-          <span>✅ Resend: CV Delivered</span>
+        <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="
+          padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+          display:inline-flex;align-items:center;gap:6px;
+          ${readyTs
+            ? 'background:#fff;color:#92400e;border:1.5px solid #fbbf24;'
+            : 'background:#10b981;color:white;border:none;'}">
+          <span>${readyTs ? '🔁 Send again: CV is Ready' : '📤 Send: CV is Ready'}</span>
         </button>
       </div>
     </div>
   </div>`;
+
+  // ── Reopen control — only surfaces once the order is locked at Delivered ────
+  if(s.status==='Delivered'){
+    html+=`<div class="info-group" style="margin-bottom:0"><h4>🔒 Order Locked</h4>
+      <div style="background:#f7f8fc;border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;">
+        <div style="font-size:11px;color:var(--gray);margin-bottom:12px;line-height:1.6;">
+          This order is marked <strong>Delivered</strong> and the status button is disabled, so it can't be
+          knocked back to New by accident. Reopen it only if the customer needs revisions.
+        </div>
+        <button onclick="reopenSubmission(${si})" style="padding:9px 16px;background:#fff;color:#92400e;
+          border:1.5px solid #fbbf24;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">
+          ↩️ Reopen → Processing
+        </button>
+      </div>
+    </div>`;
+  }
   html += `<div class="info-group">
     <h4>✨ Profile Summary (Admin Provides)</h4>
     <p style="font-size:12px;color:var(--gray);margin-bottom:10px;">Click <strong>Generate with Claude AI</strong> — auto-generates an impressive profile. Edit if needed, then Save.</p>
@@ -1302,7 +1757,7 @@ function viewSubmission(idx){
   </div>`;
 
   const ri = si;
-  document.getElementById('modalTitle').textContent=`${p.firstName} ${p.lastName} — ${eduMap[s.eduLevel]||''}`;
+  document.getElementById('modalTitle').textContent=`${fullName(p)} — ${eduMap[s.eduLevel]||''}`;
   document.getElementById('modalBody').innerHTML=html;
 
   // Update edit button index — never add a new button, just update the existing one
@@ -1446,7 +1901,7 @@ async function generateCV(){
   let aiProfile='';
   try{
     const p=s.personal;
-    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
+    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel;
     const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | '):'No work experience (fresh graduate)';
     const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
     const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
@@ -1718,6 +2173,11 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===13) return T13(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===14) return T14(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===15) return T15(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===16) return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  // Seafarer records have no ordinary work history, so they land on the
+  // maritime layout even without an explicit template preference.
+  if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
@@ -1766,7 +2226,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-area">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-head">Contact</div>
@@ -1836,7 +2296,7 @@ ${pb}
   <div class="header">
     <div class="photo-circle">${ph}</div>
     <div class="header-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -1915,7 +2375,7 @@ ${pb}
   <div class="top">
     <div class="photo-box">${ph}</div>
     <div class="top-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
   </div>
@@ -1990,7 +2450,7 @@ ${pb}
 <div class="page-wrap"><div class="page">
   <div class="L">
     <div class="photo-circle">${ph}</div>
-    <div class="l-name">${p.firstName} ${p.lastName}</div>
+    <div class="l-name">${fullName(p)}</div>
     <div class="l-title">${p.jobTitle||''}</div>
     <div class="l-div"></div>
     <div class="ls"><div class="ls-head">Contact</div>
@@ -2061,7 +2521,7 @@ ${pb}
 <div class="page-wrap"><div class="page">
   <div class="header">
     <div class="h-left">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
     <div class="h-photo">${ph}</div>
@@ -2141,7 +2601,7 @@ ${pb}
   <div class="L">
     <div class="photo-top"><div class="photo-circle">${ph}</div></div>
     <div class="name-area">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-head"><div class="ls-head-icon">📞</div>Contact</div>
@@ -2215,7 +2675,7 @@ ${pb}
   <div class="header">
     <div class="header-photo">${ph}</div>
     <div class="header-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
   </div>
@@ -2255,7 +2715,7 @@ ${pb}
 // ── DELETE SUBMISSION ────────────────────────────────────────────────────────
 async function deleteSubmission(idx){
   const s = submissions[idx];
-  const name = `${s.personal.firstName} ${s.personal.lastName}`;
+  const name = `${fullName(s.personal)}`;
   
   // Confirm before deleting
   if(!confirm(`Are you sure you want to delete the submission of ${name}? This cannot be undone.`)) return;
@@ -2358,6 +2818,44 @@ async function aiGenerate(prompt, statusFn){
 }
 
 // ── PROFILE SUMMARY GENERATOR ─────────────────────────────────────────────────
+// Summarises a candidate's experience for the AI prompts. Seafarers keep their
+// history in seaman.seaService, not workExperience — without this branch the AI
+// was told "No prior work experience" for someone with years at sea, and wrote
+// a fresh-graduate profile for a Second Officer.
+function experienceForAI(s){
+  if(s.eduLevel==='seaman'){
+    const m=s.seaman||{};
+    const sea=(m.seaService||[]).filter(v=>v.vessel);
+    const parts=[];
+    if(m.rank) parts.push(`Applying as ${m.rank}`);
+    if(m.lastRank) parts.push(`last rank held ${m.lastRank}`);
+    if(sea.length){
+      parts.push('Sea service: '+sea.map(v=>
+        `${v.rank||'crew'} aboard ${v.vessel}${v.vesselType?' ('+v.vesselType+')':''}`+
+        `${(v.signOn||v.signOff)?' from '+(v.signOn||'?')+' to '+(v.signOff||'?'):''}`
+      ).join('; '));
+    } else {
+      parts.push('No sea service yet — first-time applicant seeking an entry-level berth');
+    }
+    const certs=(m.certificates||[]).filter(c=>c.name).map(c=>c.name);
+    if(certs.length) parts.push('STCW certificates: '+certs.join(', '));
+    return parts.join('. ');
+  }
+  if(s.eduLevel==='fresh') return 'No prior work experience (fresh graduate)';
+  const w=(s.workExperience||[]).filter(x=>x.company);
+  if(!w.length) return 'No prior work experience';
+  return w.map(x=>`${x.position||'Staff'} at ${x.company} (${x.dateStart||''}–${x.dateEnd||''})`+
+    `${x.responsibilities?': '+x.responsibilities:''}`).join(' | ');
+}
+
+// The role someone is applying for. Seafarers may leave Job Title blank now that
+// it's optional, but their rank is always present.
+function targetRoleForAI(s){
+  const p=s.personal||{};
+  if(s.eduLevel==='seaman') return s.seaman?.rank || p.jobTitle || 'seafarer position';
+  return p.jobTitle || 'professional role';
+}
+
 async function generateProfileSummary(idx){
   const s = submissions[idx];
   const p = s.personal;
@@ -2370,15 +2868,13 @@ async function generateProfileSummary(idx){
   spinner.style.display = 'inline-block';
   display.value = '⏳ Generating profile summary...';
 
-  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel;
-  const workSum = s.eduLevel!=='fresh' && s.workExperience?.length
-    ? s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart||''}–${w.dateEnd||''}): ${w.responsibilities||''}`.trim()).join(' | ')
-    : 'No prior work experience (fresh graduate)';
+  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel;
+  const workSum = experienceForAI(s);
   const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
 
-  const prompt = `Write a CV Profile Summary for a Filipino job applicant. Write in FIRST PERSON only (I, my, I have — NEVER use the name). Exactly 3 sentences. Sound confident, professional, and motivated. Output ONLY the 3 sentences — no labels, no headers, nothing else.
+  const prompt = `Write a CV Profile Summary for a Filipino ${s.eduLevel==='seaman'?'SEAFARER applying to a manning agency':'job applicant'}. Write in FIRST PERSON only (I, my, I have — NEVER use the name). Exactly 3 sentences. Sound confident, professional, and motivated.${s.eduLevel==='seaman'?' Use maritime language: mention safety, seamanship, teamwork aboard, and readiness to join a vessel. Do NOT call the applicant a fresh graduate if sea service is listed below.':''} Output ONLY the 3 sentences — no labels, no headers, nothing else.
 
-Target Position: ${p.jobTitle||'professional role'}
+Target Position: ${targetRoleForAI(s)}
 Education: ${eduLevel} — ${eduSum||'Not specified'}
 Work Experience: ${workSum}
 Skills: ${(s.skills||[]).join(', ')||'Not specified'}
@@ -2520,6 +3016,7 @@ function buildEditHTML(idx){
 
     ${secHead('👤 Personal Information')}
     ${fld('e_firstName','First Name',p.firstName)}
+    ${fld('e_middleName','Middle Name / Initial',p.middleName)}
     ${fld('e_lastName','Last Name',p.lastName)}
     ${fld('e_jobTitle','Job Title / Position',p.jobTitle,'text',true)}
     ${fld('e_phone','Phone',p.phone)}
@@ -2603,6 +3100,7 @@ function syncEditFields(idx){
   const gv = id => { const v=g(id); return v===null ? undefined : v; };
 
   if(gv('e_firstName')!==undefined) p.firstName = g('e_firstName');
+  if(gv('e_middleName')!==undefined) p.middleName = g('e_middleName');
   if(gv('e_lastName')!==undefined) p.lastName = g('e_lastName');
   if(gv('e_jobTitle')!==undefined) p.jobTitle = g('e_jobTitle');
   if(gv('e_phone')!==undefined) p.phone = g('e_phone');
@@ -2673,7 +3171,7 @@ async function saveEdits(idx){
 async function generateCoverLetter(idx){
   const s=submissions[idx]; const p=s.personal;
   // Read from the live input fields in the modal
-  const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'the position';
+  const position=(document.getElementById('clPosition')?.value||'').trim()||targetRoleForAI(s)||'the position';
   const company=(document.getElementById('clCompany')?.value||'').trim()||'the company';
   const strengths=(document.getElementById('clStrengths')?.value||'').trim()||(s.skills||[]).join(', ')||'Not specified';
   const why=(document.getElementById('clWhy')?.value||'').trim()||'Passionate about contributing to the company';
@@ -2703,17 +3201,15 @@ async function generateCoverLetter(idx){
     creative:'creative, expressive, and memorable'
   };
   const toneDesc=toneMap[tone]||'professional and formal';
-  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate'}[s.eduLevel]||s.eduLevel||'Graduate';
-  const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length
-    ?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart||''}–${w.dateEnd||''})`).join(', ')
-    :'No prior work experience';
+  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel||'Graduate';
+  const workSum=experienceForAI(s);
   const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ')||'Not specified';
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
 
   const prompt=`Write a complete professional cover letter for a Filipino job applicant. Use a ${toneDesc} tone.
 
 Applicant Details:
-- Name: ${p.firstName} ${p.lastName}
+- Name: ${fullName(p)}
 - Applying for: ${position}
 - Target Company: ${company}
 - Education: ${eduLevel} — ${eduSum}
@@ -2791,7 +3287,7 @@ function printCoverLetter(){
   const allLines=text.split(/\n/).map(l=>l.trim()).filter(l=>l);
   // Extract greeting line (Dear ...) and signature (Sincerely / the name at end)
   let greeting='Dear Hiring Manager,';
-  let signature=`${p.firstName||''} ${p.lastName||''}`.trim();
+  let signature=`${fullName(p)}`.trim();
   let bodyLines=[];
   let foundGreeting=false;
   let signatureStartIdx=-1;
@@ -2824,7 +3320,7 @@ function printCoverLetter(){
 
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Cover Letter \u2014 ${p.firstName||''} ${p.lastName||''}</title>
+<title>Cover Letter \u2014 ${fullName(p)}</title>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -2874,7 +3370,7 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 }
 </style></head><body>
 <div class="no-print">
-  <span>Cover Letter \u2014 ${p.firstName||''} ${p.lastName||''}</span>
+  <span>Cover Letter \u2014 ${fullName(p)}</span>
   <button onclick="window.print()">&#128424; Print / Save as PDF</button>
   <button class="close-btn" onclick="window.close()">&#x2715; Close</button>
   <span class="hint">Paper=A4 &middot; Margins=None &middot; Background graphics=ON</span>
@@ -2886,7 +3382,7 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     <div class="sidebar-gradient"></div>
     <div class="sidebar-content">
       <div class="photo-ring">${photoHtml}</div>
-      <div class="applicant-name">${p.firstName||''} ${p.lastName||''}</div>
+      <div class="applicant-name">${fullName(p)}</div>
       <div class="applicant-title">${position}</div>
       <hr class="contact-divider">
       ${p.email?`<div class="contact-item"><div class="contact-icon">&#9993;</div><div class="contact-text">${p.email}</div></div>`:''}
@@ -2909,7 +3405,7 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     <div class="cl-signature">
       <div class="cl-sign-closing">Sincerely,</div>
       <div class="cl-sign-name">${signature||((p.firstName||'')+ ' ' +(p.lastName||''))}</div>
-      <div class="cl-sign-typed">${p.firstName||''} ${p.lastName||''}</div>
+      <div class="cl-sign-typed">${fullName(p)}</div>
     </div>
   </div>
 
@@ -2984,7 +3480,7 @@ ${pb}
   <div class="header">
     <div class="h-left">
       <div class="badge">Fresh Graduate</div>
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||'Job Applicant'}</div>
     </div>
     <div class="h-photo">${ph}</div>
@@ -3082,7 +3578,7 @@ ${pb}
   <div class="header">
     <div class="photo-wrap">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
       <div class="contacts">
         ${p.phone?`<span class="h-contact">📱 ${p.phone}</span>`:''}
@@ -3163,7 +3659,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-block">
-      <h1>${p.firstName}<br>${p.lastName}</h1>
+      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>
@@ -3233,7 +3729,7 @@ ${pb}
   <div class="header">
     <div class="photo-ring">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -3313,7 +3809,7 @@ ${pb}
   <div class="L">
     <div class="photo-top">
       <div class="photo-frame">${ph}</div>
-      <div class="name-l">${p.firstName} ${p.lastName}</div>
+      <div class="name-l">${fullName(p)}</div>
       <div class="ttl-l">${p.jobTitle||''}</div>
       <div class="divl"></div>
     </div>
@@ -3387,7 +3883,7 @@ ${pb}
   <div class="header">
     <div class="photo-circle">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -3461,7 +3957,7 @@ ${pb}
   <div class="header">
     <div class="photo-sq">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
       <div class="contacts">
         ${p.phone?`<span class="hc">📱 ${p.phone}</span>`:''}
@@ -3538,7 +4034,7 @@ ${pb}
   <div class="L">
     <div class="photo-area">
       <div class="photo-hex">${ph}</div>
-      <div class="p-name">${p.firstName} ${p.lastName}</div>
+      <div class="p-name">${fullName(p)}</div>
       <div class="p-ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>
@@ -3568,7 +4064,446 @@ ${pb}
   </div>
 </div></div></body></html>`;}
 
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 16 — Seafarer / Maritime
+// Deliberately unlike the other fifteen. Manning agencies screen hundreds of
+// these against a checklist: rank, valid documents, sea time, certificate
+// expiry. So this is a data sheet, not a designed CV — dense ruled tables,
+// everything on one page, expiry dates where a reviewer's eye lands. The one
+// styled element is the navy header block carrying the applicant's rank.
+// ══════════════════════════════════════════════════════════════════════════════
+function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
+  const m = s.seaman || {};
+  const docs  = (m.documents   || []).filter(d=>d.type||d.number);
+  const certs = (m.certificates|| []).filter(c=>c.name);
+  const vax   = (m.vaccinations|| []).filter(v=>v.name);
+  const sea   = (m.seaService  || []).filter(v=>v.vessel);
+
+  // Dates arrive as ISO from <input type=date>; agencies read DD-MMM-YYYY.
+  const d = v => {
+    if(!v) return '';
+    const t = new Date(v);
+    if(isNaN(t)) return v;
+    return String(t.getDate()).padStart(2,'0')+'-'+
+      ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]+
+      '-'+t.getFullYear();
+  };
+
+  // Certificates and documents lapse. Flagging what's expired or close to it is
+  // the single most useful thing this layout can do for the person reading it.
+  const expiryCell = v => {
+    if(!v) return '<td></td>';
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
+    const days=(t-Date.now())/864e5;
+    const cls = days<0 ? ' class="exp"' : days<90 ? ' class="soon"' : '';
+    return `<td${cls}>${d(v)}</td>`;
+  };
+
+  const row = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+${pc}
+<style>
+  body{font-family:'Inter',Arial,sans-serif;color:#14213d;}
+  /* The shared page CSS sets .page{display:flex} for the two-column designs.
+     This one stacks, so it has to opt out or the header becomes a sidebar. */
+  .page.pg{display:block;background:white;min-height:297mm;}
+  .hdr{background:#0b2545;color:white;padding:15px 18px;display:flex;gap:15px;align-items:center;
+       border-bottom:3px solid #ffd166;}
+  .hdr .ph{width:80px;height:96px;flex-shrink:0;border:2px solid #ffd166;background:rgba(255,255,255,.1);overflow:hidden;}
+  .hdr .who{flex:1;min-width:0;}
+  .hdr h1{font-size:23px;font-weight:900;letter-spacing:.4px;margin:0 0 5px;text-transform:uppercase;line-height:1.08;}
+  .rank{display:inline-block;background:#ffd166;color:#0b2545;font-size:11px;font-weight:900;
+        padding:3px 11px;text-transform:uppercase;letter-spacing:.8px;}
+  .hc{font-size:9px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6;}
+  .hc b{color:#ffd166;font-weight:700;}
+  .brand{text-align:right;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:1.6px;
+         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.7;}
+
+  .body{padding:13px 18px 16px;}
+  .sec{margin-bottom:11px;}
+  .sh{background:#0b2545;color:#ffd166;font-size:9px;font-weight:800;letter-spacing:1.6px;
+      text-transform:uppercase;padding:4px 9px;margin-bottom:0;display:flex;justify-content:space-between;}
+  .sh .cnt{color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;}
+
+  table.g{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto;}
+  table.g th,table.g td{border:1px solid #c3cddc;padding:3.5px 6px;text-align:left;vertical-align:top;}
+  table.g thead th{background:#0b2545;color:#ffd166;font-size:7.5px;font-weight:800;letter-spacing:.6px;
+                   text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
+  table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
+  table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
+  table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
+  table.g td.pri{font-weight:800;color:#0b2545;}
+
+  /* Two-column key/value grid used for personal particulars */
+  table.kv{width:100%;border-collapse:collapse;font-size:8.5px;}
+  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3.5px 7px;text-align:left;}
+  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:38%;white-space:nowrap;}
+  table.kv td{font-weight:700;color:#14213d;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 9px;}
+
+  .obj{font-size:9px;line-height:1.75;color:#2c3a52;padding:8px 11px;border:1px solid #c3cddc;border-top:none;
+       background:#fafbfe;text-align:justify;}
+  .none{font-size:8.5px;color:#96a0b2;font-style:italic;padding:6px 10px;border:1px solid #c3cddc;border-top:none;}
+  .sign{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;
+        font-size:8px;color:#4a5b75;line-height:1.6;}
+  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:215px;text-align:center;font-weight:900;
+           color:#0b2545;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;}
+  .cert-note{font-size:7px;color:#96a0b2;margin-top:4px;line-height:1.5;}
+  .skl{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;border:1px solid #c3cddc;border-top:none;}
+  .skl span{font-size:8px;font-weight:700;background:#eef2f8;color:#0b2545;padding:2.5px 8px;
+            border:1px solid #c3cddc;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+
+  <div class="hdr">
+    <div class="ph">${ph}</div>
+    <div class="who">
+      <h1>${fullName(p)}</h1>
+      ${m.rank?`<span class="rank">⚓ ${m.rank}</span>`:''}
+      <div class="hc">
+        ${p.address?p.address+'<br>':''}
+        ${p.phone?`<b>T</b> ${p.phone}`:''}${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
+        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+      </div>
+    </div>
+    <div class="brand">Seafarer<br>Résumé</div>
+  </div>
+
+  <div class="body">
+
+    ${s.profileSummary?`<div class="sec"><div class="sh"><span>Objective</span></div><div class="obj">${s.profileSummary}</div></div>`:''}
+
+    <div class="sec">
+      <div class="sh"><span>Personal Particulars</span></div>
+      <div class="split">
+        <table class="kv">
+          ${row('Surname',p.lastName)}
+          ${row('First Name',p.firstName)}
+          ${row('Middle Name',p.middleName)}
+          ${row('Date of Birth',d(p.dob))}
+          ${row('Place of Birth',m.birthPlace)}
+          ${row('Nationality',p.nationality)}
+          ${row('Civil Status',p.civilStatus)}
+          ${row('Gender',p.gender)}
+          ${row('Religion',m.religion)}
+        </table>
+        <table class="kv">
+          ${row('Height',m.height)}
+          ${row('Weight',m.weight)}
+          ${row('BMI',m.bmi)}
+          ${row('Colour of Eyes',m.eyes)}
+          ${row('Colour of Hair',m.hair)}
+          ${row('Blood Type',m.blood)}
+          ${row('Shoe Size',m.shoe)}
+          ${row('Coverall Size',m.coverall)}
+          ${row('Last Rank Held',m.lastRank)}
+        </table>
+      </div>
+      ${(m.nok||m.govIds)?`<table class="kv" style="margin-top:-1px;">
+        ${m.nok?`<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>`:''}
+        ${m.govIds?`<tr><th style="width:15.5%;">Government IDs</th><td>${m.govIds}</td></tr>`:''}
+      </table>`:''}
+    </div>
+
+    <div class="sec">
+      <div class="sh"><span>Travel Documents</span>${docs.length?`<span class="cnt">${docs.length} on file</span>`:''}</div>
+      ${docs.length?`<table class="g">
+        <thead><tr><th>Document</th><th>Number</th><th>Date Issued</th><th>Date Expiry</th><th>Place Issued</th></tr></thead>
+        <tbody>${docs.map(x=>`<tr>
+          <td style="font-weight:700;">${x.type||''}</td><td>${x.number||''}</td>
+          <td>${d(x.dateIssued)}</td>${expiryCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
+        </tr>`).join('')}</tbody></table>`
+      :`<div class="none">No travel documents on record.</div>`}
+    </div>
+
+    <div class="sec">
+      <div class="sh"><span>Trainings &amp; Certificates</span>${certs.length?`<span class="cnt">${certs.length} on file</span>`:''}</div>
+      ${certs.length?`<table class="g">
+        <thead><tr><th>Course / Certificate</th><th>Number</th><th>Issued By</th><th>Date Issued</th><th>Valid Until</th></tr></thead>
+        <tbody>${certs.map(c=>`<tr>
+          <td style="font-weight:700;">${c.name||''}</td><td>${c.number||''}</td><td>${c.issuedBy||''}</td>
+          <td>${d(c.dateIssued)}</td>${expiryCell(c.validUntil)}
+        </tr>`).join('')}</tbody></table>
+        <div class="cert-note">Cells shaded red have lapsed; amber expires within 90 days.</div>`
+      :`<div class="none">No certificates on record.</div>`}
+    </div>
+
+    ${vax.length?`<div class="sec">
+      <div class="sh"><span>Vaccination</span><span class="cnt">${vax.length} on file</span></div>
+      <table class="g">
+        <thead><tr><th>Vaccine</th><th>Date Given</th><th>Valid Until</th><th>Place Issued</th></tr></thead>
+        <tbody>${vax.map(v=>`<tr>
+          <td class="pri">${v.name||''}</td><td>${d(v.dateGiven)}</td>${expiryCell(v.validUntil)}<td>${v.placeIssued||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    <div class="sec">
+      <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
+      ${sea.length?`<table class="g">
+        <thead><tr><th>Vessel</th><th>Rank</th><th>Type</th><th>GRT</th><th>KW/HP</th><th>Company</th><th>Sign On</th><th>Sign Off</th><th>Trade Area</th></tr></thead>
+        <tbody>${sea.map(v=>`<tr>
+          <td style="font-weight:700;">${v.vessel||''}</td><td>${v.rank||''}</td><td>${v.vesselType||''}</td>
+          <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${v.company||''}</td>
+          <td>${d(v.signOn)}</td><td>${d(v.signOff)}</td><td>${v.tradeArea||''}</td>
+        </tr>`).join('')}</tbody></table>`
+      :`<div class="none">No sea service yet — first-time applicant.</div>`}
+    </div>
+
+    ${edu.length?`<div class="sec">
+      <div class="sh"><span>Educational Background</span></div>
+      <table class="g">
+        <thead><tr><th>School / Institution</th><th>Course / Level</th><th>Period</th><th>Honours</th></tr></thead>
+        <tbody>${edu.map(e=>`<tr>
+          <td style="font-weight:700;">${e.school||''}</td><td>${e.degree||''}</td>
+          <td>${[e.yearStart,e.yearGrad].filter(Boolean).join(' – ')}</td><td>${e.honors||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    ${(s.skills?.length||s.languages?.length)?`<div class="sec">
+      <div class="sh"><span>Skills &amp; Languages</span></div>
+      <div class="skl">
+        ${(s.skills||[]).map(k=>`<span>${k}</span>`).join('')}
+        ${(s.languages||[]).map(l=>`<span style="background:#0b2545;color:#ffd166;border-color:#0b2545;">${l}</span>`).join('')}
+      </div>
+    </div>`:''}
+
+    ${refs.length?`<div class="sec">
+      <div class="sh"><span>Character References</span></div>
+      <table class="g">
+        <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact</th></tr></thead>
+        <tbody>${refs.map(r=>`<tr>
+          <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
+          <td>${r.company||''}</td><td>${r.contact||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    <div class="sign">
+      <div>I certify that the information given above is true and correct<br>to the best of my knowledge and belief.</div>
+      <div class="sigline">${fullName(p)}<br>
+        <span style="font-weight:600;font-size:7.5px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
+      </div>
+    </div>
+
+  </div>
+</div></div></body></html>`;}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 17 — Seafarer (Simple / Agency Form)
+// The plain blank-form layout Philippine manning agencies hand out: white paper,
+// pale blue band across each section, everything in ruled boxes. Deliberately
+// undesigned — it's meant to look like the agency's own form, which is exactly
+// why applicants ask for it. T16 is the polished alternative.
+// ══════════════════════════════════════════════════════════════════════════════
+function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
+  const m = s.seaman || {};
+  const docs  = (m.documents    || []).filter(d=>d.type||d.number);
+  const certs = (m.certificates || []).filter(c=>c.name);
+  const vax   = (m.vaccinations || []).filter(v=>v.name);
+  const sea   = (m.seaService   || []).filter(v=>v.vessel);
+
+  const d = v => {
+    if(!v) return '';
+    const t = new Date(v);
+    if(isNaN(t)) return v;
+    return String(t.getDate()).padStart(2,'0')+'-'+
+      ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+
+      '-'+t.getFullYear();
+  };
+  const ex = v => {
+    if(!v) return '<td></td>';
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
+    const days=(t-Date.now())/864e5;
+    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${d(v)}</td>`;
+  };
+
+  // Blank rows keep the ruled-form look when a section is short — an agency
+  // form has empty lines to write on, and a half-filled table reads as unfinished.
+  const pad = (rows, want, cols) => {
+    let out = rows;
+    for(let i=rows.length; i<want; i++) out += '<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>';
+    return out;
+  };
+
+  // Personal info is a fixed two-up grid of label/value pairs, left and right.
+  const L = [['Surname',p.lastName],['First Name',p.firstName],['Middle Name',p.middleName],
+             ['Date of Birth',d(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
+             ['Civil Status',p.civilStatus],['Religion',m.religion]];
+  const R = [['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
+             ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
+             ['Shoe Size',m.shoe],['Coverall Size',m.coverall]];
+  const pairs = L.map((l,i)=>`<tr>
+      <th>${l[0]}</th><td>${l[1]||''}</td>
+      <th>${R[i]?R[i][0]:''}</th><td>${R[i]?(R[i][1]||''):''}</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+${pc}
+<style>
+  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;}
+  .page.pg{display:block;background:white;min-height:297mm;}
+
+  .top{display:flex;gap:14px;align-items:flex-start;padding:16px 18px 12px;}
+  .top .ph{width:78px;height:94px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
+  .top h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;
+          color:#111827;line-height:1.15;}
+  .apply{font-size:9.5px;color:#6b7280;margin-bottom:7px;}
+  .apply b{color:#1f2937;font-weight:700;}
+  .ct{font-size:8.5px;color:#374151;line-height:1.75;}
+  .ct span{display:block;}
+
+  .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
+        font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+        color:#1f3864;padding:3px 0;}
+  .obj{font-size:8.5px;line-height:1.7;color:#374151;padding:0 18px 10px;text-align:justify;}
+  .wrap{padding:0 18px;}
+  .wrap.last{padding-bottom:16px;}
+
+  table.f{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.8px 5px;text-align:left;vertical-align:top;}
+  table.f thead th{background:#e8eef7;font-weight:800;font-size:7.5px;letter-spacing:.4px;
+                   text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
+  table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
+  table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
+
+  /* Personal-information grid: label cells shaded, value cells open */
+  table.p{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.8px 6px;text-align:left;}
+  table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
+  table.p td{width:34%;font-weight:600;}
+
+  .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
+  .cert{font-size:7px;color:#9aa3b2;margin:-5px 0 9px;}
+  .foot{padding:14px 18px 0;font-size:7.5px;color:#4b5563;line-height:1.7;}
+  .sig{margin-top:26px;text-align:right;padding-right:18px;}
+  .sig .nm{font-weight:800;font-size:9px;color:#111827;text-transform:uppercase;
+           border-top:1px solid #6b7280;display:inline-block;padding:3px 34px 0;}
+  .sig .rl{font-size:7.5px;color:#6b7280;margin-top:2px;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+
+  <div class="top">
+    <div class="ph">${ph}</div>
+    <div style="flex:1;min-width:0;">
+      <h1>${fullName(p)}</h1>
+      <div class="apply">Applying for <b>${m.rank||p.jobTitle||'—'}</b></div>
+      <div class="ct">
+        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
+        ${p.email?`<span>✉ ${p.email}</span>`:''}
+        ${p.address?`<span>📍 ${p.address}</span>`:''}
+      </div>
+    </div>
+  </div>
+
+  ${s.profileSummary?`<div class="band" style="margin:0 18px;">Objective</div>
+    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:7px 9px;margin-bottom:9px;">
+      <div style="font-size:8.5px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
+    </div></div>`:''}
+
+  <div class="wrap">
+    <div class="band">Personal Information</div>
+    <table class="p">${pairs}</table>
+
+    <div class="band">Educational Background</div>
+    <table class="f">
+      <thead><tr><th style="width:18%;">Level</th><th>Name of School</th><th style="width:18%;">Date Graduated</th><th style="width:26%;">Course</th></tr></thead>
+      <tbody>${pad(edu.map(e=>`<tr>
+        <td class="lbl">${e.degree&&/college|tertiary|bachelor|bs |ba /i.test(e.degree)?'Tertiary':''}</td>
+        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 3, 4)}
+      </tbody>
+    </table>
+
+    <div class="band">Travel Documents</div>
+    <table class="f">
+      <thead><tr><th style="width:26%;">Document</th><th>Number</th><th style="width:17%;">Date Issued</th><th style="width:17%;">Expiry Date</th><th style="width:18%;">Place Issued</th></tr></thead>
+      <tbody>${pad(docs.map(x=>`<tr>
+        <td class="lbl">${x.type||''}</td><td>${x.number||''}</td>
+        <td>${d(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
+      </tbody>
+    </table>
+
+    <div class="band">Vaccination</div>
+    <table class="f">
+      <thead><tr><th style="width:28%;">Type</th><th style="width:20%;">Date Vaccinated</th><th style="width:20%;">Valid Until</th><th>Place Issued</th></tr></thead>
+      <tbody>${pad(vax.map(v=>`<tr>
+        <td class="lbl">${v.name||''}</td><td>${d(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
+      </tbody>
+    </table>
+
+    <div class="band">Certificates &amp; Trainings</div>
+    <table class="f">
+      <thead><tr><th>Name</th><th style="width:18%;">Number</th><th style="width:18%;">Date Issued</th><th style="width:18%;">Expiry Date</th></tr></thead>
+      <tbody>${pad(certs.map(c=>`<tr>
+        <td class="lbl" style="font-weight:600;color:#1f2937;background:white;">${c.name||''}</td>
+        <td>${c.number||''}</td><td>${d(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
+      </tbody>
+    </table>
+    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · shaded amber expires within 90 days.</div>`:''}
+
+    <div class="band">Sea Service</div>
+    <table class="f">
+      <thead><tr><th>Rank</th><th>Name of Vessel</th><th>Type of Vessel</th><th>GRT</th><th>KW</th><th>Joined</th><th>Signed Off</th><th>Trade Area</th></tr></thead>
+      <tbody>${pad(sea.map(v=>`<tr>
+        <td>${v.rank||''}</td><td style="font-weight:700;">${v.vessel||''}</td><td>${v.vesselType||''}</td>
+        <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${d(v.signOn)}</td><td>${d(v.signOff)}</td>
+        <td>${v.tradeArea||''}</td></tr>`).join(''), 4, 8)}
+      </tbody>
+    </table>
+
+    <div class="band">Character Reference</div>
+    <table class="f">
+      <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact No. / Email</th></tr></thead>
+      <tbody>${pad(refs.map(r=>`<tr>
+        <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
+        <td>${r.company||''}</td><td>${r.contact||''}</td></tr>`).join(''), 2, 4)}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="foot">I hereby certify that the information provided in this resume is true and correct
+    to the best of my knowledge and belief.</div>
+  <div class="sig">
+    <div class="nm">${fullName(p)}</div>
+    <div class="rl">Applicant</div>
+  </div>
+
+</div></div></body></html>`;}
+
+
+
 // ── EMAIL CUSTOMER ────────────────────────────────────────────────────────────
+
+// The GCash panel shared by both customer emails. The number is rendered as
+// large text above the QR deliberately: if images are blocked — which they are
+// by default in many clients until the reader clicks "show images" — the
+// customer can still pay. The QR is a convenience, never the only route.
+function gcashBlock(total){
+  return ''+
+    '<div style="background:#1a2744;border-radius:10px;padding:20px 22px;margin-bottom:20px;text-align:center;">'+
+      '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c8a84b;margin-bottom:12px;">💳 GCash / InstaPay Payment</div>'+
+      '<div style="font-size:30px;font-weight:900;color:white;letter-spacing:1px;margin-bottom:6px;">'+total+'</div>'+
+      '<div style="font-size:13px;color:rgba(255,255,255,.7);margin-bottom:14px;">Send via GCash to:</div>'+
+      '<div style="background:rgba(200,168,75,.15);border:1.5px solid rgba(200,168,75,.4);border-radius:8px;padding:12px 18px;display:inline-block;">'+
+        '<div style="font-size:21px;font-weight:900;color:#e2c97e;letter-spacing:1px;">'+GCASH_NUMBER+'</div>'+
+        '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;">'+GCASH_NAME+' · Arroyo CV Builder</div>'+
+      '</div>'+
+      (GCASH_QR_URL ?
+        '<div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(255,255,255,.15);">'+
+          '<div style="font-size:11px;color:rgba(255,255,255,.55);margin-bottom:10px;">or scan this QR in your GCash app</div>'+
+          '<img src="'+GCASH_QR_URL+'" alt="GCash QR code for '+GCASH_NUMBER+'" width="300" '+
+            // 300px, not smaller: this QR carries 165 characters of payment data, so it has
+            // a lot of modules. Below roughly 260px the modules blur together and phones
+            // stop reading it.
+            'style="width:300px;max-width:92%;height:auto;border-radius:8px;border:4px solid white;display:block;margin:0 auto;background:white;">'+
+          '<div style="font-size:10.5px;color:rgba(255,255,255,.45);margin-top:9px;line-height:1.5;">'+
+            'QR not showing? Tap “display images” in your mail app, or just send to the number above.'+
+          '</div>'+
+        '</div>' : '')+
+    '</div>';
+}
+
 async function sendDoneEmail(idx){
   const s=submissions[idx]; const p=s.personal;
   if(!p.email){ showNotif('No email on file — skipping auto email.',true); return; }
@@ -3596,7 +4531,7 @@ async function sendDoneEmail(idx){
         '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
         '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
           '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Reference No.</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+s.id+'</td></tr>'+
-          '<tr><td style="padding:5px 0;color:#6b7280;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+p.firstName+' '+p.lastName+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+fullName(p)+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Amount</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+total+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Status</td><td style="padding:5px 0;">'+
@@ -3611,6 +4546,16 @@ async function sendDoneEmail(idx){
           'Your completed <strong>'+docLabel+'</strong> will be sent to you shortly via '+
           '<strong>reply to this email</strong>, <strong>Messenger</strong>, or <strong>Viber</strong>. '+
           'Please watch for it. If you do not receive it within 24 hours, just reply here.' +
+        '</p>'+
+      '</div>'+
+
+      gcashBlock(total)+
+
+      '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
+        '<div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px;">📸 After Payment</div>'+
+        '<p style="font-size:12px;color:#166534;margin:0;line-height:1.75;">'+
+          'Send your <strong>GCash payment screenshot</strong> to us via:<br>'+
+          '📧 Reply to this email &nbsp;|&nbsp; 💬 Facebook Messenger &nbsp;|&nbsp; 📲 Viber'+
         '</p>'+
       '</div>'+
 
@@ -3643,10 +4588,16 @@ async function sendDoneEmail(idx){
     'Great news! Your professional '+docLabel+' is now complete and ready for delivery.\n\n'+
     'ORDER SUMMARY\n'+
     'Reference No.: '+s.id+'\n'+
-    'Name: '+p.firstName+' '+p.lastName+'\n'+
+    'Name: '+fullName(p)+'\n'+
     'Service: '+docLabel+'\n'+
     'Amount: '+total+'\n'+
     'Status: Done — Ready for Delivery\n\n'+
+    'HOW TO PAY\n'+
+    'Send '+total+' via GCash to:\n'+
+    GCASH_NUMBER+' — '+GCASH_NAME+' (Arroyo CV Builder)\n'+
+    (GCASH_QR_URL ? 'QR code: '+GCASH_QR_URL+'\n' : '')+
+    '\nAfter paying, send your GCash screenshot by replying to this email,\n'+
+    'via Facebook Messenger, or via Viber.\n\n'+
     'Your '+docLabel+' will be sent to you shortly via reply to this email, Messenger, or Viber.\n'+
     'If you do not receive it within 24 hours, just reply here.\n\n'+
     'Tips for Using Your CV:\n'+
@@ -3660,10 +4611,9 @@ async function sendDoneEmail(idx){
     'Arroyo CV Builder';
 
   try {
-    emailjs.init(EMAILJS_KEY);
     await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
       to_email:         p.email,
-      to_name:          p.firstName+' '+p.lastName,
+      to_name:          fullName(p),
       customer_name:    p.firstName,
       cc_email:         ADMIN_CC,
       subject:          'Your '+docLabel+' is Ready — Arroyo CV Builder',
@@ -3676,6 +4626,7 @@ async function sendDoneEmail(idx){
     // threw straight after a SUCCESSFUL send — so nothing was ever logged, the
     // duplicate guard never armed, and the month counter never moved.
     await noteEmailSent(idx, 'ready');
+    renderSubmissions();
   } catch(e){
     showNotif('❌ Auto email failed — '+mailErr(e), true);
     console.error('EmailJS error:',e);
@@ -3689,6 +4640,19 @@ async function emailCustomer(idx, type){
   const docLabel=hasCL?'CV and Cover Letter':'CV';
 
   if(!p.email){ showNotif('No email on file for this customer.', true); return; }
+
+  // ── Duplicate guard: this email already went out, so make it a deliberate act.
+  // Every send costs quota, and a customer receiving the same mail twice looks
+  // careless — so require an explicit yes rather than relying on memory.
+  const prevTs = emailSentAt(s, type);
+  if(prevTs){
+    const what = type==='delivered' ? 'CV Has Been Delivered' : 'CV is Ready / Request Payment';
+    if(!confirm(
+      `"${what}" was already sent to ${p.email} on ${emailStamp(prevTs)}.\n\n`+
+      `Send it a second time?\n\n`+
+      `This uses one more of your monthly email allowance (${getMailCount()}/${getMailCap()} used).`
+    )) { showNotif('Cancelled — no email sent.'); return; }
+  }
 
   // ── Disable button to prevent double-send ────────────────────
   const btnId = type==='ready' ? 'emailReadyBtn_'+idx : 'emailDeliveredBtn_'+idx;
@@ -3719,7 +4683,7 @@ async function emailCustomer(idx, type){
         '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;">'+
           '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
           '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
-            '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+p.firstName+' '+p.lastName+'</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+fullName(p)+'</td></tr>'+
             '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
             '<tr><td style="padding:5px 0;color:#6b7280;">Amount Due</td><td style="padding:5px 0;">'+
               '<span style="background:#fef3c7;color:#92400e;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:800;">'+total+'</span>'+
@@ -3730,15 +4694,7 @@ async function emailCustomer(idx, type){
           '</table>'+
         '</div>'+
 
-        '<div style="background:#1a2744;border-radius:10px;padding:20px 22px;margin-bottom:20px;text-align:center;">'+
-          '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c8a84b;margin-bottom:12px;">💳 GCash / InstaPay Payment</div>'+
-          '<div style="font-size:28px;font-weight:900;color:white;letter-spacing:1px;margin-bottom:4px;">'+total+'</div>'+
-          '<div style="font-size:14px;color:rgba(255,255,255,.7);margin-bottom:12px;">Send via GCash to:</div>'+
-          '<div style="background:rgba(200,168,75,.15);border:1.5px solid rgba(200,168,75,.4);border-radius:8px;padding:12px 18px;display:inline-block;">'+
-            '<div style="font-size:20px;font-weight:900;color:#e2c97e;letter-spacing:1px;">09063964052</div>'+
-            '<div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;">Reymar Arroyo · Arroyo CV Builder</div>'+
-          '</div>'+
-        '</div>'+
+        gcashBlock(total)+
 
         '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 18px;margin-bottom:20px;">'+
           '<div style="font-size:11px;font-weight:700;color:#166534;margin-bottom:6px;">📸 After Payment</div>'+
@@ -3764,12 +4720,13 @@ async function emailCustomer(idx, type){
       'Dear '+p.firstName+',\n\n'+
       'Great news! Your professional '+docLabel+' is now ready!\n\n'+
       'ORDER SUMMARY\n'+
-      'Name: '+p.firstName+' '+p.lastName+'\n'+
+      'Name: '+fullName(p)+'\n'+
       'Service: '+docLabel+'\n'+
       'Amount Due: '+total+'\n\n'+
       'HOW TO PAY:\n'+
       'Send '+total+' via GCash to:\n'+
-      '09063964052 — Reymar Arroyo (Arroyo CV Builder)\n\n'+
+      GCASH_NUMBER+' — '+GCASH_NAME+' (Arroyo CV Builder)\n'+
+      (GCASH_QR_URL ? 'QR code: '+GCASH_QR_URL+'\n' : '')+'\n'+
       'AFTER PAYMENT:\n'+
       'Send your GCash screenshot via:\n'+
       '- Reply to this email\n'+
@@ -3844,10 +4801,9 @@ async function emailCustomer(idx, type){
   }
 
   try {
-    emailjs.init(EMAILJS_KEY);
     await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
       to_email:         p.email,
-      to_name:          p.firstName+' '+p.lastName,
+      to_name:          fullName(p),
       customer_name:    p.firstName,
       cc_email:         ADMIN_CC,
       subject:          subject,
@@ -3857,11 +4813,120 @@ async function emailCustomer(idx, type){
     showNotif('✅ Email sent to '+p.email+' (CC: '+ADMIN_CC+')');
     // Record the send so the duplicate guard arms and the counter advances.
     await noteEmailSent(idx, type === 'delivered' ? 'delivered' : 'ready');
+    // Repaint so the ✅ ticks and timestamps appear straight away — without this
+    // the panel still reads "Not sent yet" until the next page load.
+    renderSubmissions();
+    viewSubmission(idx);
   } catch(e){
     showNotif('❌ Email failed — '+mailErr(e), true);
     console.error('EmailJS error:', e);
   } finally {
     if(btn){ btn.disabled=false; btn.textContent=origText; }
+  }
+}
+
+// ── EMAIL TEST ────────────────────────────────────────────────────────────────
+// Builds a throwaway submission and runs it through the real email path, so a
+// passing test genuinely means customer emails work — not just that EmailJS
+// accepted some minimal payload. Nothing is written to the submissions record.
+async function sendTestEmail(){
+  const btn = document.getElementById('testEmailBtn');
+  const out = document.getElementById('testEmailResult');
+  const to  = (document.getElementById('testEmailTo').value || '').trim() || ADMIN_CC;
+
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)){
+    out.innerHTML = `<div class="hc-alert crit">That doesn't look like a valid email address.</div>`;
+    return;
+  }
+
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+  out.innerHTML = `<div class="hc-alert warn">Contacting EmailJS…</div>`;
+
+  const total = peso(BASE_PRICE + CL_PRICE);
+  const docLabel = 'CV and Cover Letter';
+
+  const htmlBody =
+    '<div style="font-family:Arial,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;">'+
+      '<div style="background:#b45309;padding:9px 28px;text-align:center;">'+
+        '<span style="color:white;font-size:12px;font-weight:800;letter-spacing:1px;">🧪 TEST EMAIL — NOT SENT TO A CUSTOMER</span>'+
+      '</div>'+
+      '<div style="background:#1a2744;padding:24px 28px;">'+
+        '<h1 style="color:#e2c97e;margin:0;font-size:20px;letter-spacing:.5px;">Arroyo CV Builder</h1>'+
+        '<p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Professional CV &amp; Resume Service</p>'+
+      '</div>'+
+      '<div style="background:#f7f8fc;padding:24px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">'+
+        '<p style="font-size:15px;margin:0 0 8px;">Dear <strong>Juan</strong>,</p>'+
+        '<p style="font-size:13px;line-height:1.8;color:#374151;margin:0 0 20px;">'+
+          'Great news! Your professional <strong>'+docLabel+'</strong> is now complete and ready for delivery.'+
+        '</p>'+
+        '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;">'+
+          '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
+          '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
+            '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">Juan Santos dela Cruz</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
+            '<tr><td style="padding:5px 0;color:#6b7280;">Amount</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+total+'</td></tr>'+
+          '</table>'+
+        '</div>'+
+        gcashBlock(total)+
+        '<div style="border-top:1px solid #e5e7eb;padding-top:16px;">'+
+          '<p style="font-size:12px;color:#6b7280;margin:0 0 6px;">Questions? Contact us anytime:</p>'+
+          '<p style="font-size:13px;font-weight:700;color:#1a2744;margin:0;">📱 '+GCASH_NUMBER+' &nbsp;|&nbsp; ✉ '+ADMIN_CC+'</p>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:#1a2744;padding:14px 28px;text-align:center;">'+
+        '<p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Arroyo CV Builder &nbsp;·&nbsp; Philippines</p>'+
+      '</div>'+
+      '<div style="background:#fffbeb;border:1px solid #fde68a;padding:12px 20px;margin-top:10px;border-radius:6px;">'+
+        '<div style="font-size:11px;color:#92400e;line-height:1.7;">'+
+          '<strong>Checklist:</strong> Is the layout intact? Is the GCash QR image visible above '+
+          '(if not, upload <code>gcash-qr.png</code> to your repo)? Does replying reach your inbox?'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+
+  const plainBody =
+    'TEST EMAIL — Arroyo CV Builder\n\n'+
+    'This is a test of the "CV is Ready" email. No customer received it.\n\n'+
+    'Name: Juan Santos dela Cruz\n'+
+    'Service: '+docLabel+'\n'+
+    'Amount: '+total+'\n\n'+
+    'HOW TO PAY\n'+
+    'Send '+total+' via GCash to:\n'+
+    GCASH_NUMBER+' — '+GCASH_NAME+' (Arroyo CV Builder)\n'+
+    (GCASH_QR_URL ? 'QR code: '+GCASH_QR_URL+'\n' : '')+
+    '\nSent from the admin dashboard test tool.';
+
+  const started = Date.now();
+  try{
+    await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+      to_email:         to,
+      to_name:          'Reymar Arroyo',
+      customer_name:    'Juan',
+      cc_email:         '',
+      subject:          '[TEST] Your CV is Ready — Arroyo CV Builder',
+      translation_note: plainBody,
+      html_body:        htmlBody
+    });
+    const ms = Date.now()-started;
+    bumpMailCount();
+    renderHealth();
+    out.innerHTML = `<div class="hc-alert ok">
+      <strong>✅ Sent to ${to}</strong> in ${ms}ms.<br>
+      Check that inbox — including spam on the first send. If it arrived and looks right,
+      your customer emails will work identically.
+    </div>`;
+    showNotif('✅ Test email sent to '+to);
+  }catch(e){
+    console.error('Test email failed:', e);
+    // mailErr() already decodes EmailJS status codes into plain guidance
+    out.innerHTML = `<div class="hc-alert crit">
+      <strong>❌ Failed</strong> — ${mailErr(e)}<br>
+      <span style="font-size:11px;">Nothing was sent, and your quota was not used.</span>
+    </div>`;
+    showNotif('❌ Test email failed', true);
+  }finally{
+    btn.disabled = false; btn.textContent = orig;
   }
 }
 

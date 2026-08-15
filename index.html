@@ -407,11 +407,12 @@
 
   .edu-selector {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
     margin-bottom: 0;
   }
-  @media (max-width: 480px) { .edu-selector { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .edu-selector { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 380px) { .edu-selector { grid-template-columns: 1fr; } }
   .edu-option {
     border: 2px solid var(--gray-light);
     border-radius: 10px;
@@ -715,7 +716,7 @@
       <div class="card-header">
         <div class="card-icon">🎓</div>
         <div>
-          <h2>Education Level</h2>
+          <h2>Applicant Type</h2>
           <p>This determines which sections appear on your form</p>
         </div>
       </div>
@@ -739,6 +740,19 @@
             <div class="edu-label">Fresh</div>
             <div class="edu-sub">Graduate</div>
           </label>
+          <label class="edu-option" id="eduOpt4">
+            <input type="radio" name="eduLevel" value="seaman" onchange="handleEduChange()">
+            <div class="edu-icon">⚓</div>
+            <div class="edu-label">Seafarer</div>
+            <div class="edu-sub">Seaman CV</div>
+          </label>
+        </div>
+        <div id="seamanIntro" class="hidden" style="margin-top:14px;background:rgba(26,39,68,.04);border:1.5px solid var(--navy);border-radius:10px;padding:13px 15px;">
+          <div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:4px;">⚓ Seafarer format selected</div>
+          <div style="font-size:12px;color:#4b5563;line-height:1.65;">
+            Your CV will use the standard maritime layout that manning agencies expect — travel documents,
+            STCW certificates, and a sea service record in table form. Extra sections have been added below.
+          </div>
         </div>
       </div>
     </div>
@@ -774,10 +788,14 @@
           </div>
         </div>
 
-        <div class="field-row">
+        <div class="field-row triple">
           <div class="field">
             <label>First Name <span class="req">*</span></label>
             <input type="text" id="firstName" placeholder="Juan" required>
+          </div>
+          <div class="field">
+            <label>Middle Name / Initial</label>
+            <input type="text" id="middleName" placeholder="Santos or S.">
           </div>
           <div class="field">
             <label>Last Name <span class="req">*</span></label>
@@ -786,7 +804,7 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label>Job Title / Position Applying For <span class="req">*</span></label>
+            <label>Job Title / Position Applying For</label>
             <input type="text" id="jobTitle" placeholder="e.g. Customer Service Representative">
           </div>
           <div class="field">
@@ -899,12 +917,139 @@
       </div>
     </div>
 
+    <!-- ═══ SEAFARER-ONLY SECTIONS ═══════════════════════════════════════════
+         Hidden unless "Seafarer" is chosen. A maritime CV is a different
+         document: agencies screen on rank, documents and sea time, so these
+         replace the ordinary work-history questions rather than adding to them. -->
+
+    <!-- RANK & PHYSICAL -->
+    <div class="card hidden seaman-only" id="seamanRankCard">
+      <div class="card-header">
+        <div class="card-icon">⚓</div>
+        <div>
+          <h2>Rank &amp; Physical Details</h2>
+          <p>Standard on every seafarer CV — agencies check these first</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Rank Applied For <span class="req">*</span></label>
+            <select id="sm-rank">
+              <option value="">Select rank…</option>
+              <optgroup label="Deck">
+                <option>Master</option><option>Chief Officer</option><option>Second Officer</option>
+                <option>Third Officer</option><option>Deck Cadet</option><option>Bosun</option>
+                <option>Able Seaman (AB)</option><option>Ordinary Seaman (OS)</option><option>Deck Fitter</option>
+              </optgroup>
+              <optgroup label="Engine">
+                <option>Chief Engineer</option><option>Second Engineer</option><option>Third Engineer</option>
+                <option>Fourth Engineer</option><option>Engine Cadet</option><option>Electrician / ETO</option>
+                <option>Fitter</option><option>Oiler</option><option>Wiper</option><option>Motorman</option>
+              </optgroup>
+              <optgroup label="Catering">
+                <option>Chief Cook</option><option>Second Cook</option><option>Messman</option><option>Steward</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field">
+            <label>Last Rank Held</label>
+            <input type="text" id="sm-lastRank" placeholder="e.g. Ordinary Seaman">
+          </div>
+        </div>
+        <div class="field-row triple">
+          <div class="field"><label>Height</label><input type="text" id="sm-height" placeholder="e.g. 170 cm"></div>
+          <div class="field"><label>Weight</label><input type="text" id="sm-weight" placeholder="e.g. 65 kg"></div>
+          <div class="field"><label>BMI</label><input type="text" id="sm-bmi" placeholder="e.g. 22.5"></div>
+        </div>
+        <div class="field-row triple">
+          <div class="field"><label>Colour of Eyes</label><input type="text" id="sm-eyes" placeholder="e.g. Black"></div>
+          <div class="field"><label>Colour of Hair</label><input type="text" id="sm-hair" placeholder="e.g. Black"></div>
+          <div class="field"><label>Blood Type</label><input type="text" id="sm-blood" placeholder="e.g. O+"></div>
+        </div>
+        <div class="field-row triple">
+          <div class="field"><label>Shoe Size</label><input type="text" id="sm-shoe" placeholder="e.g. 9"></div>
+          <div class="field"><label>Coverall Size</label><input type="text" id="sm-coverall" placeholder="e.g. Medium"></div>
+          <div class="field"><label>Religion</label><input type="text" id="sm-religion" placeholder="e.g. Roman Catholic"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Place of Birth</label><input type="text" id="sm-birthPlace" placeholder="e.g. Cebu City"></div>
+          <div class="field"><label>SSS / TIN / PhilHealth No.</label><input type="text" id="sm-govIds" placeholder="Optional — SSS, TIN, PhilHealth, Pag-IBIG"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>Nearest Relative / Next of Kin</label>
+            <input type="text" id="sm-nok" placeholder="Name · Relationship · Contact number">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRAVEL DOCUMENTS -->
+    <div class="card hidden seaman-only" id="seamanDocsCard">
+      <div class="card-header">
+        <div class="card-icon">🛂</div>
+        <div>
+          <h2>Travel Documents</h2>
+          <p>Passport, Seaman's Book, visas — leave blank any you don't have yet</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="docEntries"></div>
+        <button class="add-btn" onclick="addDocEntry()">＋ Add Document</button>
+      </div>
+    </div>
+
+    <!-- CERTIFICATES -->
+    <div class="card hidden seaman-only" id="seamanCertCard">
+      <div class="card-header">
+        <div class="card-icon">📜</div>
+        <div>
+          <h2>Trainings &amp; Certificates</h2>
+          <p>STCW courses, COC/COP, and any company-specific training</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="certEntries"></div>
+        <button class="add-btn" onclick="addCertEntry()">＋ Add Certificate</button>
+      </div>
+    </div>
+
+    <!-- VACCINATION -->
+    <div class="card hidden seaman-only" id="seamanVaxCard">
+      <div class="card-header">
+        <div class="card-icon">💉</div>
+        <div>
+          <h2>Vaccination Record</h2>
+          <p>Yellow Fever, Hepatitis, Tetanus, COVID-19 and any others required</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="vaxEntries"></div>
+        <button class="add-btn" onclick="addVaxEntry()">＋ Add Vaccination</button>
+      </div>
+    </div>
+
+    <!-- SEA SERVICE -->
+    <div class="card hidden seaman-only" id="seamanServiceCard">
+      <div class="card-header">
+        <div class="card-icon">🚢</div>
+        <div>
+          <h2>Sea Service Record</h2>
+          <p>Most recent vessel first. Leave empty if you have no sea time yet.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="seaEntries"></div>
+        <button class="add-btn" onclick="addSeaEntry()">＋ Add Vessel</button>
+      </div>
+    </div>
+
     <!-- SKILLS -->
     <div class="card">
       <div class="card-header">
         <div class="card-icon">⚡</div>
-        <div>
-          <h2>Skills</h2>
+        <div>          <h2>Skills</h2>
           <p>Professional and technical skills</p>
         </div>
       </div>
@@ -1164,9 +1309,18 @@ const BASE_PRICE = 50;   // CV / Resume
 const CL_PRICE   = 75;   // Cover Letter add-on
 const peso = n => '₱' + n.toLocaleString();
 
+// Assembles the display name for CV templates. Middle name is optional, so this
+// collapses the gap rather than leaving a double space when it's absent. A bare
+// initial gets a period appended ("S" → "S.") since that's the convention.
+const fullName = p => {
+  let mid = (p.middleName || '').trim();
+  if (mid && mid.length === 1) mid += '.';
+  return [p.firstName, mid, p.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+};
+
 // ─── EMAILJS (new-order alert to admin) ───────────────────────────────────────
 const EMAILJS_SVC = 'service_wog8mwj';
-const EMAILJS_TPL = 'template_5l2krhk';
+const EMAILJS_TPL = 'template_31e2nts';
 const EMAILJS_KEY = 'XDm2wGz_tn8DOjWPw';
 const ADMIN_EMAIL = 'areymar36@gmail.com';
 
@@ -1185,6 +1339,9 @@ let coverLetterSelected = false;
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
+  // Initialise EmailJS once — do NOT call emailjs.init() inside individual send functions
+  if (typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
+
   // Duplicate-submission guard runs first — may replace the whole form
   if (checkAlreadySubmitted()) return;
 
@@ -1218,6 +1375,15 @@ function renderTemplateSwatches() {
   const grid = document.getElementById('tmplSwatchGrid');
   if (!grid) return;
   const cur = document.getElementById('templatePref').value;
+  const isSeaman = document.querySelector('input[name="eduLevel"]:checked')?.value === 'seaman';
+
+  // The maritime layout only makes sense with sea service data, and the ordinary
+  // designs can't show documents or vessel history — so each side sees only what
+  // it can actually use.
+  const shown = TMPL_INFO.filter(t => isSeaman ? t.seamanOnly : !t.seamanOnly);
+
+  // A stale pick from the other list would silently survive the switch
+  if (cur && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
 
   let html = `
     <div class="tsw ${cur === '' ? 'sel' : ''}" data-t="" onclick="pickTemplate('')">
@@ -1226,7 +1392,7 @@ function renderTemplateSwatches() {
       <div class="tsw-desc">We'll choose</div>
     </div>`;
 
-  html += TMPL_INFO.map(t => `
+  html += shown.map(t => `
     <div class="tsw ${cur === String(t.num) ? 'sel' : ''}" data-t="${t.num}" onclick="pickTemplate('${t.num}')">
       <div class="tsw-chip" style="background:${t.bg || '#243358'};color:${t.color || '#c8a84b'};${t.border ? 'border:' + t.border + ';' : ''}">${t.num}</div>
       <div class="tsw-label">Template ${t.num}</div>
@@ -1373,9 +1539,12 @@ function forceNewSubmission() {
 // ══════════════════════════════════════════════════════════════════════════════
 // AUTOSAVE DRAFT  (survives accidental tab close / refresh)
 // ══════════════════════════════════════════════════════════════════════════════
-const DRAFT_SIMPLE_IDS = ['firstName','lastName','jobTitle','nationality','dob','civilStatus',
+const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nationality','dob','civilStatus',
   'gender','address','phone','email','social','linkedin','aboutMe','hobbies','awards',
-  'specialInstructions','templatePref','cl-position','cl-company','cl-reason','cl-strengths','cl-tone'];
+  'specialInstructions','templatePref','cl-position','cl-company','cl-reason','cl-strengths','cl-tone',
+  // Seafarer scalars — harmless on other formats, the elements simply won't exist
+  'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
+  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok'];
 
 let draftTimer = null;
 
@@ -1401,6 +1570,10 @@ function saveDraft() {
       d.edu  = grab('#eduEntries .exp-entry');
       d.work = grab('#workEntries .exp-entry');
       d.refs = grab('#refEntries .exp-entry');
+      d.docs = grab('#docEntries .exp-entry');
+      d.cert = grab('#certEntries .exp-entry');
+      d.sea  = grab('#seaEntries .exp-entry');
+      d.vax  = grab('#vaxEntries .exp-entry');
 
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch (e) { /* quota or private mode */ }
@@ -1493,6 +1666,12 @@ function restoreDraft() {
   restoreGroup(d.edu,  '#eduEntries .exp-entry',  addEduEntry);
   restoreGroup(d.work, '#workEntries .exp-entry', addWorkEntry);
   restoreGroup(d.refs, '#refEntries .exp-entry',  addRefEntry);
+  // Seafarer groups only exist once the format is selected, which the eduLevel
+  // restore above has already done by this point.
+  restoreGroup(d.docs, '#docEntries .exp-entry',  addDocEntry);
+  restoreGroup(d.cert, '#certEntries .exp-entry', addCertEntry);
+  restoreGroup(d.sea,  '#seaEntries .exp-entry',  addSeaEntry);
+  restoreGroup(d.vax,  '#vaxEntries .exp-entry',  addVaxEntry);
 
   // Cover letter panel
   if (d.coverLetterSelected && !coverLetterSelected) toggleCoverLetter();
@@ -1649,9 +1828,16 @@ Rules:
     const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
 
     // Personal fields
-    const nameParts = (data.fullName||'').trim().split(' ');
+    // Three-way split: first word is the given name, last word is the surname,
+    // anything between is the middle name. A two-word name leaves middle empty.
+    const nameParts = (data.fullName||'').trim().split(/\s+/).filter(Boolean);
     set('firstName', nameParts[0] || '');
-    set('lastName', nameParts.slice(1).join(' ') || '');
+    if (nameParts.length >= 3) {
+      set('middleName', nameParts.slice(1, -1).join(' '));
+      set('lastName', nameParts[nameParts.length - 1]);
+    } else {
+      set('lastName', nameParts.slice(1).join(' ') || '');
+    }
     set('email', data.email);
     set('phone', data.phone);
     set('address', data.address);
@@ -1754,12 +1940,151 @@ function handleEduChange() {
   document.querySelectorAll('.edu-option').forEach(el => el.classList.remove('selected'));
   document.querySelector(`input[name="eduLevel"]:checked`).closest('.edu-option').classList.add('selected');
 
+  const isSeaman = val === 'seaman';
+
+  // Seafarers record sea service instead of ordinary work history, so the
+  // Work Experience card steps aside rather than sitting there half-relevant.
   const workCard = document.getElementById('workCard');
-  if (val === 'fresh') {
-    workCard.classList.add('hidden');
-  } else {
-    workCard.classList.remove('hidden');
+  if (val === 'fresh' || isSeaman) workCard.classList.add('hidden');
+  else workCard.classList.remove('hidden');
+
+  document.querySelectorAll('.seaman-only').forEach(el => el.classList.toggle('hidden', !isSeaman));
+  document.getElementById('seamanIntro')?.classList.toggle('hidden', !isSeaman);
+
+  // Seed one blank row of each on first switch so the tables aren't empty.
+  if (isSeaman) {
+    if (!document.querySelector('#docEntries .exp-entry')) seedSeamanDocs();
+    if (!document.querySelector('#certEntries .exp-entry')) addCertEntry();
+    if (!document.querySelector('#vaxEntries .exp-entry')) addVaxEntry();
+    if (!document.querySelector('#seaEntries .exp-entry')) addSeaEntry();
   }
+
+  renderTemplateSwatches();
+  saveDraft();
+}
+
+// ─── SEAFARER ENTRIES ─────────────────────────────────────────────────────────
+let docCount = 0, certCount = 0, seaCount = 0, vaxCount = 0;
+
+// The four documents virtually every Filipino seafarer is asked for. Pre-filling
+// the type saves typing and keeps the labels consistent across submissions.
+const DOC_PRESETS = ['Passport', "Seaman's Book (SIRB)", 'US Visa (C1/D)', 'Yellow Fever Card'];
+
+function seedSeamanDocs() {
+  DOC_PRESETS.forEach(t => addDocEntry(t));
+}
+
+function addDocEntry(preset) {
+  docCount++;
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `doc-${docCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Document #${docCount}</div>
+    <button class="remove-btn" onclick="removeEntry('doc-${docCount}')">✕ Remove</button>
+    <div class="field-row">
+      <div class="field">
+        <label>Document Type</label>
+        <input type="text" list="docTypeList" value="${preset || ''}" placeholder="e.g. Passport">
+      </div>
+      <div class="field"><label>Number</label><input type="text" placeholder="Document number"></div>
+    </div>
+    <div class="field-row triple">
+      <div class="field"><label>Date Issued</label><input type="date"></div>
+      <div class="field"><label>Date Expiry</label><input type="date"></div>
+      <div class="field"><label>Place Issued</label><input type="text" placeholder="e.g. Manila"></div>
+    </div>`;
+  document.getElementById('docEntries').appendChild(div);
+}
+
+// Common STCW courses, offered as a datalist so people can pick or free-type.
+const CERT_PRESETS = ['Basic Training (BT)','Proficiency in Survival Craft & Rescue Boats (PSCRB)',
+  'Advanced Fire Fighting (AFF)','Medical First Aid (MEFA)','Medical Care','Security Awareness Training (SAT)',
+  'Designated Security Duties (SDSD)','Ship Security Officer (SSO)','Radar Observation & Plotting (ROP)',
+  'ARPA','GMDSS','ECDIS','Bridge Resource Management (BRM)','Engine Room Resource Management (ERM)',
+  'Ship Simulator & Bridge Teamwork (SSBT)','Oil Tanker Familiarization','Chemical Tanker Familiarization',
+  'Liquefied Gas Tanker Familiarization','Certificate of Competency (COC)','Certificate of Proficiency (COP)',
+  'Ratings Forming Part of a Navigational Watch (RFPNW)','Ratings Forming Part of an Engineering Watch (RFPEW)',
+  'Consolidated Marine Pollution (MARPOL)','Crowd Management','Crisis Management & Human Behaviour'];
+
+function addCertEntry() {
+  certCount++;
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `cert-${certCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Certificate #${certCount}</div>
+    ${certCount > 1 ? `<button class="remove-btn" onclick="removeEntry('cert-${certCount}')">✕ Remove</button>` : ''}
+    <div class="field-row full">
+      <div class="field">
+        <label>Course / Certificate Name</label>
+        <input type="text" list="certNameList" placeholder="Start typing, e.g. Basic Training">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Certificate Number</label><input type="text" placeholder="Certificate no."></div>
+      <div class="field"><label>Issued By</label><input type="text" placeholder="e.g. MARINA / training centre"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Date Issued</label><input type="date"></div>
+      <div class="field"><label>Valid Until</label><input type="date"></div>
+    </div>`;
+  document.getElementById('certEntries').appendChild(div);
+}
+
+const VAX_PRESETS = ['Yellow Fever','Hepatitis A','Hepatitis B','Tetanus / Td','Typhoid',
+  'COVID-19','Influenza','Measles / MMR','Polio','Diphtheria','Cholera','Meningococcal'];
+
+function addVaxEntry() {
+  vaxCount++;
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `vax-${vaxCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Vaccination #${vaxCount}</div>
+    ${vaxCount > 1 ? `<button class="remove-btn" onclick="removeEntry('vax-${vaxCount}')">\u2715 Remove</button>` : ''}
+    <div class="field-row">
+      <div class="field">
+        <label>Vaccine</label>
+        <input type="text" list="vaxList" placeholder="e.g. Yellow Fever">
+      </div>
+      <div class="field"><label>Place Issued</label><input type="text" placeholder="e.g. Bureau of Quarantine, Manila"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Date Vaccinated</label><input type="date"></div>
+      <div class="field"><label>Valid Until</label><input type="date"></div>
+    </div>`;
+  document.getElementById('vaxEntries').appendChild(div);
+}
+
+function addSeaEntry() {  seaCount++;
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `sea-${seaCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">Vessel #${seaCount}</div>
+    ${seaCount > 1 ? `<button class="remove-btn" onclick="removeEntry('sea-${seaCount}')">✕ Remove</button>` : ''}
+    <div class="field-row">
+      <div class="field"><label>Name of Vessel</label><input type="text" placeholder="e.g. MV Ocean Pride"></div>
+      <div class="field"><label>Rank on Board</label><input type="text" placeholder="e.g. Ordinary Seaman"></div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Type of Vessel</label>
+        <input type="text" list="vesselTypeList" placeholder="e.g. Bulk Carrier">
+      </div>
+      <div class="field"><label>Manning Agency / Company</label><input type="text" placeholder="e.g. ABC Shipping Inc."></div>
+    </div>
+    <div class="field-row triple">
+      <div class="field"><label>GRT / GT</label><input type="text" placeholder="e.g. 35,000"></div>
+      <div class="field"><label>Engine KW / HP</label><input type="text" placeholder="e.g. 9,500 KW"></div>
+      <div class="field"><label>Trade Area</label><input type="text" placeholder="e.g. Worldwide"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sign On</label><input type="date"></div>
+      <div class="field"><label>Sign Off</label><input type="date"></div>
+    </div>`;
+  document.getElementById('seaEntries').appendChild(div);
 }
 
 // ─── EDUCATION ENTRIES ─────────────────────────────────────────────────────────
@@ -1942,7 +2267,7 @@ function collectFormData() {
 
   // Work
   const workData = [];
-  if (eduLevel !== 'fresh') {
+  if (eduLevel !== 'fresh' && eduLevel !== 'seaman') {
     document.querySelectorAll('#workEntries .exp-entry').forEach(entry => {
       const inputs = entry.querySelectorAll('input');
       const textarea = entry.querySelector('textarea');
@@ -1955,6 +2280,37 @@ function collectFormData() {
         responsibilities: textarea?.value || ''
       });
     });
+  }
+
+  // Seafarer sections — only gathered when the seaman format is chosen, so an
+  // ordinary CV never carries empty maritime scaffolding in its record.
+  let seaman = null;
+  if (eduLevel === 'seaman') {
+    const sv = id => document.getElementById(id)?.value.trim() || '';
+    const rows = (sel, keys) => {
+      const out = [];
+      document.querySelectorAll(sel).forEach(entry => {
+        const inputs = entry.querySelectorAll('input');
+        const row = {};
+        keys.forEach((k, i) => row[k] = inputs[i]?.value || '');
+        // Drop rows the customer opened but never filled in
+        if (Object.values(row).some(v => v)) out.push(row);
+      });
+      return out;
+    };
+
+    seaman = {
+      rank: document.getElementById('sm-rank')?.value || '',
+      lastRank: sv('sm-lastRank'),
+      height: sv('sm-height'), weight: sv('sm-weight'), bmi: sv('sm-bmi'),
+      eyes: sv('sm-eyes'), hair: sv('sm-hair'), blood: sv('sm-blood'),
+      shoe: sv('sm-shoe'), coverall: sv('sm-coverall'), religion: sv('sm-religion'),
+      birthPlace: sv('sm-birthPlace'), govIds: sv('sm-govIds'), nok: sv('sm-nok'),
+      documents:  rows('#docEntries .exp-entry',  ['type','number','dateIssued','dateExpiry','placeIssued']),
+      certificates: rows('#certEntries .exp-entry', ['name','number','issuedBy','dateIssued','validUntil']),
+      vaccinations: rows('#vaxEntries .exp-entry', ['name','placeIssued','dateGiven','validUntil']),
+      seaService: rows('#seaEntries .exp-entry',  ['vessel','rank','vesselType','company','grt','kw','tradeArea','signOn','signOff'])
+    };
   }
 
   // References
@@ -1983,6 +2339,7 @@ function collectFormData() {
     eduLevel,
     personal: {
       firstName: document.getElementById('firstName').value.trim(),
+      middleName: document.getElementById('middleName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
       jobTitle: document.getElementById('jobTitle').value.trim(),
       nationality: document.getElementById('nationality').value.trim(),
@@ -2000,6 +2357,7 @@ function collectFormData() {
     aboutMe: document.getElementById('aboutMe')?.value.trim() || '',
     education: eduData,
     workExperience: workData,
+    seaman,
     skills,
     languages,
     references: refData,
@@ -2024,7 +2382,7 @@ function validate(data) {
   if (!data.personal.photo) return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
   if (!data.personal.firstName) return 'Please enter your first name.';
   if (!data.personal.lastName) return 'Please enter your last name.';
-  if (!data.personal.jobTitle) return 'Please enter the position you are applying for.';
+  if (data.eduLevel === 'seaman' && !data.seaman?.rank) return 'Please select the rank you are applying for.';
   if (!data.personal.phone) return 'Please enter your phone number.';
   if (!/^[0-9\+\-\s\(\)]{7,15}$/.test(data.personal.phone)) return 'Please enter a valid phone number (e.g. 09063964052).';
   if (!data.personal.email) return 'Please enter your email address.';
@@ -2215,7 +2573,7 @@ async function notifyAdminNewOrder(data) {
     const p = data.personal;
     const hasCL = !!data.coverLetter?.requested;
     const total = BASE_PRICE + (hasCL ? CL_PRICE : 0);
-    const name = `${p.firstName} ${p.lastName}`.trim();
+    const name = `${fullName(p)}`.trim();
     const eduMap = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' };
     const when = new Date().toLocaleString('en-PH', {
       timeZone: 'Asia/Manila', year: 'numeric', month: 'long',
@@ -2299,7 +2657,6 @@ async function notifyAdminNewOrder(data) {
       `Submitted: ${when}\n\n` +
       `Open the admin dashboard to process this order.`;
 
-    emailjs.init(EMAILJS_KEY);
     await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
       to_email:         ADMIN_EMAIL,
       to_name:          'Reymar Arroyo',
@@ -2327,7 +2684,7 @@ function resetForm() {
 // ─── TEMPLATE PREVIEW ────────────────────────────────────────────────────────
 const SAMPLE = {
   personal: {
-    firstName: 'Juan', lastName: 'dela Cruz',
+    firstName: 'Juan', middleName: 'Santos', lastName: 'dela Cruz',
     jobTitle: 'Customer Service Representative',
     phone: '09XX-XXX-XXXX', email: 'juan@email.com',
     address: 'Barangay San Antonio, Cebu City',
@@ -2365,6 +2722,8 @@ const TMPL_INFO = [
   {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac'},
   {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
   {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac'},
+  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
+  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
 ];
 
 let previewSelectedTmpl = 1;
@@ -2664,6 +3023,11 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===13) return T13(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===14) return T14(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===15) return T15(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===16) return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  // A seafarer record has no ordinary work history to show, so even a stale or
+  // absent template preference lands on the maritime layout.
+  if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
@@ -2713,7 +3077,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-area">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-head">Contact</div>
@@ -2777,7 +3141,7 @@ ${pb}
   <div class="header">
     <div class="photo-circle">${ph}</div>
     <div class="header-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -2850,7 +3214,7 @@ ${pb}
   <div class="top">
     <div class="photo-box">${ph}</div>
     <div class="top-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
   </div>
@@ -2918,7 +3282,7 @@ ${pb}
 <div class="page-wrap"><div class="page">
   <div class="L">
     <div class="photo-circle">${ph}</div>
-    <div class="l-name">${p.firstName} ${p.lastName}</div>
+    <div class="l-name">${fullName(p)}</div>
     <div class="l-title">${p.jobTitle||''}</div>
     <div class="l-div"></div>
     <div class="ls"><div class="ls-head">Contact</div>
@@ -2983,7 +3347,7 @@ ${pb}
 <div class="page-wrap"><div class="page">
   <div class="header">
     <div class="h-left">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
     <div class="h-photo">${ph}</div>
@@ -3057,7 +3421,7 @@ ${pb}
   <div class="L">
     <div class="photo-top"><div class="photo-circle">${ph}</div></div>
     <div class="name-area">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-head"><div class="ls-head-icon">📞</div>Contact</div>
@@ -3124,7 +3488,7 @@ ${pb}
   <div class="header">
     <div class="header-photo">${ph}</div>
     <div class="header-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <p>${p.jobTitle||''}</p>
     </div>
   </div>
@@ -3198,7 +3562,7 @@ ${pb}
   <div class="header">
     <div class="h-left">
       <div class="badge">Fresh Graduate</div>
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||'Job Applicant'}</div>
     </div>
     <div class="h-photo">${ph}</div>
@@ -3287,7 +3651,7 @@ ${pb}
   <div class="header">
     <div class="photo-wrap">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
       <div class="contacts">
         ${p.phone?`<span class="h-contact">📱 ${p.phone}</span>`:''}
@@ -3365,7 +3729,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-block">
-      <h1>${p.firstName}<br>${p.lastName}</h1>
+      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>
@@ -3432,7 +3796,7 @@ ${pb}
   <div class="header">
     <div class="photo-ring">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -3509,7 +3873,7 @@ ${pb}
   <div class="L">
     <div class="photo-top">
       <div class="photo-frame">${ph}</div>
-      <div class="name-l">${p.firstName} ${p.lastName}</div>
+      <div class="name-l">${fullName(p)}</div>
       <div class="ttl-l">${p.jobTitle||''}</div>
       <div class="divl"></div>
     </div>
@@ -3580,7 +3944,7 @@ ${pb}
   <div class="header">
     <div class="photo-circle">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
   </div>
@@ -3651,7 +4015,7 @@ ${pb}
   <div class="header">
     <div class="photo-sq">${ph}</div>
     <div class="h-text">
-      <h1>${p.firstName} ${p.lastName}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
       <div class="contacts">
         ${p.phone?`<span class="hc">📱 ${p.phone}</span>`:''}
@@ -3725,7 +4089,7 @@ ${pb}
   <div class="L">
     <div class="photo-area">
       <div class="photo-hex">${ph}</div>
-      <div class="p-name">${p.firstName} ${p.lastName}</div>
+      <div class="p-name">${fullName(p)}</div>
       <div class="p-ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>
@@ -3752,6 +4116,414 @@ ${pb}
   </div>
 </div></div></body></html>`;}
 
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 16 — Seafarer / Maritime
+// Deliberately unlike the other fifteen. Manning agencies screen hundreds of
+// these against a checklist: rank, valid documents, sea time, certificate
+// expiry. So this is a data sheet, not a designed CV — dense ruled tables,
+// everything on one page, expiry dates where a reviewer's eye lands. The one
+// styled element is the navy header block carrying the applicant's rank.
+// ══════════════════════════════════════════════════════════════════════════════
+function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
+  const m = s.seaman || {};
+  const docs  = (m.documents   || []).filter(d=>d.type||d.number);
+  const certs = (m.certificates|| []).filter(c=>c.name);
+  const vax   = (m.vaccinations|| []).filter(v=>v.name);
+  const sea   = (m.seaService  || []).filter(v=>v.vessel);
+
+  // Dates arrive as ISO from <input type=date>; agencies read DD-MMM-YYYY.
+  const d = v => {
+    if(!v) return '';
+    const t = new Date(v);
+    if(isNaN(t)) return v;
+    return String(t.getDate()).padStart(2,'0')+'-'+
+      ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]+
+      '-'+t.getFullYear();
+  };
+
+  // Certificates and documents lapse. Flagging what's expired or close to it is
+  // the single most useful thing this layout can do for the person reading it.
+  const expiryCell = v => {
+    if(!v) return '<td></td>';
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
+    const days=(t-Date.now())/864e5;
+    const cls = days<0 ? ' class="exp"' : days<90 ? ' class="soon"' : '';
+    return `<td${cls}>${d(v)}</td>`;
+  };
+
+  const row = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+${pc}
+<style>
+  body{font-family:'Inter',Arial,sans-serif;color:#14213d;}
+  /* The shared page CSS sets .page{display:flex} for the two-column designs.
+     This one stacks, so it has to opt out or the header becomes a sidebar. */
+  .page.pg{display:block;background:white;min-height:297mm;}
+  .hdr{background:#0b2545;color:white;padding:15px 18px;display:flex;gap:15px;align-items:center;
+       border-bottom:3px solid #ffd166;}
+  .hdr .ph{width:80px;height:96px;flex-shrink:0;border:2px solid #ffd166;background:rgba(255,255,255,.1);overflow:hidden;}
+  .hdr .who{flex:1;min-width:0;}
+  .hdr h1{font-size:23px;font-weight:900;letter-spacing:.4px;margin:0 0 5px;text-transform:uppercase;line-height:1.08;}
+  .rank{display:inline-block;background:#ffd166;color:#0b2545;font-size:11px;font-weight:900;
+        padding:3px 11px;text-transform:uppercase;letter-spacing:.8px;}
+  .hc{font-size:9px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6;}
+  .hc b{color:#ffd166;font-weight:700;}
+  .brand{text-align:right;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:1.6px;
+         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.7;}
+
+  .body{padding:13px 18px 16px;}
+  .sec{margin-bottom:11px;}
+  .sh{background:#0b2545;color:#ffd166;font-size:9px;font-weight:800;letter-spacing:1.6px;
+      text-transform:uppercase;padding:4px 9px;margin-bottom:0;display:flex;justify-content:space-between;}
+  .sh .cnt{color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;}
+
+  table.g{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto;}
+  table.g th,table.g td{border:1px solid #c3cddc;padding:3.5px 6px;text-align:left;vertical-align:top;}
+  table.g thead th{background:#0b2545;color:#ffd166;font-size:7.5px;font-weight:800;letter-spacing:.6px;
+                   text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
+  table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
+  table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
+  table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
+  table.g td.pri{font-weight:800;color:#0b2545;}
+
+  /* Two-column key/value grid used for personal particulars */
+  table.kv{width:100%;border-collapse:collapse;font-size:8.5px;}
+  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3.5px 7px;text-align:left;}
+  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:38%;white-space:nowrap;}
+  table.kv td{font-weight:700;color:#14213d;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 9px;}
+
+  .obj{font-size:9px;line-height:1.75;color:#2c3a52;padding:8px 11px;border:1px solid #c3cddc;border-top:none;
+       background:#fafbfe;text-align:justify;}
+  .none{font-size:8.5px;color:#96a0b2;font-style:italic;padding:6px 10px;border:1px solid #c3cddc;border-top:none;}
+  .sign{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;
+        font-size:8px;color:#4a5b75;line-height:1.6;}
+  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:215px;text-align:center;font-weight:900;
+           color:#0b2545;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;}
+  .cert-note{font-size:7px;color:#96a0b2;margin-top:4px;line-height:1.5;}
+  .skl{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;border:1px solid #c3cddc;border-top:none;}
+  .skl span{font-size:8px;font-weight:700;background:#eef2f8;color:#0b2545;padding:2.5px 8px;
+            border:1px solid #c3cddc;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+
+  <div class="hdr">
+    <div class="ph">${ph}</div>
+    <div class="who">
+      <h1>${fullName(p)}</h1>
+      ${m.rank?`<span class="rank">⚓ ${m.rank}</span>`:''}
+      <div class="hc">
+        ${p.address?p.address+'<br>':''}
+        ${p.phone?`<b>T</b> ${p.phone}`:''}${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
+        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+      </div>
+    </div>
+    <div class="brand">Seafarer<br>Résumé</div>
+  </div>
+
+  <div class="body">
+
+    ${s.profileSummary?`<div class="sec"><div class="sh"><span>Objective</span></div><div class="obj">${s.profileSummary}</div></div>`:''}
+
+    <div class="sec">
+      <div class="sh"><span>Personal Particulars</span></div>
+      <div class="split">
+        <table class="kv">
+          ${row('Surname',p.lastName)}
+          ${row('First Name',p.firstName)}
+          ${row('Middle Name',p.middleName)}
+          ${row('Date of Birth',d(p.dob))}
+          ${row('Place of Birth',m.birthPlace)}
+          ${row('Nationality',p.nationality)}
+          ${row('Civil Status',p.civilStatus)}
+          ${row('Gender',p.gender)}
+          ${row('Religion',m.religion)}
+        </table>
+        <table class="kv">
+          ${row('Height',m.height)}
+          ${row('Weight',m.weight)}
+          ${row('BMI',m.bmi)}
+          ${row('Colour of Eyes',m.eyes)}
+          ${row('Colour of Hair',m.hair)}
+          ${row('Blood Type',m.blood)}
+          ${row('Shoe Size',m.shoe)}
+          ${row('Coverall Size',m.coverall)}
+          ${row('Last Rank Held',m.lastRank)}
+        </table>
+      </div>
+      ${(m.nok||m.govIds)?`<table class="kv" style="margin-top:-1px;">
+        ${m.nok?`<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>`:''}
+        ${m.govIds?`<tr><th style="width:15.5%;">Government IDs</th><td>${m.govIds}</td></tr>`:''}
+      </table>`:''}
+    </div>
+
+    <div class="sec">
+      <div class="sh"><span>Travel Documents</span>${docs.length?`<span class="cnt">${docs.length} on file</span>`:''}</div>
+      ${docs.length?`<table class="g">
+        <thead><tr><th>Document</th><th>Number</th><th>Date Issued</th><th>Date Expiry</th><th>Place Issued</th></tr></thead>
+        <tbody>${docs.map(x=>`<tr>
+          <td style="font-weight:700;">${x.type||''}</td><td>${x.number||''}</td>
+          <td>${d(x.dateIssued)}</td>${expiryCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
+        </tr>`).join('')}</tbody></table>`
+      :`<div class="none">No travel documents on record.</div>`}
+    </div>
+
+    <div class="sec">
+      <div class="sh"><span>Trainings &amp; Certificates</span>${certs.length?`<span class="cnt">${certs.length} on file</span>`:''}</div>
+      ${certs.length?`<table class="g">
+        <thead><tr><th>Course / Certificate</th><th>Number</th><th>Issued By</th><th>Date Issued</th><th>Valid Until</th></tr></thead>
+        <tbody>${certs.map(c=>`<tr>
+          <td style="font-weight:700;">${c.name||''}</td><td>${c.number||''}</td><td>${c.issuedBy||''}</td>
+          <td>${d(c.dateIssued)}</td>${expiryCell(c.validUntil)}
+        </tr>`).join('')}</tbody></table>
+        <div class="cert-note">Cells shaded red have lapsed; amber expires within 90 days.</div>`
+      :`<div class="none">No certificates on record.</div>`}
+    </div>
+
+    ${vax.length?`<div class="sec">
+      <div class="sh"><span>Vaccination</span><span class="cnt">${vax.length} on file</span></div>
+      <table class="g">
+        <thead><tr><th>Vaccine</th><th>Date Given</th><th>Valid Until</th><th>Place Issued</th></tr></thead>
+        <tbody>${vax.map(v=>`<tr>
+          <td class="pri">${v.name||''}</td><td>${d(v.dateGiven)}</td>${expiryCell(v.validUntil)}<td>${v.placeIssued||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    <div class="sec">
+      <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
+      ${sea.length?`<table class="g">
+        <thead><tr><th>Vessel</th><th>Rank</th><th>Type</th><th>GRT</th><th>KW/HP</th><th>Company</th><th>Sign On</th><th>Sign Off</th><th>Trade Area</th></tr></thead>
+        <tbody>${sea.map(v=>`<tr>
+          <td style="font-weight:700;">${v.vessel||''}</td><td>${v.rank||''}</td><td>${v.vesselType||''}</td>
+          <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${v.company||''}</td>
+          <td>${d(v.signOn)}</td><td>${d(v.signOff)}</td><td>${v.tradeArea||''}</td>
+        </tr>`).join('')}</tbody></table>`
+      :`<div class="none">No sea service yet — first-time applicant.</div>`}
+    </div>
+
+    ${edu.length?`<div class="sec">
+      <div class="sh"><span>Educational Background</span></div>
+      <table class="g">
+        <thead><tr><th>School / Institution</th><th>Course / Level</th><th>Period</th><th>Honours</th></tr></thead>
+        <tbody>${edu.map(e=>`<tr>
+          <td style="font-weight:700;">${e.school||''}</td><td>${e.degree||''}</td>
+          <td>${[e.yearStart,e.yearGrad].filter(Boolean).join(' – ')}</td><td>${e.honors||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    ${(s.skills?.length||s.languages?.length)?`<div class="sec">
+      <div class="sh"><span>Skills &amp; Languages</span></div>
+      <div class="skl">
+        ${(s.skills||[]).map(k=>`<span>${k}</span>`).join('')}
+        ${(s.languages||[]).map(l=>`<span style="background:#0b2545;color:#ffd166;border-color:#0b2545;">${l}</span>`).join('')}
+      </div>
+    </div>`:''}
+
+    ${refs.length?`<div class="sec">
+      <div class="sh"><span>Character References</span></div>
+      <table class="g">
+        <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact</th></tr></thead>
+        <tbody>${refs.map(r=>`<tr>
+          <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
+          <td>${r.company||''}</td><td>${r.contact||''}</td>
+        </tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    <div class="sign">
+      <div>I certify that the information given above is true and correct<br>to the best of my knowledge and belief.</div>
+      <div class="sigline">${fullName(p)}<br>
+        <span style="font-weight:600;font-size:7.5px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
+      </div>
+    </div>
+
+  </div>
+</div></div></body></html>`;}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 17 — Seafarer (Simple / Agency Form)
+// The plain blank-form layout Philippine manning agencies hand out: white paper,
+// pale blue band across each section, everything in ruled boxes. Deliberately
+// undesigned — it's meant to look like the agency's own form, which is exactly
+// why applicants ask for it. T16 is the polished alternative.
+// ══════════════════════════════════════════════════════════════════════════════
+function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
+  const m = s.seaman || {};
+  const docs  = (m.documents    || []).filter(d=>d.type||d.number);
+  const certs = (m.certificates || []).filter(c=>c.name);
+  const vax   = (m.vaccinations || []).filter(v=>v.name);
+  const sea   = (m.seaService   || []).filter(v=>v.vessel);
+
+  const d = v => {
+    if(!v) return '';
+    const t = new Date(v);
+    if(isNaN(t)) return v;
+    return String(t.getDate()).padStart(2,'0')+'-'+
+      ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+
+      '-'+t.getFullYear();
+  };
+  const ex = v => {
+    if(!v) return '<td></td>';
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
+    const days=(t-Date.now())/864e5;
+    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${d(v)}</td>`;
+  };
+
+  // Blank rows keep the ruled-form look when a section is short — an agency
+  // form has empty lines to write on, and a half-filled table reads as unfinished.
+  const pad = (rows, want, cols) => {
+    let out = rows;
+    for(let i=rows.length; i<want; i++) out += '<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>';
+    return out;
+  };
+
+  // Personal info is a fixed two-up grid of label/value pairs, left and right.
+  const L = [['Surname',p.lastName],['First Name',p.firstName],['Middle Name',p.middleName],
+             ['Date of Birth',d(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
+             ['Civil Status',p.civilStatus],['Religion',m.religion]];
+  const R = [['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
+             ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
+             ['Shoe Size',m.shoe],['Coverall Size',m.coverall]];
+  const pairs = L.map((l,i)=>`<tr>
+      <th>${l[0]}</th><td>${l[1]||''}</td>
+      <th>${R[i]?R[i][0]:''}</th><td>${R[i]?(R[i][1]||''):''}</td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+${pc}
+<style>
+  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;}
+  .page.pg{display:block;background:white;min-height:297mm;}
+
+  .top{display:flex;gap:14px;align-items:flex-start;padding:16px 18px 12px;}
+  .top .ph{width:78px;height:94px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
+  .top h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;
+          color:#111827;line-height:1.15;}
+  .apply{font-size:9.5px;color:#6b7280;margin-bottom:7px;}
+  .apply b{color:#1f2937;font-weight:700;}
+  .ct{font-size:8.5px;color:#374151;line-height:1.75;}
+  .ct span{display:block;}
+
+  .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
+        font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+        color:#1f3864;padding:3px 0;}
+  .obj{font-size:8.5px;line-height:1.7;color:#374151;padding:0 18px 10px;text-align:justify;}
+  .wrap{padding:0 18px;}
+  .wrap.last{padding-bottom:16px;}
+
+  table.f{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.8px 5px;text-align:left;vertical-align:top;}
+  table.f thead th{background:#e8eef7;font-weight:800;font-size:7.5px;letter-spacing:.4px;
+                   text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
+  table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
+  table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
+
+  /* Personal-information grid: label cells shaded, value cells open */
+  table.p{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.8px 6px;text-align:left;}
+  table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
+  table.p td{width:34%;font-weight:600;}
+
+  .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
+  .cert{font-size:7px;color:#9aa3b2;margin:-5px 0 9px;}
+  .foot{padding:14px 18px 0;font-size:7.5px;color:#4b5563;line-height:1.7;}
+  .sig{margin-top:26px;text-align:right;padding-right:18px;}
+  .sig .nm{font-weight:800;font-size:9px;color:#111827;text-transform:uppercase;
+           border-top:1px solid #6b7280;display:inline-block;padding:3px 34px 0;}
+  .sig .rl{font-size:7.5px;color:#6b7280;margin-top:2px;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+
+  <div class="top">
+    <div class="ph">${ph}</div>
+    <div style="flex:1;min-width:0;">
+      <h1>${fullName(p)}</h1>
+      <div class="apply">Applying for <b>${m.rank||p.jobTitle||'—'}</b></div>
+      <div class="ct">
+        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
+        ${p.email?`<span>✉ ${p.email}</span>`:''}
+        ${p.address?`<span>📍 ${p.address}</span>`:''}
+      </div>
+    </div>
+  </div>
+
+  ${s.profileSummary?`<div class="band" style="margin:0 18px;">Objective</div>
+    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:7px 9px;margin-bottom:9px;">
+      <div style="font-size:8.5px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
+    </div></div>`:''}
+
+  <div class="wrap">
+    <div class="band">Personal Information</div>
+    <table class="p">${pairs}</table>
+
+    <div class="band">Educational Background</div>
+    <table class="f">
+      <thead><tr><th style="width:18%;">Level</th><th>Name of School</th><th style="width:18%;">Date Graduated</th><th style="width:26%;">Course</th></tr></thead>
+      <tbody>${pad(edu.map(e=>`<tr>
+        <td class="lbl">${e.degree&&/college|tertiary|bachelor|bs |ba /i.test(e.degree)?'Tertiary':''}</td>
+        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 3, 4)}
+      </tbody>
+    </table>
+
+    <div class="band">Travel Documents</div>
+    <table class="f">
+      <thead><tr><th style="width:26%;">Document</th><th>Number</th><th style="width:17%;">Date Issued</th><th style="width:17%;">Expiry Date</th><th style="width:18%;">Place Issued</th></tr></thead>
+      <tbody>${pad(docs.map(x=>`<tr>
+        <td class="lbl">${x.type||''}</td><td>${x.number||''}</td>
+        <td>${d(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
+      </tbody>
+    </table>
+
+    <div class="band">Vaccination</div>
+    <table class="f">
+      <thead><tr><th style="width:28%;">Type</th><th style="width:20%;">Date Vaccinated</th><th style="width:20%;">Valid Until</th><th>Place Issued</th></tr></thead>
+      <tbody>${pad(vax.map(v=>`<tr>
+        <td class="lbl">${v.name||''}</td><td>${d(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
+      </tbody>
+    </table>
+
+    <div class="band">Certificates &amp; Trainings</div>
+    <table class="f">
+      <thead><tr><th>Name</th><th style="width:18%;">Number</th><th style="width:18%;">Date Issued</th><th style="width:18%;">Expiry Date</th></tr></thead>
+      <tbody>${pad(certs.map(c=>`<tr>
+        <td class="lbl" style="font-weight:600;color:#1f2937;background:white;">${c.name||''}</td>
+        <td>${c.number||''}</td><td>${d(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
+      </tbody>
+    </table>
+    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · shaded amber expires within 90 days.</div>`:''}
+
+    <div class="band">Sea Service</div>
+    <table class="f">
+      <thead><tr><th>Rank</th><th>Name of Vessel</th><th>Type of Vessel</th><th>GRT</th><th>KW</th><th>Joined</th><th>Signed Off</th><th>Trade Area</th></tr></thead>
+      <tbody>${pad(sea.map(v=>`<tr>
+        <td>${v.rank||''}</td><td style="font-weight:700;">${v.vessel||''}</td><td>${v.vesselType||''}</td>
+        <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${d(v.signOn)}</td><td>${d(v.signOff)}</td>
+        <td>${v.tradeArea||''}</td></tr>`).join(''), 4, 8)}
+      </tbody>
+    </table>
+
+    <div class="band">Character Reference</div>
+    <table class="f">
+      <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact No. / Email</th></tr></thead>
+      <tbody>${pad(refs.map(r=>`<tr>
+        <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
+        <td>${r.company||''}</td><td>${r.contact||''}</td></tr>`).join(''), 2, 4)}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="foot">I hereby certify that the information provided in this resume is true and correct
+    to the best of my knowledge and belief.</div>
+  <div class="sig">
+    <div class="nm">${fullName(p)}</div>
+    <div class="rl">Applicant</div>
+  </div>
+
+</div></div></body></html>`;}
+
+
 // ─── NOTIF ────────────────────────────────────────────────────────────────────
 function showNotif(msg, isError = false) {
   const notif = document.getElementById('notif');
@@ -3760,6 +4532,32 @@ function showNotif(msg, isError = false) {
   notif.className = 'notif' + (isError ? ' error' : '') + ' show';
   setTimeout(() => { notif.className = 'notif' + (isError ? ' error' : ''); }, 4000);
 }
+</script>
+
+<!-- Autocomplete sources for the seafarer fields. Datalists suggest without
+     restricting, so an unusual certificate or vessel type can still be typed. -->
+<datalist id="docTypeList">
+  <option>Passport</option><option>Seaman's Book (SIRB)</option><option>US Visa (C1/D)</option>
+  <option>Schengen Visa</option><option>Yellow Fever Card</option><option>Seafarer's Registration Certificate (SRC)</option>
+  <option>Seafarer's Identity Document (SID)</option><option>Panama Licence</option><option>Liberian Licence</option>
+  <option>Marshall Islands Licence</option>
+</datalist>
+<datalist id="vesselTypeList">
+  <option>Bulk Carrier</option><option>Container</option><option>General Cargo</option><option>Oil Tanker</option>
+  <option>Chemical Tanker</option><option>Product Tanker</option><option>LPG Tanker</option><option>LNG Tanker</option>
+  <option>Car Carrier / PCTC</option><option>Passenger / Cruise</option><option>Reefer</option><option>Ro-Ro</option>
+  <option>Tug Boat</option><option>Offshore Supply Vessel</option><option>Heavy Lift</option><option>Livestock Carrier</option>
+  <option>Dredger</option><option>Fishing Vessel</option>
+</datalist>
+<datalist id="certNameList"></datalist>
+<datalist id="vaxList"></datalist>
+<script>
+// Fill the certificate datalist from the same list the entry builder uses, so
+// the two can never drift apart.
+document.getElementById('certNameList').innerHTML =
+  CERT_PRESETS.map(c => `<option>${c}</option>`).join('');
+document.getElementById('vaxList').innerHTML =
+  VAX_PRESETS.map(v => `<option>${v}</option>`).join('');
 </script>
 </body>
 </html>
