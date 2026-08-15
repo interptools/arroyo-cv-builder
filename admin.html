@@ -301,8 +301,8 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div class="stats-row" style="grid-template-columns:repeat(4,1fr);">
         <div class="stat-card"><div class="sc-label">Total Orders</div><div class="sc-value" id="statTotal">—</div><div class="sc-sub" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;"><span style="color:#1d4ed8" id="statNew">—</span> new &nbsp;·&nbsp; <span style="color:#92400e" id="statProc">—</span> in progress</div></div>
         <div class="stat-card"><div class="sc-label">Done / Delivered</div><div class="sc-value" id="statDone">—</div><div class="sc-sub"><span style="color:#166534" id="statDelivered">—</span> delivered &nbsp;·&nbsp; <span style="color:#065f46" id="statDoneOnly">—</span> done</div></div>
-        <div class="stat-card revenue"><div class="sc-label">Total Revenue</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span id="statCLCount">0</span> cover letter orders · <span id="statCLEach"></span> each</div></div>
-        <div class="stat-card"><div class="sc-label">Cover Letters</div><div class="sc-value" id="statCLOnly">—</div><div class="sc-sub">Add-on requested</div></div>
+        <div class="stat-card revenue"><div class="sc-label">Collected</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span style="color:#b45309;font-weight:700" id="statOutstanding">₱0</span> still owed from <span id="statUnpaidCount">0</span> order(s)</div></div>
+        <div class="stat-card"><div class="sc-label">Cover Letters</div><div class="sc-value" id="statCLOnly">—</div><div class="sc-sub">Add-on requested · <span id="statCLEach">₱75</span> each</div></div>
       </div>
       <div class="table-card">
         <div class="table-header"><h3>Recent Submissions</h3></div>
@@ -327,6 +327,8 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="Delivered" onclick="setFilter('Delivered',this)">✅ Delivered <span class="fcount" id="fc_Delivered">0</span></button>
         <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
         <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
+        <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
+        <button class="filter-btn" data-filter="paid" onclick="setFilter('paid',this)">✅ Paid <span class="fcount" id="fc_paid">0</span></button>
         <div style="flex:1;min-width:10px;"></div>
         <button onclick="exportCSV()" title="Download a spreadsheet backup of all submissions"
           style="padding:7px 16px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
@@ -351,6 +353,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
             <th class="sortable" onclick="setSort('date')"   data-key="date">Waiting<span class="sarrow">▼</span></th>
             <th class="sortable" onclick="setSort('status')" data-key="status">Status<span class="sarrow">▼</span></th>
             <th class="sortable" onclick="setSort('total')"  data-key="total">Order<span class="sarrow">▼</span></th>
+            <th class="sortable" onclick="setSort('paid')"   data-key="paid">Payment<span class="sarrow">▼</span></th>
             <th>Actions</th>
           </tr></thead>
           <tbody id="submissionsTableBody"></tbody>
@@ -830,8 +833,14 @@ async function getFullRecord(){
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
   const clOrders=submissions.filter(s=>s.coverLetter?.requested);
-  // Revenue: only count Done + Delivered as "earned"
-  const revenue=submissions.reduce((t,s)=>t+orderTotal(s),0);
+  // Collected is money actually received. Outstanding is what has been promised
+  // but not yet paid — the old card summed every order regardless, which
+  // flattered the figure and told you nothing actionable.
+  const paidOrders   = submissions.filter(isPaid);
+  const unpaidOrders = submissions.filter(s=>!isPaid(s));
+  const revenue      = paidOrders.reduce((t,s)=>t+paidAmount(s),0);
+  const outstanding  = unpaidOrders.reduce((t,s)=>t+orderTotal(s),0)
+                     + paidOrders.reduce((t,s)=>t+Math.max(0,orderTotal(s)-paidAmount(s)),0);
   const doneCount=submissions.filter(s=>s.status==='Done').length;
   const deliveredCount=submissions.filter(s=>s.status==='Delivered').length;
   document.getElementById('statTotal').textContent=submissions.length;
@@ -841,9 +850,12 @@ function renderDashboard(){
   document.getElementById('statDoneOnly').textContent=doneCount;
   document.getElementById('statDelivered').textContent=deliveredCount;
   document.getElementById('statRevenue').textContent='₱'+revenue.toLocaleString();
-  document.getElementById('statCLCount').textContent=clOrders.length;
+  const so=document.getElementById('statOutstanding'); if(so) so.textContent='₱'+outstanding.toLocaleString();
+  const su=document.getElementById('statUnpaidCount'); if(su) su.textContent=unpaidOrders.length;
+
   document.getElementById('statCLOnly').textContent=clOrders.length;
-  const clEach=document.getElementById('statCLEach'); if(clEach) clEach.textContent=peso(CL_PRICE);
+  const ce=document.getElementById('statCLEach'); if(ce) ce.textContent=peso(CL_PRICE);
+
   const recent=[...submissions].reverse().slice(0,5);
   const body=document.getElementById('recentTableBody');
   if(!recent.length){body.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>No submissions yet.</p></div>';return;}
@@ -929,12 +941,14 @@ function renderSubmissions(){
     f==='all' ? true
     : f==='coverLetter' ? !!s.coverLetter?.requested
     : f==='seaman' ? s.eduLevel==='seaman'
+    : f==='unpaid' ? !isPaid(s)
+    : f==='paid'   ? isPaid(s)
     : s.status===f;
 
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','unpaid','paid'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -951,6 +965,7 @@ function renderSubmissions(){
       case 'date':   return new Date(s.submittedAt).getTime()||0;
       case 'status': return rank[s.status] ?? 0;
       case 'total':  return orderTotal(s);
+      case 'paid':   return isPaid(s) ? 1 : 0;
       default:       return submissions.indexOf(s);
     }
   };
@@ -977,7 +992,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -1024,6 +1039,13 @@ function renderSubmissions(){
         <div style="margin-top:4px;"><span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span></div>
       </td>
 
+      <td data-label="Payment">
+        ${isPaid(s)
+          ? `<button onclick="togglePaid(${ri})" title="Paid ${emailStamp(s.payment.paidAt)}${s.payment.reference?' · ref '+s.payment.reference:''} — click to undo" style="background:#d1fae5;color:#065f46;border:1.5px solid #6ee7b7;border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:inherit;">✓ ${peso(paidAmount(s))}</button>
+             ${paidAmount(s)<orderTotal(s)?`<div style="font-size:9.5px;color:#b45309;font-weight:700;margin-top:3px;">${peso(orderTotal(s)-paidAmount(s))} short</div>`:''}`
+          : `<button onclick="togglePaid(${ri})" title="Record a GCash payment for this order" style="background:#fff;color:#92400e;border:1.5px dashed #fbbf24;border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:800;cursor:pointer;font-family:inherit;">Mark paid</button>`}
+      </td>
+
       <td data-label="Actions">
         <div class="sub-actions">
           <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
@@ -1052,7 +1074,7 @@ function exportCSV(){
     return '"' + s + '"';
   };
 
-  const headers = ['#','Submitted (PHT)','Status','First Name','Middle Name','Last Name','Job Title','Email','Phone',
+  const headers = ['#','Reference','Submitted (PHT)','Status','Paid?','Amount Paid','Paid On','GCash Ref','First Name','Middle Name','Last Name','Job Title','Email','Phone',
     'Address','Date of Birth','Civil Status','Gender','Height','Weight','Age','Nationality','Facebook/Social','LinkedIn',
     'Education Level','Education','Work Experience','Skills','Languages','References','Hobbies','Awards',
     'About / Notes','Profile Summary','Template','Special Instructions','Cover Letter?','CL Position',
@@ -1107,7 +1129,10 @@ function exportCSV(){
     }
 
     return [
-      i+1, submitted, s.status||'', p.firstName||'', p.middleName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
+      i+1, refNo(s), submitted, s.status||'',
+      isPaid(s)?'YES':'No', isPaid(s)?paidAmount(s):'', isPaid(s)?(s.payment.paidAt||''):'',
+      isPaid(s)?(s.payment.reference||''):'',
+      p.firstName||'', p.middleName||'', p.lastName||'', p.jobTitle||'', p.email||'', p.phone||'',
       p.address||'', p.dob||'', p.civilStatus||'', p.gender||'', p.height||'', p.weight||'', p.age||'', p.nationality||'', p.social||'', p.linkedin||'',
       eduMap[s.eduLevel]||s.eduLevel||'', eduStr, workStr,
       (s.skills||[]).join(', '), (s.languages||[]).join(', '), refStr,
@@ -1161,6 +1186,7 @@ async function cycleStatus(idx){
     const nm=fullName(submissions[idx].personal);
     if(!confirm(
       `Mark ${nm}'s order as Delivered?\n\n`+
+      (isPaid(submissions[idx]) ? '' : `⚠ THIS ORDER IS NOT MARKED PAID (${peso(orderTotal(submissions[idx]))} due)\n\n`)+
       `• The status locks — no more changes without using Reopen\n`+
       `• No email is sent\n`+
       (submissions[idx].personal?.photo
@@ -1688,6 +1714,32 @@ function viewSubmission(idx){
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
+  // ── Payment panel ──────────────────────────────────────────────────────────
+  const due = orderTotal(s);
+  html += `<div class="info-group"><h4>💰 Payment</h4>
+    <div style="background:${isPaid(s)?'#f0fdf4':'#fffbeb'};border:1.5px solid ${isPaid(s)?'#86efac':'#fde68a'};border-radius:10px;padding:14px 16px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:22px;">${isPaid(s)?'✅':'⏳'}</div>
+        <div style="flex:1;min-width:150px;">
+          <div style="font-size:14px;font-weight:800;color:${isPaid(s)?'#065f46':'#92400e'};">
+            ${isPaid(s)?`Paid ${peso(paidAmount(s))}`:`Awaiting ${peso(due)}`}
+          </div>
+          <div style="font-size:11px;color:var(--gray);margin-top:2px;">
+            ${isPaid(s)
+              ? `Recorded ${emailStamp(s.payment.paidAt)}${s.payment.reference?` · GCash ref ${s.payment.reference}`:''}`
+              : `Order total ${peso(due)} — not yet received`}
+          </div>
+        </div>
+        <button onclick="togglePaid(${si})" style="padding:8px 15px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+          ${isPaid(s)?'background:#fff;color:#92400e;border:1.5px solid #fbbf24;':'background:#10b981;color:white;border:none;'}">
+          ${isPaid(s)?'Undo':'💰 Record payment'}
+        </button>
+      </div>
+      ${isPaid(s)&&paidAmount(s)<due?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #86efac;font-size:12px;color:#b45309;font-weight:700;">
+        ⚠ Short by ${peso(due-paidAmount(s))} — ${peso(paidAmount(s))} received against ${peso(due)} due.</div>`:''}
+    </div>
+  </div>`;
+
   // ── Notify Customer panel — one email only, sent at Done ───────────────────
   const readyTs = emailSentAt(s,'ready');
 
@@ -4473,6 +4525,78 @@ ${pc}
 
 
 
+// Reference shown to customers. Records created before reference IDs existed
+// fall back to the submission date rather than printing "undefined".
+function refNo(s){
+  if(s?.id) return s.id;
+  const t = new Date(s?.submittedAt);
+  if(isNaN(t)) return '—';
+  try{ return 'Order of ' + t.toLocaleDateString('en-PH',
+    {timeZone:'Asia/Manila', day:'numeric', month:'short', year:'numeric'}); }
+  catch(e){ return '—'; }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PAYMENT TRACKING
+// Whether money actually arrived is separate from where the CV is in the
+// pipeline — an order can be Delivered but unpaid, or paid before it's started.
+// Keeping the two independent is the whole point.
+// ══════════════════════════════════════════════════════════════════════════════
+function isPaid(s){ return !!s?.payment?.paid; }
+function paidAmount(s){
+  const a = s?.payment?.amount;
+  return (typeof a === 'number' && !isNaN(a)) ? a : orderTotal(s);
+}
+
+async function togglePaid(idx){
+  const s = submissions[idx];
+  if(!s) return;
+  const nm = fullName(s.personal);
+  const due = orderTotal(s);
+
+  if(isPaid(s)){
+    if(!confirm(`Mark ${nm}'s order as UNPAID again?\n\nUse this only if you recorded it by mistake.`)) return;
+    s.payment = { paid:false };
+  } else {
+    // Amount is asked for rather than assumed: partial payments and the odd
+    // discount happen, and a total that silently disagrees with GCash is worse
+    // than no total at all.
+    const amtRaw = prompt(
+      `Record payment from ${nm}\n\nAmount received in pesos (order total is ${peso(due)}):`,
+      String(due)
+    );
+    if(amtRaw === null) return;
+    const amt = parseFloat(String(amtRaw).replace(/[^\d.]/g,''));
+    if(isNaN(amt) || amt <= 0){ showNotif('That is not a valid amount — nothing recorded.', true); return; }
+
+    const ref = prompt('GCash reference number (optional — press OK to skip):', '') || '';
+    s.payment = {
+      paid: true,
+      amount: amt,
+      reference: ref.trim(),
+      paidAt: new Date().toISOString(),
+      method: 'GCash'
+    };
+    if(amt < due) showNotif(`Recorded ${peso(amt)} — that is ${peso(due-amt)} short of the ${peso(due)} due.`, true);
+  }
+
+  try{
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    renderSubmissions(); renderDashboard();
+    if(currentSubmission === idx) viewSubmission(idx);
+    if(isPaid(s)) showNotif(`✅ ${peso(paidAmount(s))} recorded from ${nm}`);
+    else showNotif(`Marked unpaid — ${nm}`);
+  }catch(e){
+    console.error('togglePaid save failed:', e);
+    showNotif('Could not save. Check your connection and try again.', true);
+  }
+}
+
 // ── EMAIL CUSTOMER ────────────────────────────────────────────────────────────
 
 // The GCash panel shared by both customer emails. The number is rendered as
@@ -4530,7 +4654,7 @@ async function sendDoneEmail(idx){
       '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:8px;padding:16px 20px;margin-bottom:20px;">'+
         '<div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#6b7280;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;">📋 Order Summary</div>'+
         '<table style="width:100%;font-size:13px;border-collapse:collapse;">'+
-          '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Reference No.</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+s.id+'</td></tr>'+
+          '<tr><td style="padding:5px 0;color:#6b7280;width:140px;">Reference No.</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+refNo(s)+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Name</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+fullName(p)+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Service</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+docLabel+'</td></tr>'+
           '<tr><td style="padding:5px 0;color:#6b7280;">Amount</td><td style="padding:5px 0;font-weight:700;color:#1a2744;">'+total+'</td></tr>'+
@@ -4587,7 +4711,7 @@ async function sendDoneEmail(idx){
     'Dear '+p.firstName+',\n\n'+
     'Great news! Your professional '+docLabel+' is now complete and ready for delivery.\n\n'+
     'ORDER SUMMARY\n'+
-    'Reference No.: '+s.id+'\n'+
+    'Reference No.: '+refNo(s)+'\n'+
     'Name: '+fullName(p)+'\n'+
     'Service: '+docLabel+'\n'+
     'Amount: '+total+'\n'+
