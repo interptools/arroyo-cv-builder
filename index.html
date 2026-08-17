@@ -1942,6 +1942,10 @@
           <span style="color:#6b7280">Resignation Letter Add-on</span>
           <span id="sum-rl-price" style="font-weight:600;color:#1a2744">₱50</span>
         </div>
+        <div id="bundle-summary-row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#10b981;font-weight:600" id="bundle-label">Package discount</span>
+          <span id="sum-bundle-price" style="font-weight:700;color:#10b981">−₱0</span>
+        </div>
         <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
           <span style="font-weight:700;color:#1a2744">Total</span>
           <span id="confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱50</span>
@@ -2030,7 +2034,8 @@ const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0
 let BASE_PRICE = 50;   // CV / Resume
 let CL_PRICE   = 75;   // Cover Letter add-on
 let SALE = null;       // { label, endsAt } when a sale is running
-let LIST_PRICES = { base: 50, cl: 75, rl: 50 };   // pre-sale prices, for strikethroughs
+let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
+let BUNDLES = {};      // fixed package prices that override the sum   // pre-sale prices, for strikethroughs
 const peso = n => '₱' + n.toLocaleString();
 
 // Assembles the display name for CV templates. Middle name is optional, so this
@@ -2288,10 +2293,37 @@ function applyPricing() {
 
 // One place that knows what a CV order costs, so the toggles, the confirmation
 // summary and the admin alert can never disagree.
-function cvOrderTotal(){
+function cvComboKey(){
+  if(coverLetterSelected && resignAddonSelected) return 'cvclrl';
+  if(coverLetterSelected) return 'cvcl';
+  if(resignAddonSelected) return 'cvrl';
+  return null;
+}
+
+// What the items add up to individually, before any package price.
+function cvItemsSum(){
   return BASE_PRICE
        + (coverLetterSelected  ? CL_PRICE          : 0)
        + (resignAddonSelected  ? RESIGNATION_PRICE : 0);
+}
+
+// A package price replaces the sum outright for that exact combination.
+function cvBundlePrice(){
+  const key = cvComboKey();
+  const b = key && BUNDLES ? BUNDLES[key] : null;
+  return (typeof b === 'number' && !isNaN(b) && b >= 0) ? b : null;
+}
+
+function cvOrderTotal(){
+  const b = cvBundlePrice();
+  return b !== null ? b : cvItemsSum();
+}
+
+// Positive when a package saves the customer money — shown as its own line so
+// the summary still adds up on screen.
+function cvBundleSaving(){
+  const b = cvBundlePrice();
+  return b === null ? 0 : Math.max(0, cvItemsSum() - b);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2747,17 +2779,30 @@ function applyPricingRecord(pr){
     cl:   num(pr.cl,   75),
     rl:   num(pr.rl,   50)
   };
+  // Package prices override the sum for that exact combination. A sale can set
+  // its own packages; anything it leaves blank falls back to the regular one.
+  const pick = (a, b) => (typeof a === 'number' && !isNaN(a) && a >= 0) ? a
+                       : (typeof b === 'number' && !isNaN(b) && b >= 0) ? b : null;
+  const listB = pr.bundles || {};
+
   if(saleIsLive(pr)){
     const s = pr.sale;
     BASE_PRICE        = num(s.base, LIST_PRICES.base);
     CL_PRICE          = num(s.cl,   LIST_PRICES.cl);
     RESIGNATION_PRICE = num(s.rl,   LIST_PRICES.rl);
     SALE = { label: s.label || 'Sale', endsAt: s.endsAt || '' };
+    const saleB = s.bundles || {};
+    BUNDLES = { cvcl:   pick(saleB.cvcl,   listB.cvcl),
+                cvrl:   pick(saleB.cvrl,   listB.cvrl),
+                cvclrl: pick(saleB.cvclrl, listB.cvclrl) };
   } else {
     BASE_PRICE        = LIST_PRICES.base;
     CL_PRICE          = LIST_PRICES.cl;
     RESIGNATION_PRICE = LIST_PRICES.rl;
     SALE = null;
+    BUNDLES = { cvcl:   pick(listB.cvcl,   null),
+                cvrl:   pick(listB.cvrl,   null),
+                cvclrl: pick(listB.cvclrl, null) };
   }
 }
 
@@ -4195,7 +4240,12 @@ function collectFormData() {
     // so the total the customer actually agreed to is frozen here.
     quotedTotal: cvOrderTotal(),
     pricing: { base: BASE_PRICE, cl: CL_PRICE, rl: RESIGNATION_PRICE,
-               sale: SALE ? SALE.label : '' },
+               sale: SALE ? SALE.label : '',
+               // Which package applied, and what it saved — so months later you
+               // can tell a package order from a plain one in the CSV.
+               bundle: cvBundlePrice() !== null ? cvComboKey() : '',
+               bundleSaving: cvBundleSaving(),
+               itemsSum: cvItemsSum() },
     seaman,
     skills,
     languages,
@@ -4336,6 +4386,14 @@ function updateConfirmPage() {
   var amountEl = document.getElementById('confirm-gcash-amount');
   if (clRow) clRow.style.display = coverLetterSelected ? 'flex' : 'none';
   if (rlRow) rlRow.style.display = resignAddonSelected ? 'flex' : 'none';
+  // Package discount gets its own line so the figures still add up on screen.
+  const saving = cvBundleSaving();
+  const bRow = document.getElementById('bundle-summary-row');
+  if (bRow) {
+    bRow.style.display = saving > 0 ? 'flex' : 'none';
+    const amt = document.getElementById('sum-bundle-price');
+    if (amt) amt.textContent = '−' + peso(saving);
+  }
   if (totalEl) totalEl.textContent = peso(total);
   if (amountEl) amountEl.textContent = '— ' + peso(total);
 }

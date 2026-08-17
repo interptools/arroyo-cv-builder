@@ -383,6 +383,17 @@ tr:hover td{background:rgba(247,248,252,.8);}
       </div>
 
       <div class="card" style="max-width:640px;">
+        <h3>📦 Package Prices</h3>
+        <p>Set one price for a whole combination. Leave blank and the items simply add up.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">
+          <div><label class="field-label">CV + Cover Letter</label><input type="number" min="0" id="pr-b-cvcl" class="field-input" placeholder="adds up"></div>
+          <div><label class="field-label">CV + Resignation</label><input type="number" min="0" id="pr-b-cvrl" class="field-input" placeholder="adds up"></div>
+          <div><label class="field-label">All three</label><input type="number" min="0" id="pr-b-cvclrl" class="field-input" placeholder="adds up"></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--gray);margin-top:8px;line-height:1.6;">Customers see the saving as a "Package discount" line on their order summary.</p>
+      </div>
+
+      <div class="card" style="max-width:640px;">
         <h3>🔥 Sale</h3>
         <p>Temporarily override the prices above. Leave a sale price blank to keep the regular price for that item.</p>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;margin:14px 0;">
@@ -396,7 +407,14 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <div><label class="field-label">Cover Letter sale</label><input type="number" min="0" id="pr-sale-cl" class="field-input" placeholder="regular"></div>
           <div><label class="field-label">Resignation sale</label><input type="number" min="0" id="pr-sale-rl" class="field-input" placeholder="regular"></div>
         </div>
-        <label class="field-label" style="margin-top:14px;">Ends on — optional</label>
+        <label class="field-label" style="margin-top:16px;">Sale package prices — optional</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px;">
+          <div><label class="field-label" style="font-size:11px;">CV + Cover Letter</label><input type="number" min="0" id="pr-sb-cvcl" class="field-input" placeholder="regular pkg"></div>
+          <div><label class="field-label" style="font-size:11px;">CV + Resignation</label><input type="number" min="0" id="pr-sb-cvrl" class="field-input" placeholder="regular pkg"></div>
+          <div><label class="field-label" style="font-size:11px;">All three</label><input type="number" min="0" id="pr-sb-cvclrl" class="field-input" placeholder="regular pkg"></div>
+        </div>
+
+        <label class="field-label" style="margin-top:16px;">Ends on — optional</label>
         <input type="date" id="pr-sale-ends" class="field-input">
         <p style="font-size:11.5px;color:var(--gray);margin-top:6px;line-height:1.6;">After this date the regular prices return automatically. Leave blank to run until you switch it off.</p>
       </div>
@@ -679,6 +697,7 @@ let BASE_PRICE = 50;   // CV / Resume
 let CL_PRICE   = 75;   // Cover Letter add-on
 let SALE = null;
 let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
+let BUNDLES = {};      // fixed package prices that override the sum
 const peso = n => '₱' + n.toLocaleString();
 
 // Mirrors the helper in index.html. Middle name is optional, so this collapses
@@ -725,17 +744,30 @@ function applyPricingRecord(pr){
     cl:   num(pr.cl,   75),
     rl:   num(pr.rl,   50)
   };
+  // Package prices override the sum for that exact combination. A sale can set
+  // its own packages; anything it leaves blank falls back to the regular one.
+  const pick = (a, b) => (typeof a === 'number' && !isNaN(a) && a >= 0) ? a
+                       : (typeof b === 'number' && !isNaN(b) && b >= 0) ? b : null;
+  const listB = pr.bundles || {};
+
   if(saleIsLive(pr)){
     const s = pr.sale;
     BASE_PRICE        = num(s.base, LIST_PRICES.base);
     CL_PRICE          = num(s.cl,   LIST_PRICES.cl);
     RESIGNATION_ADDON_PRICE = num(s.rl,   LIST_PRICES.rl);
     SALE = { label: s.label || 'Sale', endsAt: s.endsAt || '' };
+    const saleB = s.bundles || {};
+    BUNDLES = { cvcl:   pick(saleB.cvcl,   listB.cvcl),
+                cvrl:   pick(saleB.cvrl,   listB.cvrl),
+                cvclrl: pick(saleB.cvclrl, listB.cvclrl) };
   } else {
     BASE_PRICE        = LIST_PRICES.base;
     CL_PRICE          = LIST_PRICES.cl;
     RESIGNATION_ADDON_PRICE = LIST_PRICES.rl;
     SALE = null;
+    BUNDLES = { cvcl:   pick(listB.cvcl,   null),
+                cvrl:   pick(listB.cvrl,   null),
+                cvclrl: pick(listB.cvclrl, null) };
   }
 }
 
@@ -1028,8 +1060,12 @@ async function renderPricing(){
   set('pr-sale-cl',    sale.cl   ?? '');
   set('pr-sale-rl',    sale.rl   ?? '');
   set('pr-sale-ends',  sale.endsAt || '');
+  const lb = pr.bundles || {}, sb = sale.bundles || {};
+  set('pr-b-cvcl',   lb.cvcl   ?? ''); set('pr-b-cvrl',   lb.cvrl   ?? ''); set('pr-b-cvclrl',   lb.cvclrl   ?? '');
+  set('pr-sb-cvcl',  sb.cvcl   ?? ''); set('pr-sb-cvrl',  sb.cvrl   ?? ''); set('pr-sb-cvclrl',  sb.cvclrl   ?? '');
 
-  ['pr-base','pr-cl','pr-rl','pr-sale-active','pr-sale-label','pr-sale-base','pr-sale-cl','pr-sale-rl','pr-sale-ends']
+  ['pr-base','pr-cl','pr-rl','pr-sale-active','pr-sale-label','pr-sale-base','pr-sale-cl','pr-sale-rl','pr-sale-ends',
+   'pr-b-cvcl','pr-b-cvrl','pr-b-cvclrl','pr-sb-cvcl','pr-sb-cvrl','pr-sb-cvclrl']
     .forEach(id => {
       const el = document.getElementById(id);
       if(el && !el.dataset.prBound){ el.dataset.prBound = '1'; el.addEventListener('input', previewPricing); el.addEventListener('change', previewPricing); }
@@ -1042,7 +1078,9 @@ function pricingFromForm(){
     base: prVal('pr-base') ?? 50,
     cl:   prVal('pr-cl')   ?? 75,
     rl:   prVal('pr-rl')   ?? 50,
+    bundles: { cvcl: prVal('pr-b-cvcl'), cvrl: prVal('pr-b-cvrl'), cvclrl: prVal('pr-b-cvclrl') },
     sale: {
+      bundles: { cvcl: prVal('pr-sb-cvcl'), cvrl: prVal('pr-sb-cvrl'), cvclrl: prVal('pr-sb-cvclrl') },
       active: document.getElementById('pr-sale-active').checked,
       label:  document.getElementById('pr-sale-label').value.trim(),
       base:   prVal('pr-sale-base'),
@@ -1076,11 +1114,29 @@ function previewPricing(){
     html += `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:9px;padding:11px 13px;font-size:12px;color:#065f46;margin-bottom:12px;line-height:1.6;">
       🔥 <strong>${(pr.sale.label || 'Sale')}</strong> is live${pr.sale.endsAt ? ` until ${pr.sale.endsAt}` : ''}.</div>`;
   }
+  const pick = (a,b) => (typeof a==='number'&&a>=0)?a:(typeof b==='number'&&b>=0)?b:null;
+  const lb = pr.bundles||{}, sb = (pr.sale&&pr.sale.bundles)||{};
+  const eb = {
+    cvcl:   live ? pick(sb.cvcl,   lb.cvcl)   : pick(lb.cvcl,   null),
+    cvrl:   live ? pick(sb.cvrl,   lb.cvrl)   : pick(lb.cvrl,   null),
+    cvclrl: live ? pick(sb.cvclrl, lb.cvclrl) : pick(lb.cvclrl, null)
+  };
+  // A package price replaces the sum; otherwise the items add up.
+  const combo = (key, nowSum, wasSum) => {
+    const now = eb[key] !== null ? eb[key] : nowSum;
+    const was = (typeof lb[key]==='number' && lb[key]>=0) ? lb[key] : wasSum;
+    return [now, was];
+  };
   html += row('CV / Resume', eff.base, pr.base);
   html += row('Cover Letter add-on', eff.cl, pr.cl);
   html += row('Resignation Letter', eff.rl, pr.rl);
-  html += row('CV + Cover Letter', eff.base + eff.cl, pr.base + pr.cl);
-  html += row('CV + Cover Letter + Resignation', eff.base + eff.cl + eff.rl, pr.base + pr.cl + pr.rl);
+  html += '<div style="height:8px;"></div>';
+  const [a1,a2] = combo('cvcl',   eff.base+eff.cl,        pr.base+pr.cl);
+  const [b1,b2] = combo('cvrl',   eff.base+eff.rl,        pr.base+pr.rl);
+  const [c1,c2] = combo('cvclrl', eff.base+eff.cl+eff.rl, pr.base+pr.cl+pr.rl);
+  html += row('CV + Cover Letter', a1, a2);
+  html += row('CV + Resignation Letter', b1, b2);
+  html += row('CV + Cover Letter + Resignation', c1, c2);
   document.getElementById('pr-preview').innerHTML = html;
 }
 
@@ -1434,6 +1490,7 @@ function renderSubmissions(){
 function exportCSV(){
   if(!submissions.length){ showNotif('No submissions to export yet.', true); return; }
 
+  const PKG_LABELS = {cvcl:'CV + Cover Letter', cvrl:'CV + Resignation', cvclrl:'All three'};
   const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
 
   // Escape a value for CSV: wrap in quotes, double any internal quotes
@@ -1448,7 +1505,7 @@ function exportCSV(){
     'Education Level','Education','Work Experience','OJT / Practicum','Skills','Languages','References','Hobbies','Awards',
     'About / Notes','Profile Summary','Template','Special Instructions','Cover Letter?','CL Position',
     'CL Company','CL Reason','CL Strengths','CL Tone','Cover Letter Text','Admin Notes','Total (PHP)',
-    'Consent Agreed','Consent Timestamp','Has Photo',
+    'Consent Agreed','Consent Timestamp','Has Photo','Package','Package Saving','Sale Name',
     // Resignation letter — standalone orders and CV add-ons both land here, so a
     // CSV backup captures the full brief rather than just a name.
     'Resignation?','RL Position','RL Company','RL Addressed To','RL Last Day',
@@ -1524,6 +1581,7 @@ function exportCSV(){
       cl.position||'', cl.company||'', cl.reason||'', cl.strengths||'', cl.tone||'', cl.generated||'',
       s.adminNotes||'', orderTotal(s),
       s.dataConsent?.agreed ? 'YES' : 'No record', consentAt, p.photo ? 'Yes' : 'No',
+      PKG_LABELS[s.pricing?.bundle] || '', (s.pricing?.bundleSaving || ''), (s.pricing?.sale || ''),
       rlKind, rl.position||'', rl.company||'',
       rl.addressedTo ? (rl.addressedTo + (rl.addresseeTitle ? ' — '+rl.addresseeTitle : '')) : '',
       rl.lastDay||'', (rl.noticeDays ?? ''), rl.noticeType||'', rl.justCause||'',
