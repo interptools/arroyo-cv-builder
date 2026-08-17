@@ -2024,8 +2024,13 @@ const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
-const BASE_PRICE = 50;   // CV / Resume
-const CL_PRICE   = 75;   // Cover Letter add-on
+// Prices are loaded from JSONBin at startup so they can be changed from the
+// admin Pricing page without editing this file. These are fallbacks used only
+// if the pricing record is missing or unreachable.
+let BASE_PRICE = 50;   // CV / Resume
+let CL_PRICE   = 75;   // Cover Letter add-on
+let SALE = null;       // { label, endsAt } when a sale is running
+let LIST_PRICES = { base: 50, cl: 75, rl: 50 };   // pre-sale prices, for strikethroughs
 const peso = n => '₱' + n.toLocaleString();
 
 // Assembles the display name for CV templates. Middle name is optional, so this
@@ -2045,6 +2050,64 @@ const ADMIN_EMAIL = 'areymar36@gmail.com';
 
 // ─── AUTOSAVE / DUPLICATE-GUARD KEYS ──────────────────────────────────────────
 const DRAFT_KEY = 'arroyo_cv_draft_v1';
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FUNNEL TRACKING
+// Answers the question submissions alone can't: of everyone who opens the page,
+// where do the ones who never submit give up?
+//
+// Deliberately in a SEPARATE bin. Counting a visit means read-modify-write, and
+// doing that against the submissions bin on every page load would eventually
+// clobber a real order. A tiny counters object in its own bin can't hurt anything.
+//
+// Set STATS_BIN_ID to enable. Create a second bin in JSONBin, paste its ID here,
+// and give it this starting content:  {"visits":0,"form":0,"filling":0,"consent":0,"submitted":0}
+// Leave it blank and tracking silently does nothing.
+// ══════════════════════════════════════════════════════════════════════════════
+const STATS_BIN_ID = '';
+
+const FUNNEL_STEPS = ['visits','form','filling','consent','submitted'];
+const FUNNEL_SESSION_KEY = 'arroyo_funnel_v1';
+let funnelTimer = null;
+
+function funnelState(){
+  try { return JSON.parse(sessionStorage.getItem(FUNNEL_SESSION_KEY) || 'null') || { step: -1 }; }
+  catch(e){ return { step: -1 }; }
+}
+
+// Each visitor is counted once, at the furthest step they reached. Advancing
+// moves them along: decrement where they were, increment where they got to.
+function markFunnel(name){
+  if(!STATS_BIN_ID) return;
+  const idx = FUNNEL_STEPS.indexOf(name);
+  if(idx < 0) return;
+  const st = funnelState();
+  if(idx <= st.step) return;                    // never count a step twice
+  const from = st.step;
+  try { sessionStorage.setItem(FUNNEL_SESSION_KEY, JSON.stringify({ step: idx })); } catch(e){}
+
+  clearTimeout(funnelTimer);
+  funnelTimer = setTimeout(() => pushFunnel(from, idx), 1500);   // debounce fast advances
+}
+
+async function pushFunnel(from, to){
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(!res.ok) return;
+    const rec = (await res.json())?.record || {};
+    FUNNEL_STEPS.forEach(k => { if(typeof rec[k] !== 'number') rec[k] = 0; });
+    if(from >= 0 && rec[FUNNEL_STEPS[from]] > 0) rec[FUNNEL_STEPS[from]]--;
+    rec[FUNNEL_STEPS[to]]++;
+    rec.updatedAt = new Date().toISOString();
+    await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify(rec)
+    });
+  } catch(e){ /* tracking must never break the form */ }
+}
 const SUBMIT_KEY_PREFIX = 'arroyo_cv_submitted_';
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
@@ -2153,6 +2216,11 @@ window.onload = () => {
   // Initialise EmailJS once — do NOT call emailjs.init() inside individual send functions
   if (typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
 
+  markFunnel('visits');
+
+  // Prices come from the bin, so labels must wait for them.
+  pricingReady = loadPricing().then(applyPricing);
+
   // Prices must be written before the guard can return early — the duplicate
   // screen now offers the resignation service, and that path would otherwise
   // never run applyPricing and could show a stale figure.
@@ -2176,11 +2244,34 @@ function applyPricing() {
   const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
   const total = BASE_PRICE + CL_PRICE;
   set('cl-addon-price',  '+' + peso(CL_PRICE));
-  set('cl-strike-price', peso(Math.round(total * 1.6666))); // "was" anchor price
   set('sum-base-price',  peso(BASE_PRICE));
   set('sum-cl-price',    peso(CL_PRICE));
   set('confirm-total',   peso(BASE_PRICE));
   set('cl-total-label',  `${peso(total)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`);
+
+  // Strikethrough anchor: show the real pre-sale price during a sale, and fall
+  // back to the existing marketing anchor when nothing is discounted.
+  const clWas = (SALE && CL_PRICE < LIST_PRICES.cl) ? LIST_PRICES.cl : Math.round(total * 1.6666);
+  set('cl-strike-price', peso(clWas));
+
+  // Sale banner in the header — only when a sale is actually live.
+  const hdr = document.querySelector('header');
+  let banner = document.getElementById('saleBanner');
+  if(SALE){
+    if(!banner && hdr){
+      banner = document.createElement('div');
+      banner.id = 'saleBanner';
+      banner.style.cssText = 'background:#c8a84b;color:#1a2744;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;line-height:1.5;';
+      hdr.parentNode.insertBefore(banner, hdr.nextSibling);
+    }
+    if(banner){
+      banner.innerHTML = `🔥 ${SALE.label} — CV now ${peso(BASE_PRICE)}`
+        + (BASE_PRICE < LIST_PRICES.base ? ` <span style="text-decoration:line-through;opacity:.65;font-weight:600;">${peso(LIST_PRICES.base)}</span>` : '')
+        + (SALE.endsAt ? ` · ends ${SALE.endsAt}` : '');
+    }
+  } else if(banner){
+    banner.remove();
+  }
 
   // Resignation letter — runs on load so the start-page button is correct even
   // if the visitor never opens the resignation form.
@@ -2431,7 +2522,7 @@ function saveDraft() {
 
 function startAutosave() {
   document.addEventListener('input', e => {
-    if (e.target.closest('#formPage')) saveDraft();
+    if (e.target.closest('#formPage')) { markFunnel('filling'); saveDraft(); }
   });
   document.addEventListener('change', e => {
     if (e.target.closest('#formPage')) saveDraft();
@@ -2598,6 +2689,7 @@ function showStartPage(){
 }
 
 function showFormPage(){
+  markFunnel('form');
   document.getElementById('startPage').classList.remove('active');
   document.getElementById('formPage').classList.add('active');
   const bar = document.getElementById('stepsBar');
@@ -2625,7 +2717,65 @@ function backToStart(){
 // Shares showNotif, the styling, and the same JSONBin record array.
 // ══════════════════════════════════════════════════════════════════════════════
 // Change the price here only — every label on the page reads from this.
-const RESIGNATION_PRICE = 50;
+let RESIGNATION_PRICE = 50;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICING
+// Prices live in the bin under `pricing`, so the admin Pricing page can change
+// them without a code edit. A sale is just an override set with an optional end
+// date; once that date passes the list prices apply again with no action needed.
+//
+// Historical orders are NOT re-priced. Each submission stores the total it was
+// quoted, and orderTotal prefers that. Changing a price never rewrites what a
+// past customer agreed to pay.
+// ══════════════════════════════════════════════════════════════════════════════
+function saleIsLive(pr){
+  const sale = pr && pr.sale;
+  if(!sale || !sale.active) return false;
+  if(sale.endsAt){
+    const end = new Date(sale.endsAt + 'T23:59:59');
+    if(!isNaN(end) && Date.now() > end.getTime()) return false;   // expired
+  }
+  return true;
+}
+
+function applyPricingRecord(pr){
+  if(!pr) return;
+  const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : fb;
+  LIST_PRICES = {
+    base: num(pr.base, 50),
+    cl:   num(pr.cl,   75),
+    rl:   num(pr.rl,   50)
+  };
+  if(saleIsLive(pr)){
+    const s = pr.sale;
+    BASE_PRICE        = num(s.base, LIST_PRICES.base);
+    CL_PRICE          = num(s.cl,   LIST_PRICES.cl);
+    RESIGNATION_PRICE = num(s.rl,   LIST_PRICES.rl);
+    SALE = { label: s.label || 'Sale', endsAt: s.endsAt || '' };
+  } else {
+    BASE_PRICE        = LIST_PRICES.base;
+    CL_PRICE          = LIST_PRICES.cl;
+    RESIGNATION_PRICE = LIST_PRICES.rl;
+    SALE = null;
+  }
+}
+
+// Resolved once prices are known. Submits await this so a fast customer can
+// never be quoted the fallback price while a sale is loading.
+let pricingReady = null;
+
+async function loadPricing(){
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(!res.ok) return;
+    const rec = (await res.json())?.record || {};
+    applyPricingRecord(rec.pricing);
+  } catch(e){ /* fall back to the defaults above */ }
+}
+
 const NOTICE_DAYS = 30;   // Art. 300, Labor Code of the Philippines
 
 function showResignPage(){
@@ -2870,6 +3020,8 @@ function collectResignation(){
     submittedAt: new Date().toISOString(),
     status: 'New',
     amountDue: RESIGNATION_PRICE,
+    quotedTotal: RESIGNATION_PRICE,
+    pricing: { rl: RESIGNATION_PRICE, sale: SALE ? SALE.label : '' },
     // Flat personal block so the admin list and the order tracker can find a
     // name and email without knowing about resignation records specifically.
     personal: {
@@ -2928,6 +3080,7 @@ function validateResignation(d){
 }
 
 async function submitResignation(){
+  try { await pricingReady; } catch(e){}
   if(!document.getElementById('r-consent').checked){
     showNotif('Please agree to the Data Privacy Terms before submitting.', true);
     return;
@@ -3002,7 +3155,7 @@ function notifyAdminResignation(d){
       `Reason:    ${r.reason}\n` +
       `Tone:      ${r.tone}\n` +
       `Notes:     ${r.notes || '—'}\n\n` +
-      `Amount due: ${peso(RESIGNATION_PRICE)}`
+      `Amount due: ${peso(d.quotedTotal ?? d.amountDue ?? RESIGNATION_PRICE)}`
   }).catch(e => console.warn('Admin alert failed:', e));
 }
 
@@ -3021,7 +3174,7 @@ function emailResignationReceipt(d){
       `Position:         ${r.position}\n` +
       `Company:          ${r.company}\n` +
       `Last day of work: ${r.lastDay}\n` +
-      `Amount due:       ${peso(RESIGNATION_PRICE)}\n\n` +
+      `Amount due:       ${peso(d.quotedTotal ?? d.amountDue ?? RESIGNATION_PRICE)}\n\n` +
       `TO PAY (GCash)\n` +
       `09063964052 — Reymar Arroyo\n` +
       `Send your proof of payment to the same number along with your reference number.\n\n` +
@@ -4036,6 +4189,11 @@ function collectFormData() {
     education: eduData,
     workExperience: workData,
     ojt: ojtData,
+    // Price snapshot. Changing prices later must never re-price a past order,
+    // so the total the customer actually agreed to is frozen here.
+    quotedTotal: cvOrderTotal(),
+    pricing: { base: BASE_PRICE, cl: CL_PRICE, rl: RESIGNATION_PRICE,
+               sale: SALE ? SALE.label : '' },
     seaman,
     skills,
     languages,
@@ -4196,6 +4354,7 @@ function toggleCoverLetter() {
 
 function onCVConsentChange() {
   const checked = document.getElementById('cv-consent-check').checked;
+  if (checked) markFunnel('consent');
   const btn = document.getElementById('submitBtn');
   const label = document.getElementById('submitLabel');
   const box = document.getElementById('cv-consent-label');
@@ -4208,6 +4367,7 @@ function onCVConsentChange() {
 }
 
 async function submitForm() {
+  try { await pricingReady; } catch(e){}
   if (!document.getElementById('cv-consent-check').checked) {
     showNotif('Please agree to the Data Privacy Terms before submitting.', true);
     return;
@@ -4308,6 +4468,8 @@ async function submitForm() {
       throw new Error(`JSONBin error ${putRes.status}: ${errText}`);
     }
 
+    markFunnel('submitted');
+
     // Surface the reference so the customer can track the order later
     lastRefNo = data.id || '';
 
@@ -4350,7 +4512,8 @@ async function notifyAdminNewOrder(data) {
     const p = data.personal;
     const hasCL = !!data.coverLetter?.requested;
     const hasRL = !!data.resignationLetter?.requested;
-    const total = BASE_PRICE + (hasCL ? CL_PRICE : 0) + (hasRL ? RESIGNATION_PRICE : 0);
+    // Read the frozen quote so the alert can never disagree with the record.
+    const total = data.quotedTotal ?? (BASE_PRICE + (hasCL ? CL_PRICE : 0) + (hasRL ? RESIGNATION_PRICE : 0));
     const name = `${fullName(p)}`.trim();
     const eduMap = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' };
     const when = new Date().toLocaleString('en-PH', {

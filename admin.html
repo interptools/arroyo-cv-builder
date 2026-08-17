@@ -285,6 +285,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
     <nav class="sidebar-nav">
       <button class="nav-item active" onclick="showPage('dashPage',this)"><span class="ni-icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="showPage('submissionsPage',this)"><span class="ni-icon">📋</span> Submissions</button>
+      <button class="nav-item" onclick="showPage('pricingPage',this)"><span class="ni-icon">🏷️</span> Pricing &amp; Sales</button>
       <button class="nav-item" onclick="showPage('gcashPage',this)"><span class="ni-icon">💳</span> GCash QR</button>
       <button class="nav-item" onclick="showPage('healthPage',this)"><span class="ni-icon">🩺</span> System Health</button>
       <button class="nav-item" onclick="showPage('passwordPage',this)"><span class="ni-icon">🔑</span> Change Password</button>
@@ -303,6 +304,10 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <div class="stat-card"><div class="sc-label">Done / Delivered</div><div class="sc-value" id="statDone">—</div><div class="sc-sub"><span style="color:#166534" id="statDelivered">—</span> delivered &nbsp;·&nbsp; <span style="color:#065f46" id="statDoneOnly">—</span> done</div></div>
         <div class="stat-card revenue"><div class="sc-label">Collected</div><div class="sc-value" id="statRevenue">₱0</div><div class="sc-sub"><span style="color:#b45309;font-weight:700" id="statOutstanding">₱0</span> still owed from <span id="statUnpaidCount">0</span> order(s)</div></div>
         <div class="stat-card"><div class="sc-label">Cover Letters</div><div class="sc-value" id="statCLOnly">—</div><div class="sc-sub">Add-on requested · <span id="statCLEach">₱75</span> each</div></div>
+      </div>
+      <div class="table-card" id="funnelCard" style="margin-bottom:20px;">
+        <div class="table-header"><h3>Where People Drop Off</h3></div>
+        <div id="funnelBody" style="padding:18px 20px;"></div>
       </div>
       <div class="table-card">
         <div class="table-header"><h3>Recent Submissions</h3></div>
@@ -364,6 +369,48 @@ tr:hover td{background:rgba(247,248,252,.8);}
     </div>
 
     <!-- GCASH -->
+    <div class="admin-page" id="pricingPage">
+      <div class="topbar"><div><h2>Pricing &amp; Sales</h2><p>Change prices once — the form, emails, tracker and reports all follow</p></div></div>
+
+      <div class="card" style="max-width:640px;">
+        <h3>🏷️ Regular Prices</h3>
+        <p>These are your normal prices. Customers see them unless a sale is running.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
+          <div><label class="field-label">CV / Resume</label><input type="number" min="0" id="pr-base" class="field-input" placeholder="50"></div>
+          <div><label class="field-label">Cover Letter</label><input type="number" min="0" id="pr-cl" class="field-input" placeholder="75"></div>
+          <div><label class="field-label">Resignation Letter</label><input type="number" min="0" id="pr-rl" class="field-input" placeholder="50"></div>
+        </div>
+      </div>
+
+      <div class="card" style="max-width:640px;">
+        <h3>🔥 Sale</h3>
+        <p>Temporarily override the prices above. Leave a sale price blank to keep the regular price for that item.</p>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;margin:14px 0;">
+          <input type="checkbox" id="pr-sale-active" style="width:19px;height:19px;accent-color:var(--navy);cursor:pointer;">
+          <span style="font-size:13px;font-weight:700;color:var(--navy);">Sale is running</span>
+        </label>
+        <label class="field-label">Sale name — shown to customers</label>
+        <input type="text" id="pr-sale-label" class="field-input" placeholder="e.g. Back-to-School Sale">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
+          <div><label class="field-label">CV sale price</label><input type="number" min="0" id="pr-sale-base" class="field-input" placeholder="regular"></div>
+          <div><label class="field-label">Cover Letter sale</label><input type="number" min="0" id="pr-sale-cl" class="field-input" placeholder="regular"></div>
+          <div><label class="field-label">Resignation sale</label><input type="number" min="0" id="pr-sale-rl" class="field-input" placeholder="regular"></div>
+        </div>
+        <label class="field-label" style="margin-top:14px;">Ends on — optional</label>
+        <input type="date" id="pr-sale-ends" class="field-input">
+        <p style="font-size:11.5px;color:var(--gray);margin-top:6px;line-height:1.6;">After this date the regular prices return automatically. Leave blank to run until you switch it off.</p>
+      </div>
+
+      <div class="card" style="max-width:640px;">
+        <h3>👁 What customers will see</h3>
+        <div id="pr-preview" style="margin-top:10px;"></div>
+        <button onclick="savePricing()" style="width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-top:18px;">💾 Save &amp; Publish Prices</button>
+        <div style="margin-top:14px;padding:13px;background:#f0fdf4;border:1px solid #86efac;border-radius:9px;font-size:12px;color:#065f46;line-height:1.65;">
+          <strong>Past orders are safe.</strong> Every order stores the price it was quoted, so changing prices here never alters what an existing customer owes or your recorded revenue.
+        </div>
+      </div>
+    </div>
+
     <div class="admin-page" id="gcashPage">
       <div class="topbar"><div><h2>GCash / InstaPay QR Code</h2><p>Upload or change your QR — customers see it on the confirmation page</p></div></div>
       <div class="settings-card">
@@ -627,8 +674,11 @@ const GCASH_NAME   = 'Reymar Arroyo';
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
 const JSONBIN_API_KEY = '$2a$10$fO/kBOQ1AEcGiT2YVcQQ0uNmSp/Jn5Lu10yYyEMy5UL6eXY0w4BNG';
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
-const BASE_PRICE = 50;   // CV / Resume
-const CL_PRICE   = 75;   // Cover Letter add-on
+// Loaded from JSONBin at login. Editable from the Pricing page.
+let BASE_PRICE = 50;   // CV / Resume
+let CL_PRICE   = 75;   // Cover Letter add-on
+let SALE = null;
+let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
 const peso = n => '₱' + n.toLocaleString();
 
 // Mirrors the helper in index.html. Middle name is optional, so this collapses
@@ -645,17 +695,78 @@ const fullName = p => {
 // the customer was actually quoted, which survives later price changes.
 // Mirrors RESIGNATION_PRICE in index.html. addOnFee on the record wins where
 // present, so historical orders keep the price they were actually quoted.
-const RESIGNATION_ADDON_PRICE = 50;
+let RESIGNATION_ADDON_PRICE = 50;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PRICING
+// Prices live in the bin under `pricing`, so the admin Pricing page can change
+// them without a code edit. A sale is just an override set with an optional end
+// date; once that date passes the list prices apply again with no action needed.
+//
+// Historical orders are NOT re-priced. Each submission stores the total it was
+// quoted, and orderTotal prefers that. Changing a price never rewrites what a
+// past customer agreed to pay.
+// ══════════════════════════════════════════════════════════════════════════════
+function saleIsLive(pr){
+  const sale = pr && pr.sale;
+  if(!sale || !sale.active) return false;
+  if(sale.endsAt){
+    const end = new Date(sale.endsAt + 'T23:59:59');
+    if(!isNaN(end) && Date.now() > end.getTime()) return false;   // expired
+  }
+  return true;
+}
+
+function applyPricingRecord(pr){
+  if(!pr) return;
+  const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : fb;
+  LIST_PRICES = {
+    base: num(pr.base, 50),
+    cl:   num(pr.cl,   75),
+    rl:   num(pr.rl,   50)
+  };
+  if(saleIsLive(pr)){
+    const s = pr.sale;
+    BASE_PRICE        = num(s.base, LIST_PRICES.base);
+    CL_PRICE          = num(s.cl,   LIST_PRICES.cl);
+    RESIGNATION_ADDON_PRICE = num(s.rl,   LIST_PRICES.rl);
+    SALE = { label: s.label || 'Sale', endsAt: s.endsAt || '' };
+  } else {
+    BASE_PRICE        = LIST_PRICES.base;
+    CL_PRICE          = LIST_PRICES.cl;
+    RESIGNATION_ADDON_PRICE = LIST_PRICES.rl;
+    SALE = null;
+  }
+}
+
+async function loadPricing(){
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if(!res.ok) return;
+    const rec = (await res.json())?.record || {};
+    applyPricingRecord(rec.pricing);
+  } catch(e){ /* fall back to the defaults above */ }
+}
+
 
 const orderTotal = s => {
+  // The frozen quote always wins. Orders placed before this field existed fall
+  // through to the per-item stored fees, then finally to today's prices.
+  if(typeof s?.quotedTotal === 'number' && !isNaN(s.quotedTotal)) return s.quotedTotal;
+
   if(s?.serviceType === 'resignation'){
     return (typeof s.amountDue === 'number' && !isNaN(s.amountDue))
       ? s.amountDue
       : (s?.resignation?.fee || 0);
   }
-  return BASE_PRICE
-       + (s?.coverLetter?.requested ? CL_PRICE : 0)
-       + (s?.resignationLetter?.requested ? (s.resignationLetter.addOnFee ?? RESIGNATION_ADDON_PRICE) : 0);
+  const base = (typeof s?.pricing?.base === 'number') ? s.pricing.base : BASE_PRICE;
+  const cl   = (s?.coverLetter?.addOnFee ?? CL_PRICE);
+  const rl   = (s?.resignationLetter?.addOnFee ?? RESIGNATION_ADDON_PRICE);
+  return base
+       + (s?.coverLetter?.requested ? cl : 0)
+       + (s?.resignationLetter?.requested ? rl : 0);
 };
 
 const ADMIN_USER = 'admin';
@@ -861,6 +972,7 @@ function showPage(id,btn){
   if(btn)btn.classList.add('active');
   if(id==='submissionsPage')renderSubmissions();
   if(id==='gcashPage')loadCurrentQR();
+  if(id==='pricingPage')renderPricing();
   if(id==='healthPage')renderHealth();
   // Auto-close sidebar on mobile after nav
   const sb=document.getElementById('mainSidebar');
@@ -870,6 +982,7 @@ function showPage(id,btn){
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function loadData(){
+  await loadPricing();
   // Initialise EmailJS once after login — do NOT call emailjs.init() per send
   if(typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
   try{
@@ -889,8 +1002,201 @@ async function getFullRecord(){
   }catch(e){console.error('getFullRecord error:',e);return{};}
 }
 
+// ── PRICING PAGE ──────────────────────────────────────────────────────────────
+const prVal = id => {
+  const v = document.getElementById(id).value.trim();
+  if(v === '') return null;
+  const n = Number(v);
+  return (isNaN(n) || n < 0) ? null : n;
+};
+
+async function renderPricing(){
+  let pr = {};
+  try {
+    const rec = await getFullRecord();
+    pr = rec.pricing || {};
+  } catch(e){ showNotif('Could not load current prices.', true); }
+
+  const sale = pr.sale || {};
+  const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v ?? '') === '' ? '' : v; };
+  set('pr-base', pr.base ?? 50);
+  set('pr-cl',   pr.cl   ?? 75);
+  set('pr-rl',   pr.rl   ?? 50);
+  document.getElementById('pr-sale-active').checked = !!sale.active;
+  set('pr-sale-label', sale.label || '');
+  set('pr-sale-base',  sale.base ?? '');
+  set('pr-sale-cl',    sale.cl   ?? '');
+  set('pr-sale-rl',    sale.rl   ?? '');
+  set('pr-sale-ends',  sale.endsAt || '');
+
+  ['pr-base','pr-cl','pr-rl','pr-sale-active','pr-sale-label','pr-sale-base','pr-sale-cl','pr-sale-rl','pr-sale-ends']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if(el && !el.dataset.prBound){ el.dataset.prBound = '1'; el.addEventListener('input', previewPricing); el.addEventListener('change', previewPricing); }
+    });
+  previewPricing();
+}
+
+function pricingFromForm(){
+  return {
+    base: prVal('pr-base') ?? 50,
+    cl:   prVal('pr-cl')   ?? 75,
+    rl:   prVal('pr-rl')   ?? 50,
+    sale: {
+      active: document.getElementById('pr-sale-active').checked,
+      label:  document.getElementById('pr-sale-label').value.trim(),
+      base:   prVal('pr-sale-base'),
+      cl:     prVal('pr-sale-cl'),
+      rl:     prVal('pr-sale-rl'),
+      endsAt: document.getElementById('pr-sale-ends').value || ''
+    }
+  };
+}
+
+function previewPricing(){
+  const pr = pricingFromForm();
+  const live = saleIsLive(pr);
+  const eff = {
+    base: live ? (pr.sale.base ?? pr.base) : pr.base,
+    cl:   live ? (pr.sale.cl   ?? pr.cl)   : pr.cl,
+    rl:   live ? (pr.sale.rl   ?? pr.rl)   : pr.rl
+  };
+  const row = (label, now, was) =>
+    `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-light);font-size:13px;">
+       <span style="color:var(--gray);">${label}</span>
+       <span style="font-weight:700;color:var(--navy);">
+         ${now < was ? `<span style="color:var(--gray);font-weight:400;text-decoration:line-through;margin-right:7px;">${peso(was)}</span>` : ''}${peso(now)}
+       </span></div>`;
+
+  let html = '';
+  if(pr.sale.active && !live && pr.sale.endsAt){
+    html += `<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:11px 13px;font-size:12px;color:#9a3412;margin-bottom:12px;line-height:1.6;">
+      <strong>This sale has expired.</strong> It ended on ${pr.sale.endsAt}, so regular prices are showing. Change the date or untick it.</div>`;
+  } else if(live){
+    html += `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:9px;padding:11px 13px;font-size:12px;color:#065f46;margin-bottom:12px;line-height:1.6;">
+      🔥 <strong>${(pr.sale.label || 'Sale')}</strong> is live${pr.sale.endsAt ? ` until ${pr.sale.endsAt}` : ''}.</div>`;
+  }
+  html += row('CV / Resume', eff.base, pr.base);
+  html += row('Cover Letter add-on', eff.cl, pr.cl);
+  html += row('Resignation Letter', eff.rl, pr.rl);
+  html += row('CV + Cover Letter', eff.base + eff.cl, pr.base + pr.cl);
+  html += row('CV + Cover Letter + Resignation', eff.base + eff.cl + eff.rl, pr.base + pr.cl + pr.rl);
+  document.getElementById('pr-preview').innerHTML = html;
+}
+
+async function savePricing(){
+  const pr = pricingFromForm();
+  if(pr.base <= 0){ showNotif('The CV price must be more than zero.', true); return; }
+  if(pr.sale.active && !pr.sale.label){ showNotif('Please give the sale a name — customers will see it.', true); return; }
+  if(pr.sale.active && pr.sale.base === null && pr.sale.cl === null && pr.sale.rl === null){
+    showNotif('A sale needs at least one discounted price.', true); return;
+  }
+  const live = saleIsLive(pr);
+  const eff = live ? (pr.sale.base ?? pr.base) : pr.base;
+  if(!confirm(`Publish these prices?\n\nCV will show as ${peso(eff)}.\n\n`
+    + `New orders use the new prices. Existing orders keep what they were quoted.`)) return;
+
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, pricing: pr})
+    });
+    applyPricingRecord(pr);          // update this session immediately
+    showNotif('✅ Prices published — the public form updates on next load.');
+    renderSubmissions(); renderDashboard();
+  } catch(e){ showNotif('Failed to save: ' + e.message, true); }
+}
+
+// ── FUNNEL ────────────────────────────────────────────────────────────────────
+// Reads the separate stats bin written by the public form. Submissions alone
+// can't tell you why people don't order — this shows the step they stopped at.
+const STATS_BIN_ID = '';   // must match STATS_BIN_ID in index.html
+
+const FUNNEL_LABELS = [
+  ['visits',    'Opened the page',      'Landed on the site'],
+  ['form',      'Started the form',     'Got past the first screen'],
+  ['filling',   'Typed something',      'Began entering details'],
+  ['consent',   'Reached the bottom',   'Ticked the privacy box'],
+  ['submitted', 'Submitted an order',   'Completed the form']
+];
+
+async function renderFunnel(){
+  const box = document.getElementById('funnelBody');
+  const card = document.getElementById('funnelCard');
+  if(!box) return;
+
+  if(!STATS_BIN_ID){
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--gray);line-height:1.8;">'
+      + '<strong style="color:var(--navy);">Not set up yet.</strong><br>'
+      + 'Create a second bin in JSONBin with the contents '
+      + '<code style="background:var(--off-white);padding:2px 6px;border-radius:4px;">{"visits":0,"form":0,"filling":0,"consent":0,"submitted":0}</code>, '
+      + 'then paste its ID into <code>STATS_BIN_ID</code> in both index.html and admin.html.'
+      + '</div>';
+    return;
+  }
+
+  box.innerHTML = '<div style="font-size:12.5px;color:var(--gray);">Loading…</div>';
+  let rec;
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`,
+      { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+    rec = (await res.json())?.record || {};
+  } catch(e){
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--error);">Could not reach the stats bin.</div>';
+    return;
+  }
+
+  // Each visitor is counted once at their furthest step, so the number who
+  // "reached" a step is that step's count plus everyone beyond it.
+  const raw = FUNNEL_LABELS.map(([k]) => Number(rec[k]) || 0);
+  const reached = raw.map((_, i) => raw.slice(i).reduce((a, b) => a + b, 0));
+  const top = reached[0] || 0;
+
+  if(!top){
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--gray);">No visits recorded yet.</div>';
+    return;
+  }
+
+  let html = '';
+  FUNNEL_LABELS.forEach(([key, label, sub], i) => {
+    const n = reached[i];
+    const pct = Math.round(n / top * 100);
+    const lost = i > 0 ? reached[i-1] - n : 0;
+    const lostPct = i > 0 && reached[i-1] ? Math.round(lost / reached[i-1] * 100) : 0;
+    html += `<div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;">
+        <div><span style="font-size:13px;font-weight:700;color:var(--navy);">${label}</span>
+          <span style="font-size:11px;color:var(--gray);margin-left:8px;">${sub}</span></div>
+        <div style="font-size:13px;font-weight:800;color:var(--navy);">${n}<span style="font-size:11px;color:var(--gray);font-weight:600;"> · ${pct}%</span></div>
+      </div>
+      <div style="height:9px;background:var(--off-white);border-radius:20px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${i===FUNNEL_LABELS.length-1?'#10b981':'#1a2744'};border-radius:20px;"></div>
+      </div>
+      ${lost > 0 ? `<div style="font-size:11px;color:#b45309;margin-top:4px;">▼ ${lost} left here (${lostPct}% of the previous step)</div>` : ''}
+    </div>`;
+  });
+
+  const conv = Math.round(reached[reached.length-1] / top * 100);
+  const worst = FUNNEL_LABELS.slice(1).map((l, i) => ({
+    label: l[1],
+    lost: reached[i] - reached[i+1]
+  })).sort((a, b) => b.lost - a.lost)[0];
+
+  html += `<div style="border-top:1px solid var(--gray-light);margin-top:6px;padding-top:12px;font-size:12.5px;color:var(--gray);line-height:1.7;">
+    <strong style="color:var(--navy);">${conv}% of visitors place an order.</strong>`;
+  if(worst && worst.lost > 0){
+    html += `<br>Biggest drop-off is at <strong style="color:var(--navy);">${worst.label}</strong> — ${worst.lost} people. That's the step to work on.`;
+  }
+  html += `</div>`;
+
+  box.innerHTML = html;
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
+  renderFunnel();
   const clOrders=submissions.filter(s=>s.coverLetter?.requested);
   // Collected is money actually received. Outstanding is what has been promised
   // but not yet paid — the old card summed every order regardless, which
