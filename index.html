@@ -2937,6 +2937,36 @@ function backToStart(){
   showStartPage();
 }
 
+// ── EMAIL PARAMETER SHAPE ─────────────────────────────────────────────────────
+// EmailJS template `template_31e2nts` renders {{html_body}} (with
+// {{translation_note}} as the plain-text alternative). It has no {{message}}
+// variable, so sending one produced a correctly-titled email with a blank body.
+// Every send goes through here so that contract lives in one place.
+function sendMail(toEmail, subject, plainText, opts){
+  if (typeof emailjs === 'undefined') return Promise.resolve();
+  const esc = t => String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const html =
+    '<div style="font-family:Arial,Helvetica,sans-serif;color:#1f2937;max-width:600px;margin:0 auto;">'
+    + '<div style="background:#1a2744;padding:18px 22px;border-radius:10px 10px 0 0;">'
+    + '<div style="color:#c8a84b;font-size:11px;letter-spacing:1.5px;font-weight:700;">ARROYO CV BUILDER</div>'
+    + '<div style="color:#fff;font-size:17px;font-weight:700;margin-top:4px;">' + esc(subject) + '</div></div>'
+    + '<div style="border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px;padding:20px 22px;">'
+    + '<pre style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:13.5px;line-height:1.75;'
+    + 'white-space:pre-wrap;word-wrap:break-word;color:#1f2937;">' + esc(plainText) + '</pre>'
+    + '</div></div>';
+
+  return emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_email:         toEmail,
+    to_name:          (opts && opts.toName) || '',
+    customer_name:    (opts && opts.customerName) || '',
+    cc_email:         (opts && opts.cc) || '',
+    subject:          subject,
+    translation_note: plainText,   // plain-text fallback
+    html_body:        html
+  }).catch(e => console.warn('Email failed:', e));
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // COVER LETTER SERVICE (standalone)
 // Separate from the CV add-on: there's no CV to draw on, so the form collects
@@ -3100,16 +3130,13 @@ async function submitCoverLetter(){
 function notifyAdminCoverLetter(d){
   if(typeof emailjs === 'undefined') return;
   const c = d.coverLetterOnly;
-  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-    to_email: ADMIN_EMAIL,
-    subject: `New Cover Letter order — ${c.fullName} (${d.id})`,
-    message:
+  sendMail(ADMIN_EMAIL, `New Cover Letter order — ${c.fullName} (${d.id})`,
       `New cover letter request.\n\n` +
       `Ref:          ${d.id}\n` +
       `Name:         ${c.fullName}\n` +
       `Email:        ${d.personal.email}\n` +
       `Mobile:       ${d.personal.mobile}\n` +
-      `Applying for: ${c.position} at ${c.company}\n` +
+      `Applying for: ${c.position}${c.general ? ' — GENERAL letter (multiple companies)' : ' at ' + c.company}\n` +
       `Addressed to: ${c.addressedTo || '(Hiring Manager)'}\n` +
       `Saw job on:   ${c.source || '—'}\n` +
       `Current role: ${c.currentRole}\n` +
@@ -3120,20 +3147,17 @@ function notifyAdminCoverLetter(d){
       `Why:          ${c.reason}\n` +
       `Tone:         ${c.tone}\n\n` +
       `Amount due: ${peso(d.quotedTotal)}`
-  }).catch(e => console.warn('Admin alert failed:', e));
+  );
 }
 
 function emailCoverLetterReceipt(d){
   if(typeof emailjs === 'undefined') return;
   const c = d.coverLetterOnly;
-  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-    to_email: d.personal.email,
-    subject: `We received your cover letter request — ${d.id}`,
-    message:
+  sendMail(d.personal.email, `We received your cover letter request — ${d.id}`,
       `Hi ${d.personal.firstName},\n\n` +
       `Thank you — we've received your request for a cover letter.\n\n` +
       `Reference number: ${d.id}\n` +
-      `Applying for:     ${c.position} at ${c.company}\n` +
+      `Applying for:     ${c.position}${c.general ? ' (general letter)' : ' at ' + c.company}\n` +
       `Amount due:       ${peso(d.quotedTotal)}\n\n` +
       `TO PAY (GCash)\n` +
       `09063964052 — Reymar Arroyo\n` +
@@ -3143,7 +3167,7 @@ function emailCoverLetterReceipt(d){
       `https://interptools.github.io/arroyo-cv-builder/\n\n` +
       `— Arroyo CV Builder\n` +
       `09063964052 · areymar36@gmail.com`
-  }).catch(e => console.warn('Customer receipt failed:', e));
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -3589,10 +3613,7 @@ async function submitResignation(){
 function notifyAdminResignation(d){
   if(typeof emailjs === 'undefined') return;
   const r = d.resignation;
-  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-    to_email: ADMIN_EMAIL,
-    subject: `New Resignation Letter order — ${r.fullName} (${d.id})`,
-    message:
+  sendMail(ADMIN_EMAIL, `New Resignation Letter order — ${r.fullName} (${d.id})`,
       `New resignation letter request.\n\n` +
       `Ref:       ${d.id}\n` +
       `Name:      ${r.fullName}\n` +
@@ -3608,7 +3629,7 @@ function notifyAdminResignation(d){
       `Tone:      ${r.tone}\n` +
       `Notes:     ${r.notes || '—'}\n\n` +
       `Amount due: ${peso(d.quotedTotal ?? d.amountDue ?? RESIGNATION_PRICE)}`
-  }).catch(e => console.warn('Admin alert failed:', e));
+  );
 }
 
 // Customer-facing receipt. Sent immediately so they have their reference number
@@ -3616,10 +3637,7 @@ function notifyAdminResignation(d){
 function emailResignationReceipt(d){
   if(typeof emailjs === 'undefined') return;
   const r = d.resignation;
-  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-    to_email: d.personal.email,
-    subject: `We received your resignation letter request — ${d.id}`,
-    message:
+  sendMail(d.personal.email, `We received your resignation letter request — ${d.id}`,
       `Hi ${r.fullName},\n\n` +
       `Thank you — we've received your request for a resignation letter.\n\n` +
       `Reference number: ${d.id}\n` +
@@ -3635,7 +3653,7 @@ function emailResignationReceipt(d){
       `https://interptools.github.io/arroyo-cv-builder/\n\n` +
       `— Arroyo CV Builder\n` +
       `09063964052 · areymar36@gmail.com`
-  }).catch(e => console.warn('Customer receipt failed:', e));
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
