@@ -1486,7 +1486,7 @@ function renderSubmissions(){
 
       <td data-label="Applicant">
         <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
-        ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
+        ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
         <div class="sub-mail">${p.email||'No email on file'}</div>
       </td>
 
@@ -1566,7 +1566,8 @@ function exportCSV(){
     // Standalone cover letters populate the same CL columns as the add-on, so
     // one set of columns covers both and the export stays readable.
     const cl = (s.serviceType==='coverLetter')
-      ? { requested:true, position:s.coverLetterOnly?.position, company:s.coverLetterOnly?.company,
+      ? { requested:true, position:s.coverLetterOnly?.position,
+          company: s.coverLetterOnly?.general ? 'GENERAL (multiple companies)' : s.coverLetterOnly?.company,
           reason:s.coverLetterOnly?.reason, strengths:s.coverLetterOnly?.strengths,
           tone:s.coverLetterOnly?.tone, generated:s.coverLetterOnly?.generated }
       : (s.coverLetter || {});
@@ -2287,8 +2288,14 @@ function viewSubmission(idx){
     html+='<div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📝 Cover Letter Brief</div>';
     html+=row('Applicant', c.fullName||fullName(s.personal));
     html+=row('Applying for', c.position);
-    html+=row('Company', c.company);
-    html+=row('Addressed to', c.addressedTo||'Hiring Manager (no name given)');
+    if(c.general){
+      html+='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;margin:8px 0;font-size:12px;color:#92400e;line-height:1.6;">'
+        +'<strong>General letter — for multiple companies.</strong> Name no employer. '
+        +'Leave <em>[Company Name]</em> as a visible blank they can fill in per application, '
+        +'and keep the praise about the role, not the company.</div>';
+    }
+    html+=row('Company', c.general ? 'GENERAL — no company named' : c.company);
+    html+=row('Addressed to', c.general ? 'Dear Hiring Manager' : (c.addressedTo||'Hiring Manager (no name given)'));
     html+=row('Saw job on', c.source);
     html+=row('Current role', c.currentRole);
     html+=row('Experience', c.years);

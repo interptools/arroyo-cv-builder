@@ -1464,8 +1464,15 @@
             <input type="text" id="cl-position" placeholder="e.g. Customer Service Representative, Nurse, Engineer">
           </div>
           <div class="field">
-            <label>Target Company Name <span style="color:#ef4444">*</span></label>
+            <label>Target Company Name <span style="color:#ef4444" id="cl-company-req">*</span></label>
             <input type="text" id="cl-company" placeholder="e.g. Accenture, St. Luke's Medical Center, SM Retail">
+            <span class="field-hint" id="cl-company-hint" style="display:none">Not needed for a general letter.</span>
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:500">
+              <input type="checkbox" id="cl-general" onchange="onClAddonGeneralChange()" style="width:18px;height:18px;accent-color:#1a2744;cursor:pointer">
+              <span>Send to several companies — write it general-purpose</span>
+            </label>
           </div>
           <div class="field">
             <label>Why do you want this job? <span style="color:#ef4444">*</span></label>
@@ -1684,11 +1691,20 @@
         <div><h2>The Job You're Applying For</h2><p>The letter is written specifically for this role</p></div>
       </div>
       <div class="card-body">
+        <label id="c-general-box" style="display:flex;align-items:flex-start;gap:11px;cursor:pointer;background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+          <input type="checkbox" id="c-general" onchange="onClGeneralChange()" style="width:19px;height:19px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
+          <div style="font-size:12px;color:#1a2744;line-height:1.65">
+            <strong style="font-size:12.5px">I'll send this to several companies</strong><br>
+            <span style="color:#6b7280">We'll write it without naming one employer, and leave a clearly marked blank
+            for the company name so you can fill it in for each application.</span>
+          </div>
+        </label>
         <div class="field-row">
           <div class="field"><label>Target Position <span class="req">*</span></label>
             <input type="text" id="c-position" placeholder="e.g. Customer Service Representative"></div>
-          <div class="field"><label>Target Company <span class="req">*</span></label>
-            <input type="text" id="c-company" placeholder="e.g. Accenture"></div>
+          <div class="field"><label>Target Company <span class="req" id="c-company-req">*</span></label>
+            <input type="text" id="c-company" placeholder="e.g. Accenture">
+            <span class="field-hint" id="c-company-hint" style="display:none">Not needed for a general letter.</span></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Addressed To</label>
@@ -2950,6 +2966,24 @@ function onClConsent(){
   box.style.background  = on ? '#f0fdf4' : '#fffbeb';
 }
 
+// A general letter names no employer, so the company field stops being required
+// and the addressee falls back to "Hiring Manager".
+function onClGeneralChange(){
+  const on = document.getElementById('c-general').checked;
+  document.getElementById('c-company-req').style.display  = on ? 'none' : '';
+  document.getElementById('c-company-hint').style.display = on ? '' : 'none';
+  document.getElementById('c-company').placeholder = on ? 'Leave blank' : 'e.g. Accenture';
+  const box = document.getElementById('c-general-box');
+  box.style.borderColor = on ? '#c8a84b' : 'var(--gray-light)';
+  box.style.background  = on ? '#fffbeb' : 'var(--off-white)';
+}
+
+function onClAddonGeneralChange(){
+  const on = document.getElementById('cl-general').checked;
+  document.getElementById('cl-company-req').style.display  = on ? 'none' : '';
+  document.getElementById('cl-company-hint').style.display = on ? '' : 'none';
+}
+
 const cVal = id => document.getElementById(id).value.trim();
 
 function collectCoverLetter(){
@@ -2975,6 +3009,7 @@ function collectCoverLetter(){
       fullName:    cVal('c-name'),
       position:    cVal('c-position'),
       company:     cVal('c-company'),
+      general:     document.getElementById('c-general').checked,
       addressedTo: cVal('c-manager'),
       source:      cVal('c-source'),
       reason:      cVal('c-reason'),
@@ -3004,7 +3039,8 @@ function validateCoverLetter(d){
     return 'Please enter a valid email address.';
   if(!d.personal.mobile) return 'Please enter your mobile number.';
   if(!c.position)    return 'Please enter the position you are applying for.';
-  if(!c.company)     return 'Please enter the company you are applying to.';
+  if(!c.company && !c.general)
+    return 'Please enter the company you are applying to, or tick "I\'ll send this to several companies".';
   if(!c.reason)      return 'Please tell us why you want this job.';
   if(!c.currentRole) return 'Please enter your current or most recent role.';
   if(!c.strengths)   return 'Please list your top strengths.';
@@ -4632,6 +4668,7 @@ function collectFormData() {
       requested: true,
       position: document.getElementById('cl-position').value.trim(),
       company: document.getElementById('cl-company').value.trim(),
+      general: document.getElementById('cl-general').checked,
       reason: document.getElementById('cl-reason').value.trim(),
       strengths: document.getElementById('cl-strengths').value.trim(),
       tone: document.getElementById('cl-tone').value,
@@ -4808,7 +4845,7 @@ async function submitForm() {
   }
   if (coverLetterSelected) {
     if (!document.getElementById('cl-position').value.trim()) { showNotif('Please enter your target position for the cover letter.', true); return; }
-    if (!document.getElementById('cl-company').value.trim()) { showNotif('Please enter the target company name for the cover letter.', true); return; }
+    if (!document.getElementById('cl-company').value.trim() && !document.getElementById('cl-general').checked) { showNotif('Please enter the target company, or tick "Send to several companies".', true); return; }
     if (!document.getElementById('cl-reason').value.trim()) { showNotif('Please tell us why you want this job for the cover letter.', true); return; }
   }
   if (resignAddonSelected) {
