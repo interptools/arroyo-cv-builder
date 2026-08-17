@@ -2480,13 +2480,19 @@ function viewSubmission(idx){
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
   // Cover letter generator — always visible, pre-filled from customer data if paid add-on
-  const clPos = s.coverLetter?.position || '';
-  const clCo  = s.coverLetter?.company  || '';
-  const clWhy = s.coverLetter?.reason   || '';
-  const clStr = s.coverLetter?.strengths|| '';
-  const clTone= s.coverLetter?.tone     || 'professional';
-  const clGen = s.coverLetter?.generated|| '';
-  const clBadge = s.coverLetter?.requested ? '<span style="margin-left:8px;font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:700;">💳 Paid Add-on</span>' : '';
+  // Two record shapes feed this: `coverLetter` on a CV order and `coverLetterOnly`
+  // on a standalone one. Fall through both, or a standalone order opens the
+  // generator blank and you retype what the customer already told you.
+  const clSrc = (s.serviceType === 'coverLetter') ? (s.coverLetterOnly || {}) : (s.coverLetter || {});
+  const clPos = clSrc.position  || '';
+  const clCo  = clSrc.company   || '';
+  const clIsGeneral = !!clSrc.general;
+  const clWhy = clSrc.reason    || '';
+  const clStr = clSrc.strengths || '';
+  const clTone= clSrc.tone      || 'professional';
+  const clGen = clSrc.generated || '';
+  const clBadge = (s.coverLetter?.requested || s.serviceType === 'coverLetter')
+    ? '<span style="margin-left:8px;font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:700;">💳 Paid</span>' : '';
   html+=`<div class="info-group"><h4>✉️ Cover Letter Generator${clBadge}</h4>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div>
@@ -2495,7 +2501,11 @@ function viewSubmission(idx){
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Company *</label>
-        <input id="clCompany" type="text" value="${clCo}" placeholder="e.g. ABC Corporation" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <input id="clCompany" type="text" value="${clCo}" placeholder="${clIsGeneral?'Not needed — general letter':'e.g. ABC Corporation'}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:11.5px;color:var(--gray);cursor:pointer;font-weight:600;">
+          <input type="checkbox" id="clGeneral" ${clIsGeneral?'checked':''} style="width:16px;height:16px;accent-color:#1a2744;cursor:pointer;">
+          General letter — for multiple companies
+        </label>
       </div>
     </div>
     <div style="margin-bottom:10px;">
@@ -4062,6 +4072,7 @@ async function generateCoverLetter(idx){
   const s=submissions[idx]; const p=s.personal;
   // Read from the live input fields in the modal
   const position=(document.getElementById('clPosition')?.value||'').trim()||targetRoleForAI(s)||'the position';
+  const isGeneral=!!document.getElementById('clGeneral')?.checked;
   const company=(document.getElementById('clCompany')?.value||'').trim()||'the company';
   const strengths=(document.getElementById('clStrengths')?.value||'').trim()||(s.skills||[]).join(', ')||'Not specified';
   const why=(document.getElementById('clWhy')?.value||'').trim()||'Passionate about contributing to the company';
@@ -4075,7 +4086,11 @@ async function generateCoverLetter(idx){
   const printBtn=document.getElementById('printCLBtn');
 
   if(!position||position==='the position'){showNotif('Please enter the target position.',true);return;}
-  if(!company||company==='the company'){showNotif('Please enter the target company.',true);return;}
+  // A general letter names no employer, so the company field is not required.
+  if(!isGeneral && (!company||company==='the company')){
+    showNotif('Enter the target company, or tick "General letter" to write it for multiple companies.',true);
+    return;
+  }
 
   btn.disabled=true;
   label.textContent='Generating...';
@@ -4101,7 +4116,7 @@ async function generateCoverLetter(idx){
 Applicant Details:
 - Name: ${fullName(p)}
 - Applying for: ${position}
-- Target Company: ${company}
+- Target Company: ${isGeneral ? 'NONE — this is a general letter for multiple employers' : company}
 - Education: ${eduLevel} — ${eduSum}
 - Work Experience: ${workSum}
 - Key Strengths/Skills: ${strengths}
@@ -4113,13 +4128,20 @@ FORMAT:
 2. Dear Hiring Manager,
 3. Opening paragraph — state position and strong interest
 4. Body paragraph 1 — education and experience
-5. Body paragraph 2 — strengths and fit for ${company}
+5. Body paragraph 2 — strengths and fit for ${isGeneral ? 'the role' : company}
 6. Closing paragraph — availability and thank you
 7. Sincerely, [full name]
 
 RULES:
 - First person only (I, my, me)
-- No placeholder brackets — use actual values
+${isGeneral
+  ? `- GENERAL LETTER: never name an employer. Write exactly [Company Name] where the
+  company name belongs, leaving it as a visible blank the applicant fills in per application.
+- Praise the ROLE and the applicant's fit for it. Never praise a company's culture,
+  reputation, mission or products — those claims cannot survive being reused.
+- Do not reference a job posting, advertisement, or where the role was seen.
+- Keep it to three paragraphs; a general letter that runs long reads padded.`
+  : `- No placeholder brackets — use actual values`}
 - 280–320 words maximum — must fit on a single A4 page
 - Tone: ${toneDesc}
 - Output ONLY the cover letter — no labels, no explanation`;
@@ -4135,12 +4157,17 @@ RULES:
     if(copyBtn) copyBtn.style.display='inline-flex';
     if(printBtn) printBtn.style.display='inline-flex';
     showNotif('✅ Cover letter generated!');
-    if(!submissions[idx].coverLetter) submissions[idx].coverLetter={};
-    submissions[idx].coverLetter.position=position;
-    submissions[idx].coverLetter.company=company;
-    submissions[idx].coverLetter.strengths=strengths;
-    submissions[idx].coverLetter.reason=why;
-    submissions[idx].coverLetter.tone=tone;
+    // Write back to whichever block this order actually uses. Saving a standalone
+    // order's letter into `coverLetter` would hide it from the generator on
+    // reopen and leave the CSV's Cover Letter Text column empty.
+    const key = (submissions[idx].serviceType === 'coverLetter') ? 'coverLetterOnly' : 'coverLetter';
+    if(!submissions[idx][key]) submissions[idx][key]={};
+    submissions[idx][key].position  = position;
+    submissions[idx][key].company   = isGeneral ? '' : company;
+    submissions[idx][key].general   = isGeneral;
+    submissions[idx][key].strengths = strengths;
+    submissions[idx][key].reason    = why;
+    submissions[idx][key].tone      = tone;
   } else {
     display.value='';
     showNotif('⚠️ All AI services are busy right now. Please wait a moment and try again.', true);
@@ -4154,8 +4181,10 @@ RULES:
 async function saveCoverLetter(idx){
   const text=document.getElementById('coverLetterDisplay')?.value?.trim();
   if(!text){showNotif('Please generate a cover letter first.',true);return;}
-  if(!submissions[idx].coverLetter)submissions[idx].coverLetter={};
-  submissions[idx].coverLetter.generated=text;
+  // Same two-shape problem as the generator: save where the order keeps its data.
+  const key = (submissions[idx].serviceType === 'coverLetter') ? 'coverLetterOnly' : 'coverLetter';
+  if(!submissions[idx][key]) submissions[idx][key]={};
+  submissions[idx][key].generated=text;
   try{
     const ex=await getFullRecord();
     await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
