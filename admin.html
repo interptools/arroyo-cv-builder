@@ -327,6 +327,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="Delivered" onclick="setFilter('Delivered',this)">✅ Delivered <span class="fcount" id="fc_Delivered">0</span></button>
         <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
         <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
+        <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
         <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
         <button class="filter-btn" data-filter="paid" onclick="setFilter('paid',this)">✅ Paid <span class="fcount" id="fc_paid">0</span></button>
         <div style="flex:1;min-width:10px;"></div>
@@ -992,6 +993,7 @@ function renderSubmissions(){
     f==='all' ? true
     : f==='coverLetter' ? !!s.coverLetter?.requested
     : f==='seaman' ? s.eduLevel==='seaman'
+    : f==='resignation' ? s.serviceType==='resignation'
     : f==='unpaid' ? !isPaid(s)
     : f==='paid'   ? isPaid(s)
     : s.status===f;
@@ -999,7 +1001,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','unpaid','paid'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','resignation','unpaid','paid'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -1043,7 +1045,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -1061,6 +1063,7 @@ function renderSubmissions(){
     const ri=submissions.indexOf(s);
     const p=s.personal;
     const hasCL=s.coverLetter?.requested;
+    const isRes=s.serviceType==='resignation';
     const h=hoursWaiting(s);
     const open=s.status!=='Delivered'&&s.status!=='Done';
     const whenCls = open&&h>72 ? ' late' : open&&h>24 ? ' warn' : '';
@@ -1069,8 +1072,8 @@ function renderSubmissions(){
       <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${fullName(p)}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
-        ${(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
+        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
+        ${isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
         <div class="sub-mail">${p.email||'No email on file'}</div>
       </td>
 
@@ -1086,8 +1089,10 @@ function renderSubmissions(){
 
       <td data-label="Order">
         <div class="sub-price">${peso(orderTotal(s))}</div>
-        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${hasCL?'CV + Cover Letter':'CV only'}</div>
-        <div style="margin-top:4px;"><span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span></div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${isRes?'Resignation Letter':hasCL?'CV + Cover Letter':'CV only'}</div>
+        <div style="margin-top:4px;">${isRes
+          ? `<span class="sub-tmpl" style="${s.resignation?.noticeType==='immediate'?'background:#fef2f2;color:#991b1b;border-color:#fecaca;':''}">${s.resignation?.noticeType==='immediate'?'⚠️ Immediate':s.resignation?.noticeType==='shortened'?'Short notice':'30-day notice'}</span>`
+          : `<span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span>`}</div>
       </td>
 
       <td data-label="Payment">
@@ -1100,7 +1105,7 @@ function renderSubmissions(){
       <td data-label="Actions">
         <div class="sub-actions">
           <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
-          <button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>
+          ${isRes?'':`<button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>`}
           ${s.status==='Delivered'
             ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
             : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
