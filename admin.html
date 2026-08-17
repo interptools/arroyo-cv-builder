@@ -638,7 +638,17 @@ const fullName = p => {
   if (mid && mid.length === 1) mid += '.';
   return [p.firstName, mid, p.lastName].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
 };
-const orderTotal = s => BASE_PRICE + (s?.coverLetter?.requested ? CL_PRICE : 0);
+// Resignation letters are a separate service with their own price, so they can't
+// use the CV base price. The stored amountDue is authoritative — it records what
+// the customer was actually quoted, which survives later price changes.
+const orderTotal = s => {
+  if(s?.serviceType === 'resignation'){
+    return (typeof s.amountDue === 'number' && !isNaN(s.amountDue))
+      ? s.amountDue
+      : (s?.resignation?.fee || 0);
+  }
+  return BASE_PRICE + (s?.coverLetter?.requested ? CL_PRICE : 0);
+};
 
 const ADMIN_USER = 'admin';
 // ⚠️ SECURITY: Anthropic API key removed from client-side code.
@@ -655,6 +665,30 @@ let submissions = [], selectedTemplate = 1, currentSubmission = null, qrBase64 =
 // BOOTSTRAP_HASH is the first-run password ("Arroyo2024!"). Change it from the
 // Change Password screen immediately; after that the cloud hash takes over.
 const BOOTSTRAP_HASH = '1bec7566ce1361a3460878fe26d201fde4e141fbc4992c006934c2d8d3cb9fd3';
+
+// ── SESSION ──────────────────────────────────────────────────────────────────
+// Without this, login state lived only in the DOM, so any refresh (or an
+// accidental swipe-back on mobile) dumped you at the login screen. sessionStorage
+// is deliberate: it survives refresh but is wiped when the tab or browser closes,
+// so walking away from a shared machine doesn't leave the panel open. The TTL is
+// a second guard for the case where a tab is left open all day.
+const SESSION_KEY = 'arroyo_admin_session_v1';
+const SESSION_TTL = 8 * 60 * 60 * 1000;  // 8 hours
+
+function startSession(){
+  try{ sessionStorage.setItem(SESSION_KEY, JSON.stringify({exp: Date.now() + SESSION_TTL})); }
+  catch(e){ /* private mode — session just won't survive refresh */ }
+}
+function endSession(){
+  try{ sessionStorage.removeItem(SESSION_KEY); }catch(e){}
+}
+function sessionValid(){
+  try{
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    if(!s || !s.exp || Date.now() > s.exp){ endSession(); return false; }
+    return true;
+  }catch(e){ return false; }
+}
 
 let cloudHash      = null;   // SHA-256 from the cloud, if set
 let legacyPlain    = null;   // old plaintext value, for one-time migration
@@ -767,11 +801,10 @@ async function doLogin(){
   }
 
   if(u===ADMIN_USER && await verifyPassword(p)){
-    document.getElementById('loginOverlay').style.display='none';
-    document.getElementById('adminApp').style.display='block';
+    startSession();
+    enterApp();
     errEl.style.display='none';
     document.getElementById('loginPass').value='';
-    loadData();
     if(usingBootstrap){
       setTimeout(()=>showNotif('⚠️ You are using the default password. Please change it now.',true),900);
     }
@@ -780,12 +813,30 @@ async function doLogin(){
     errEl.style.display='block';
   }
 }
+// Reveals the panel and loads data. Shared by a fresh login and by a session
+// restored after refresh, so the two paths can't drift apart.
+function enterApp(){
+  document.getElementById('loginOverlay').style.display='none';
+  document.getElementById('adminApp').style.display='block';
+  loadData();
+}
+
 function doLogout(){
+  endSession();
   document.getElementById('loginOverlay').style.display='flex';
   document.getElementById('adminApp').style.display='none';
   document.getElementById('loginUser').value='';
   document.getElementById('loginPass').value='';
 }
+
+// Runs on every page load. A valid session skips the login screen; the password
+// hash is still refreshed from the cloud so a password changed on another device
+// invalidates this one on its next refresh.
+window.addEventListener('DOMContentLoaded', () => {
+  if(!sessionValid()) return;
+  enterApp();
+  loadPasswordFromCloud();
+});
 
 function toggleSidebar(){
   const sb=document.getElementById('mainSidebar');
@@ -1535,7 +1586,10 @@ function viewSubmission(idx){
   const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
   let html='';
   const hasCL=s.coverLetter?.requested;
-  const totalPrice=hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
+  const isResign=s.serviceType==='resignation';
+  const totalPrice=isResign
+    ? `${peso(orderTotal(s))} (Resignation Letter)`
+    : hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
   if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
   // A missing photo on a delivered order is expected, not a fault — say so, or
   // you'll go looking for a bug that isn't there.
@@ -1545,6 +1599,48 @@ function viewSubmission(idx){
   if(hasCL) html+='<span class="cl-badge">📝 Cover Letter Add-on</span>';
   html+='<span style="font-size:12px;font-weight:700;color:#10b981;background:#f0fdf4;padding:3px 10px;border-radius:20px;border:1px solid #86efac;">'+totalPrice+'</span>';
   html+='</div>';
+
+  // Resignation orders carry a completely different field set from CVs. Without
+  // this block the admin shows a name and nothing else — every detail needed to
+  // write the letter would be invisible.
+  if(isResign){
+    const r=s.resignation||{};
+    const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const REASONS={'new-opportunity':'Accepted a new job','career-growth':'Career growth / change of field','further-studies':'Going back to school','personal':'Personal or family reasons','health':'Health reasons','relocation':'Relocating / moving abroad','business':'Starting own business','unstated':'Prefers not to state'};
+    const TONES={grateful:'Warm & grateful',professional:'Professional & neutral',brief:'Very brief, but polite'};
+    const NTYPES={standard:'Standard — 30 days',shortened:'Shortened — waiver requested',immediate:'IMMEDIATE — just cause'};
+    const CAUSES={insult:'Serious insult to honor and person',inhuman:'Inhuman or unbearable treatment',crime:'Crime or offense against employee/family','analogous':'Analogous serious cause','health-danger':'Health or safety at risk'};
+    const row=(k,v)=>'<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--gray-light);font-size:12.5px;"><div style="min-width:130px;color:var(--gray);font-weight:600;">'+k+'</div><div style="flex:1;color:var(--text);">'+esc(v||'—')+'</div></div>';
+
+    if(r.noticeType==='immediate'){
+      html+='<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:13px 15px;margin-bottom:16px;font-size:12px;color:#991b1b;line-height:1.65;">'
+        + '<strong style="display:block;margin-bottom:3px;">⚠️ Immediate resignation for just cause</strong>'
+        + 'Ground: <strong>'+esc(CAUSES[r.justCause]||r.justCause||'not specified')+'</strong>. '
+        + 'Write this one factually and without accusations — it may be read by a labor arbiter. '
+        + 'Consider mentioning that DOLE regional offices offer free consultations.'
+        + '</div>';
+    } else if(r.noticeType==='shortened'){
+      html+='<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 15px;margin-bottom:16px;font-size:12px;color:#92400e;line-height:1.65;">'
+        + '<strong style="display:block;margin-bottom:3px;">Shortened notice — '+(r.noticeDays!=null?r.noticeDays:'?')+' days</strong>'
+        + 'The letter should formally request a waiver of the remaining notice period.'
+        + '</div>';
+    }
+
+    html+='<div style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;margin-bottom:16px;">';
+    html+='<div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✉️ Resignation Letter Details</div>';
+    html+=row('Employee', r.fullName);
+    html+=row('Position', r.position);
+    html+=row('Company', r.company);
+    html+=row('Addressed to', r.addressedTo ? (r.addressedTo+(r.addresseeTitle?' — '+r.addresseeTitle:'')) : 'HR Department (no name given)');
+    html+=row('Tenure', r.tenure);
+    html+=row('Last day', (r.lastDay||'—')+(r.noticeDays!=null?"  ("+r.noticeDays+" days' notice)":''));
+    html+=row('Type', NTYPES[r.noticeType]||r.noticeType||'standard');
+    if(r.justCause) html+=row('Ground', CAUSES[r.justCause]||r.justCause);
+    html+=row('Reason', REASONS[r.reason]||r.reason);
+    html+=row('Tone', TONES[r.tone]||r.tone);
+    html+='<div style="padding:9px 0 0;font-size:12.5px;"><div style="color:var(--gray);font-weight:600;margin-bottom:4px;">Customer notes</div><div style="background:#fff;border:1px solid var(--gray-light);border-radius:8px;padding:10px 12px;line-height:1.65;white-space:pre-wrap;">'+esc(r.notes||'—')+'</div></div>';
+    html+='</div>';
+  }
   // Consent badge — fully safe, no crashes on missing fields
   try {
     if(s.dataConsent && s.dataConsent.agreed){

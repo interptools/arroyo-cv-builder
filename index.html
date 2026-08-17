@@ -417,6 +417,88 @@
     line-height: 1.25; margin-bottom: 10px;
   }
   .start-sub { font-size: 14px; color: var(--gray); line-height: 1.7; max-width: 430px; margin: 0 auto 26px; }
+  /* SECONDARY SERVICE ENTRY (resignation letter) */
+  .alt-service { margin-top: 20px; }
+  .alt-divider { position: relative; text-align: center; margin-bottom: 16px; }
+  .alt-divider::before {
+    content: ''; position: absolute; top: 50%; left: 0; right: 0;
+    height: 1px; background: var(--gray-light);
+  }
+  .alt-divider span {
+    position: relative; background: var(--white); padding: 0 14px;
+    font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 1.2px;
+  }
+  .alt-service-btn {
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    background: var(--off-white); border: 1.5px solid var(--gray-light);
+    border-radius: 12px; padding: 15px 18px; cursor: pointer;
+    font-family: 'Inter', sans-serif; text-align: left;
+    transition: border-color .2s, background .2s, transform .15s;
+  }
+  .alt-service-btn:hover { border-color: var(--navy); background: var(--white); transform: translateY(-1px); }
+  .alt-service-btn .as-emoji { font-size: 22px; flex-shrink: 0; }
+  .alt-service-btn .as-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .alt-service-btn .as-title { font-size: 13.5px; font-weight: 700; color: var(--navy); }
+  .alt-service-btn .as-sub { font-size: 11.5px; color: var(--gray); line-height: 1.5; }
+  .alt-service-btn .as-arrow { color: var(--gold); font-size: 17px; flex-shrink: 0; }
+
+  /* NOTICE-PERIOD METER */
+  #noticeBox { display: none; margin-top: 14px; border-radius: 10px; padding: 13px 15px;
+    font-size: 12.5px; line-height: 1.65; border: 1px solid; }
+  #noticeBox strong { display: block; font-size: 13px; margin-bottom: 3px; }
+  #noticeBox.ok   { background: #f0fdf4; border-color: #a7f3d0; color: #065f46; }
+  #noticeBox.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  #noticeBox.bad  { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+  .resign-price {
+    display: inline-block; background: rgba(200,168,75,0.15);
+    border: 1px solid rgba(200,168,75,0.45); color: #8a6d1f;
+    font-size: 12.5px; font-weight: 700; padding: 6px 16px; border-radius: 999px;
+  }
+
+  /* LIVE LETTER PREVIEW */
+  .letter-paper {
+    background: #fff;
+    border: 1px solid var(--gray-light);
+    border-radius: 4px;
+    padding: 30px 32px;
+    font-family: 'Times New Roman', Times, serif;
+    color: #1a1a1a;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  @media (max-width: 540px) { .letter-paper { padding: 22px 20px; font-size: 12.5px; } }
+  .letter-paper .lp-date { margin-bottom: 20px; }
+  .letter-paper .lp-to { margin-bottom: 18px; }
+  .letter-paper .lp-strong { font-weight: bold; }
+  .letter-paper .lp-salut { margin-bottom: 14px; }
+  .letter-paper .lp-subject { font-weight: bold; letter-spacing: 0.3px; margin-bottom: 14px; }
+  .letter-paper .lp-para { margin-bottom: 12px; text-align: justify; }
+  .letter-paper .lp-locked { position: relative; }
+  .letter-paper .lp-blur {
+    color: #9aa0a8;
+    filter: blur(3.2px);
+    user-select: none;
+    pointer-events: none;
+  }
+  .letter-paper .lp-lock-note {
+    background: var(--off-white);
+    border: 1px solid var(--gray-light);
+    border-radius: 8px;
+    padding: 13px 15px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--gray);
+    margin-top: 6px;
+  }
+  .letter-paper .lp-lock-note strong {
+    display: block;
+    color: var(--navy);
+    font-size: 12.5px;
+    margin-bottom: 3px;
+  }
+
   .start-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
   @media (max-width: 520px) { .start-choices { grid-template-columns: 1fr; } }
   .start-btn {
@@ -855,6 +937,21 @@
       </div>
 
       <p class="start-note">Either way you can edit everything before submitting.</p>
+
+      <!-- Secondary service. Kept visually quieter than the two main choices so
+           it reads as "also available" rather than a third thing to decide
+           between — most visitors are here for a CV. -->
+      <div class="alt-service">
+        <div class="alt-divider"><span>or</span></div>
+        <button class="alt-service-btn" onclick="showResignPage()">
+          <span class="as-emoji">✉️</span>
+          <span class="as-text">
+            <span class="as-title">I just need a resignation letter</span>
+            <span class="as-sub">Leaving your job? We'll write it properly — <span id="resign-btn-price">₱50</span></span>
+          </span>
+          <span class="as-arrow">→</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1374,6 +1471,304 @@
     </p>
   </div>
 
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PAGE 1B: RESIGNATION LETTER
+       A separate service, not a CV add-on — someone resigning shouldn't have to
+       fill in education history and references to get one letter. Shares the
+       card/field styling so it doesn't read as a bolted-on second product.
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="page" id="resignPage">
+
+    <button class="back-to-start" onclick="backToStart()">← Back</button>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">✉️</div>
+        <div>
+          <h2>Resignation Letter</h2>
+          <p>Professionally written, delivered in Word and PDF</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px">
+          Leave your job the right way. We'll write a respectful letter that protects your
+          clearance, your final pay, and your reference.
+        </p>
+        <span class="resign-price" id="resign-hdr-price">₱50 · ready within 24 hours</span>
+      </div>
+    </div>
+
+    <!-- YOUR DETAILS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div>
+          <h2>Your Details</h2>
+          <p>So we know who the letter is from and where to send it</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" id="r-name" placeholder="Juan D. Dela Cruz">
+          </div>
+          <div class="field">
+            <label>Mobile Number <span class="req">*</span></label>
+            <input type="tel" id="r-mobile" placeholder="09XX XXX XXXX">
+          </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>Email Address <span class="req">*</span></label>
+            <input type="email" id="r-email" placeholder="juan@email.com">
+            <span class="field-hint">We'll send the finished letter here.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THE JOB -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🏢</div>
+        <div>
+          <h2>The Job You're Leaving</h2>
+          <p>These go into the opening line of the letter</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Your Position <span class="req">*</span></label>
+            <input type="text" id="r-position" placeholder="Customer Service Representative">
+          </div>
+          <div class="field">
+            <label>Company Name <span class="req">*</span></label>
+            <input type="text" id="r-company" placeholder="ABC Solutions Inc.">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Addressed To</label>
+            <input type="text" id="r-manager" placeholder="Ms. Maria Santos">
+            <span class="field-hint">Leave blank to address it to HR.</span>
+          </div>
+          <div class="field">
+            <label>Their Title</label>
+            <input type="text" id="r-managertitle" placeholder="Operations Manager">
+          </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>How Long Have You Been With Them?</label>
+            <input type="text" id="r-tenure" placeholder="e.g. 3 years, or since March 2022">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LAST DAY -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📅</div>
+        <div>
+          <h2>Your Last Day</h2>
+          <p>How much notice you're giving changes the letter</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row full">
+          <div class="field">
+            <label>Type of Resignation <span class="req">*</span></label>
+            <select id="r-noticetype" onchange="onNoticeTypeChange()">
+              <option value="standard">Standard — I'm giving 30 days' notice</option>
+              <option value="shortened">Shorter notice — my employer has agreed, or I'm requesting it</option>
+              <option value="immediate">Immediate — I have a just cause under the Labor Code</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Shown only for an immediate resignation. The specific ground matters:
+             it's what makes the resignation lawful without notice. -->
+        <div class="field-row full" id="justCauseRow" style="display:none">
+          <div class="field">
+            <label>Ground for Immediate Resignation <span class="req">*</span></label>
+            <select id="r-justcause">
+              <option value="">— Select the ground that applies —</option>
+              <option value="insult">Serious insult to my honor and person by my employer</option>
+              <option value="inhuman">Inhuman or unbearable treatment</option>
+              <option value="crime">A crime or offense committed against me or my family</option>
+              <option value="analogous">Another serious cause of the same kind</option>
+              <option value="health-danger">My health or safety is at risk if I stay</option>
+            </select>
+            <span class="field-hint">We'll state the ground plainly and without accusations — the wording matters if this is ever reviewed.</span>
+          </div>
+        </div>
+
+        <div class="field-row full">
+          <div class="field">
+            <label id="lastDayLabel">Intended Last Day of Work <span class="req">*</span></label>
+            <input type="date" id="r-lastday" onchange="checkNotice()">
+          </div>
+        </div>
+        <div id="noticeBox"></div>
+      </div>
+    </div>
+
+    <!-- TONE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎯</div>
+        <div>
+          <h2>How It Should Sound</h2>
+          <p>This letter stays in your 201 file permanently</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Reason for Leaving <span class="req">*</span></label>
+            <select id="r-reason">
+              <option value="">— Select a reason —</option>
+              <option value="new-opportunity">Accepted a new job opportunity</option>
+              <option value="career-growth">Career growth / change of field</option>
+              <option value="further-studies">Going back to school</option>
+              <option value="personal">Personal or family reasons</option>
+              <option value="health">Health reasons</option>
+              <option value="relocation">Relocating / moving abroad</option>
+              <option value="business">Starting my own business</option>
+              <option value="unstated">Prefer not to state a reason</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Tone of the Letter <span class="req">*</span></label>
+            <select id="r-tone">
+              <option value="grateful">Warm &amp; grateful</option>
+              <option value="professional">Professional &amp; neutral</option>
+              <option value="brief">Very brief, but polite</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+            <label>Anything You'd Like Included?</label>
+            <textarea id="r-notes" rows="3" placeholder="e.g. Offer to train my replacement. Thank my team leader by name. Mention I'll finish the pending audit before I go."></textarea>
+          </div>
+        </div>
+        <div id="ventWarn" style="display:none;margin-top:4px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:12px 14px;font-size:12px;color:#92400e;line-height:1.65">
+          <strong>A quick note:</strong> we'll leave complaints out of the letter. A resignation
+          letter stays in your file permanently and gets read by future HR when they verify your
+          employment — anything negative in it can cost you the reference. Raise concerns in the
+          exit interview instead, where it isn't part of the written record.
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE PREVIEW
+         Updates as they type. Shows the heading block and opening paragraph in
+         full so they can check their own details are correct, then fades the
+         body — enough to prove the quality without giving the letter away. -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">👁️</div>
+        <div>
+          <h2>Preview</h2>
+          <p>This updates as you fill in the form</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="letter-paper">
+          <div id="lp-date" class="lp-date">—</div>
+          <div class="lp-to">
+            <div id="lp-recipient" class="lp-strong">The Human Resources Department</div>
+            <div id="lp-recipient-title"></div>
+            <div id="lp-company">—</div>
+          </div>
+          <div id="lp-salutation" class="lp-salut">Dear Sir/Madam:</div>
+          <div id="lp-subject" class="lp-subject">RE: RESIGNATION</div>
+          <p id="lp-body1" class="lp-para">—</p>
+
+          <div class="lp-locked">
+            <p class="lp-para lp-blur">The past three years with the company have shaped how I work. I joined with little frontline experience, and the coaching I received here taught me to handle difficult accounts with patience and sound judgment.</p>
+            <p class="lp-para lp-blur">I want to leave the role in good order. I am glad to document my open accounts and to assist in training my replacement during my remaining time.</p>
+            <div class="lp-lock-note">
+              <strong>🔒 Your full letter is written after payment</strong>
+              The rest is written for you personally — including a proper closing, your signature block, and an acknowledgement line for HR to sign and date.
+            </div>
+          </div>
+        </div>
+        <p style="font-size:11.5px;color:var(--gray);margin-top:10px;line-height:1.6">
+          Delivered as a formatted Word and PDF file, ready to print.
+        </p>
+      </div>
+    </div>
+
+    <label id="r-consent-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <input type="checkbox" id="r-consent" onchange="onResignConsent()" style="width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
+      <div style="font-size:12px;color:#1a2744;line-height:1.7;font-family:Inter,sans-serif">
+        <strong style="font-size:13px">I agree to the Data Privacy Terms</strong><br>
+        I give my consent to <strong>Arroyo CV Builder</strong> to collect and process the
+        information I provide here — my name, contact details, and employment details — for the
+        sole purpose of writing my resignation letter. My data will not be shared with any third
+        party and will only be used to deliver the requested service.
+      </div>
+    </label>
+
+    <button class="submit-btn" id="rSubmitBtn" onclick="submitResignation()" disabled style="opacity:0.5;cursor:not-allowed">
+      <span id="rSubmitLabel">Please agree to the Data Privacy Terms above</span>
+      <span id="rSubmitSpinner" class="spinner hidden"></span>
+    </button>
+
+    <p class="footer-note">
+      This is a letter-writing service, not legal advice. Check your contract — some employers
+      require longer than 30 days' notice.<br>
+      <strong>Contact: Reymar Arroyo</strong> · 09063964052 · areymar36@gmail.com
+    </p>
+  </div>
+
+  <!-- PAGE 1C: RESIGNATION CONFIRMATION -->
+  <div class="page" id="resignConfirmPage">
+    <div class="confirm-card">
+      <div class="confirm-icon">✅</div>
+      <h2>Request Received</h2>
+      <p>Your resignation letter is being prepared. We'll email it to you in Word and PDF format once payment is confirmed.</p>
+
+      <div id="r-order-summary" style="background:#f7f8fc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:left">
+        <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
+        <div style="background:#1a2744;border-radius:8px;padding:11px 14px;margin-bottom:12px;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#c8a84b;margin-bottom:3px">Your reference number</div>
+          <div id="r-confirm-ref" style="font-size:17px;font-weight:900;color:#fff;letter-spacing:1px">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:4px">Save this — you can check your status any time on the home page.</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#6b7280">Resignation Letter</span>
+          <span id="r-sum-price" style="font-weight:600;color:#1a2744">₱50</span>
+        </div>
+        <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
+          <span style="font-weight:700;color:#1a2744">Total</span>
+          <span id="r-confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱50</span>
+        </div>
+      </div>
+
+      <div class="contact-box">
+        <h3>📞 Contact Details</h3>
+        <div class="contact-item">
+          <div class="ci-icon">📱</div>
+          <div><strong>09063964052</strong><br><span style="font-size:12px;color:#6b7280">Reymar Arroyo — GCash</span></div>
+        </div>
+        <div class="contact-item">
+          <div class="ci-icon">✉️</div>
+          <div><strong>areymar36@gmail.com</strong></div>
+        </div>
+      </div>
+
+      <p style="font-size:12px;color:#6b7280;margin-top:16px;line-height:1.7">
+        Send your proof of payment to the number above, together with your reference number.
+      </p>
+    </div>
+  </div>
+
   <!-- PAGE 2: CONFIRMATION -->
   <div class="page" id="confirmPage">
     <div class="confirm-card">
@@ -1516,7 +1911,12 @@ window.onload = () => {
   // Initialise EmailJS once — do NOT call emailjs.init() inside individual send functions
   if (typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
 
-  // Duplicate-submission guard runs first — may replace the whole form
+  // Prices must be written before the guard can return early — the duplicate
+  // screen now offers the resignation service, and that path would otherwise
+  // never run applyPricing and could show a stale figure.
+  applyPricing();
+
+  // Duplicate-submission guard — may replace the whole form
   if (checkAlreadySubmitted()) return;
 
   addEduEntry();
@@ -1525,7 +1925,6 @@ window.onload = () => {
   loadLatestQR();
   renderTemplateSwatches();
   initCharCounters();
-  applyPricing();
   offerDraftRestore();
   startAutosave();
 };
@@ -1540,6 +1939,13 @@ function applyPricing() {
   set('sum-cl-price',    peso(CL_PRICE));
   set('confirm-total',   peso(BASE_PRICE));
   set('cl-total-label',  `${peso(total)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`);
+
+  // Resignation letter — runs on load so the start-page button is correct even
+  // if the visitor never opens the resignation form.
+  set('resign-btn-price',   peso(RESIGNATION_PRICE));
+  set('resign-hdr-price',   `${peso(RESIGNATION_PRICE)} · ready within 24 hours`);
+  set('r-sum-price',        peso(RESIGNATION_PRICE));
+  set('r-confirm-total',    peso(RESIGNATION_PRICE));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1705,6 +2111,10 @@ function checkAlreadySubmitted() {
         If you really need to place a <strong>second, different order</strong>, you can start a new form below.
       </p>
       <button class="new-submission-btn" onclick="forceNewSubmission()">＋ Submit Another Request Anyway</button>
+      <p style="font-size:12.5px;margin-top:14px;">
+        Looking for a <strong>resignation letter</strong> instead? That's a separate service.
+      </p>
+      <button class="new-submission-btn" onclick="showResignPage()" style="margin-top:8px;">✉️ Order a Resignation Letter</button>
     </div>`;
   return true;
 }
@@ -1936,7 +2346,424 @@ function startWithScan(){
 
 function startFresh(){ showFormPage(); }
 
-function backToStart(){ showStartPage(); }
+function backToStart(){
+  document.getElementById('resignPage').classList.remove('active');
+  showStartPage();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RESIGNATION LETTER SERVICE
+// Standalone from the CV flow — different customer need, different record shape.
+// Shares showNotif, the styling, and the same JSONBin record array.
+// ══════════════════════════════════════════════════════════════════════════════
+// Change the price here only — every label on the page reads from this.
+const RESIGNATION_PRICE = 50;
+const NOTICE_DAYS = 30;   // Art. 300, Labor Code of the Philippines
+
+function showResignPage(){
+  document.getElementById('startPage').classList.remove('active');
+  document.getElementById('formPage').classList.remove('active');
+  document.getElementById('resignPage').classList.add('active');
+  const bar = document.getElementById('stepsBar');
+  if(bar) bar.style.display = 'none';   // the CV step bar doesn't apply here
+  initResignForm();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+let resignInited = false;
+function initResignForm(){
+  if(resignInited) return;
+  resignInited = true;
+  const el = document.getElementById('r-lastday');
+  const t = new Date();
+  el.min = t.toISOString().split('T')[0];              // can't resign in the past
+  const suggested = new Date(t.getTime() + NOTICE_DAYS * 86400000);
+  el.value = suggested.toISOString().split('T')[0];    // default to a compliant date
+  checkNotice();
+  watchResignNotes();
+  wireResignPreview();
+  renderLetterPreview();
+}
+
+// ─── LIVE LETTER PREVIEW ──────────────────────────────────────────────────────
+// Built from a template, not the AI — it has to be instant and free, and it runs
+// before the customer has paid. The opening paragraph is shown in full so they
+// can verify their own details; the rest stays blurred.
+const PH_MONTHS = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December'];
+
+function longDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return '';
+  return `${d.getDate()} ${PH_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function wireResignPreview(){
+  ['r-name','r-position','r-company','r-manager','r-managertitle','r-tenure',
+   'r-lastday','r-reason','r-tone','r-noticetype','r-justcause'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener('input',  renderLetterPreview);
+    el.addEventListener('change', renderLetterPreview);
+  });
+}
+
+function renderLetterPreview(){
+  const set = (id, txt) => { const el = document.getElementById(id); if(el) el.textContent = txt; };
+
+  const name     = rVal('r-name');
+  const position = rVal('r-position');
+  const company  = rVal('r-company');
+  const manager  = rVal('r-manager');
+  const mtitle   = rVal('r-managertitle');
+  const lastDay  = rVal('r-lastday');
+  const tone     = rVal('r-tone');
+  const days     = resignNoticeDays();
+
+  // Today's date, as it will be typed on the letter.
+  const t = new Date();
+  set('lp-date', `${t.getDate()} ${PH_MONTHS[t.getMonth()]} ${t.getFullYear()}`);
+
+  // Recipient block falls back to HR, which is what the letter will actually say.
+  set('lp-recipient', manager || 'The Human Resources Department');
+  set('lp-recipient-title', manager ? mtitle : '');
+  set('lp-company', company || '[Company name]');
+
+  // Salutation follows whether we have a person or a department.
+  // Philippine convention is honorific + surname ("Dear Ms. Santos:"), so when an
+  // honorific is present we pair it with the LAST word, not the first.
+  let salut = 'Dear Sir/Madam:';
+  if(manager){
+    const parts = manager.split(/\s+/).filter(Boolean);
+    const isHonorific = /^(mr|ms|mrs|miss|dr|engr|atty|sir|madam|maam)\.?$/i.test(parts[0] || '');
+    if(isHonorific && parts.length > 1){
+      salut = `Dear ${parts[0].replace(/\.?$/, '.')} ${parts[parts.length - 1]}:`;
+    } else {
+      salut = `Dear ${manager}:`;
+    }
+  }
+  set('lp-salutation', salut);
+
+  set('lp-subject', position
+    ? `RE: RESIGNATION FROM THE POSITION OF ${position.toUpperCase()}`
+    : 'RE: RESIGNATION');
+
+  // Opening paragraph — the one that carries the legal weight.
+  const p = position || '[your position]';
+  const c = company  || '[company name]';
+  let body;
+  if(tone === 'brief'){
+    body = `Please accept this as my formal notice of resignation from the position of ${p} at ${c}`;
+  } else if(tone === 'professional'){
+    body = `Please accept this letter as formal notice of my resignation from the position of ${p} at ${c}`;
+  } else {
+    body = `I am writing to formally tender my resignation as ${p} at ${c}`;
+  }
+
+  if(lastDay && days >= 0){
+    const ntype = document.getElementById('r-noticetype').value;
+    body += (/[.]$/.test(body) ? '' : '.') + ` My last day of work will be ${longDate(lastDay)}`;
+    if(ntype === 'immediate'){
+      body += `, effective immediately, as I am constrained to resign for just cause under `
+            + `Article 300(b) of the Labor Code.`;
+    } else if(ntype === 'shortened'){
+      body += `, and I respectfully request that the balance of the thirty (30) day notice `
+            + `period be waived.`;
+    } else if(days >= NOTICE_DAYS){
+      body += `, which provides the thirty (30) days' written notice required under Article 300 `
+            + `of the Labor Code.`;
+    } else {
+      body += `, and I respectfully request consideration for the shortened notice period.`;
+    }
+  } else {
+    body += `, effective [your last day of work].`;
+  }
+  set('lp-body1', body);
+}
+
+// The most useful thing this form does. Filing short notice is how people lose
+// their clearance and final pay, and most don't learn the 30-day rule until HR
+// tells them after the fact.
+// Article 300 has two separate paths, and conflating them misleads people:
+//   (a) resignation WITHOUT just cause — 30 days' written notice required
+//   (b) resignation WITH just cause     — no notice required at all
+// Treating every short-notice case as deficient is wrong, and would scare off
+// exactly the people with the strongest legal footing.
+function onNoticeTypeChange(){
+  const type = document.getElementById('r-noticetype').value;
+  const jc   = document.getElementById('justCauseRow');
+  const lbl  = document.getElementById('lastDayLabel');
+  const el   = document.getElementById('r-lastday');
+
+  jc.style.display = (type === 'immediate') ? '' : 'none';
+  lbl.innerHTML = (type === 'immediate')
+    ? 'Last Day of Work <span class="req">*</span>'
+    : 'Intended Last Day of Work <span class="req">*</span>';
+
+  // An immediate resignation can be dated today; the others shouldn't default
+  // to a date the customer hasn't thought about.
+  const t = new Date();
+  if(type === 'immediate'){
+    el.value = t.toISOString().split('T')[0];
+  } else if(type === 'standard'){
+    el.value = new Date(t.getTime() + NOTICE_DAYS * 86400000).toISOString().split('T')[0];
+  }
+  checkNotice();
+}
+
+function checkNotice(){
+  const v = document.getElementById('r-lastday').value;
+  const box = document.getElementById('noticeBox');
+  const type = document.getElementById('r-noticetype').value;
+  if(!v){ box.style.display = 'none'; return; }
+
+  const days = resignNoticeDays();
+  box.style.display = 'block';
+
+  if(days < 0){
+    box.className = 'bad';
+    box.innerHTML = '<strong>That date has already passed</strong>'
+      + 'Please pick your last day of work, which should be today or a future date.';
+    renderLetterPreview();
+    return;
+  }
+
+  if(type === 'immediate'){
+    // No notice period is owed here — say so plainly, then flag the real risk,
+    // which is that an unsubstantiated claim gets treated as abandonment.
+    box.className = 'ok';
+    box.innerHTML = '<strong>✓ No notice period required</strong>'
+      + 'Under Article 300(b) of the Labor Code, an employee may resign without serving any '
+      + 'notice when there is just cause. Your letter will state the ground and the effective date.'
+      + '<br><br><strong style="display:inline">Keep your evidence.</strong> Messages, memos, medical '
+      + 'records, incident reports — anything supporting the ground. If the cause can\u2019t be shown later, '
+      + 'the employer may treat the departure as abandonment. If you\u2019re unsure whether your situation '
+      + 'qualifies, DOLE runs free consultations through its regional offices.';
+  } else if(type === 'shortened'){
+    box.className = 'warn';
+    box.innerHTML = '<strong>' + days + ' days\u2019 notice — get the waiver in writing</strong>'
+      + 'An employer can waive the balance of the 30 days, and many do. But a verbal "okay lang" '
+      + 'is worth nothing if payroll disputes it later. Ask HR to confirm by email or on your '
+      + 'letter copy. Your letter will formally request the waiver so there\u2019s a written record either way.';
+  } else if(days >= NOTICE_DAYS){
+    box.className = 'ok';
+    box.innerHTML = '<strong>✓ ' + days + ' days\u2019 notice — you\u2019re covered</strong>'
+      + 'This meets the 30-day written notice required under Article 300(a). Your letter will state '
+      + 'the date clearly so there\u2019s no dispute later.';
+  } else {
+    box.className = 'warn';
+    box.innerHTML = '<strong>⚠ Only ' + days + ' days\u2019 notice</strong>'
+      + 'This is short of the 30 days required when resigning without just cause. Employers can '
+      + 'withhold clearance or deduct from final pay over the unserved days. Two ways to fix it: '
+      + 'move the date out, or switch the option above to <em>Shorter notice</em> and get your '
+      + 'employer to agree in writing.';
+  }
+  renderLetterPreview();
+}
+
+function resignNoticeDays(){
+  const v = document.getElementById('r-lastday').value;
+  if(!v) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  return Math.round((new Date(v + 'T00:00:00') - today) / 86400000);
+}
+
+// Soft nudge if someone starts venting. We don't block it — we just say upfront
+// what we'll do with it, so the delivered letter isn't a surprise.
+function watchResignNotes(){
+  const el = document.getElementById('r-notes');
+  const warn = document.getElementById('ventWarn');
+  const flags = /\b(hate|unfair|toxic|abusive|disrespect|bastos|awful|worst|terrible|harass|underpaid|micromanag|discriminat|bully)/i;
+  el.addEventListener('input', () => {
+    warn.style.display = flags.test(el.value) ? 'block' : 'none';
+  });
+}
+
+function onResignConsent(){
+  const on = document.getElementById('r-consent').checked;
+  const btn = document.getElementById('rSubmitBtn');
+  const label = document.getElementById('rSubmitLabel');
+  const box = document.getElementById('r-consent-label');
+  btn.disabled = !on;
+  label.textContent = on ? 'Submit My Request' : 'Please agree to the Data Privacy Terms above';
+  btn.style.opacity = on ? '1' : '0.5';
+  btn.style.cursor = on ? 'pointer' : 'not-allowed';
+  box.style.borderColor = on ? '#10b981' : '#fde68a';
+  box.style.background  = on ? '#f0fdf4' : '#fffbeb';
+}
+
+const rVal = id => document.getElementById(id).value.trim();
+
+function collectResignation(){
+  return {
+    id: 'ARL-' + Date.now().toString(36).toUpperCase().slice(-5),
+    serviceType: 'resignation',
+    submittedAt: new Date().toISOString(),
+    status: 'New',
+    amountDue: RESIGNATION_PRICE,
+    // Flat personal block so the admin list and the order tracker can find a
+    // name and email without knowing about resignation records specifically.
+    personal: {
+      firstName: rVal('r-name'),
+      middleName: '',
+      lastName: '',
+      email: rVal('r-email'),
+      phone: rVal('r-mobile'),
+      mobile: rVal('r-mobile'),
+      photo: ''
+    },
+    resignation: {
+      fullName:       rVal('r-name'),
+      position:       rVal('r-position'),
+      company:        rVal('r-company'),
+      addressedTo:    rVal('r-manager'),
+      addresseeTitle: rVal('r-managertitle'),
+      tenure:         rVal('r-tenure'),
+      lastDay:        rVal('r-lastday'),
+      noticeType:     rVal('r-noticetype'),
+      justCause:      rVal('r-noticetype') === 'immediate' ? rVal('r-justcause') : '',
+      noticeDays:     resignNoticeDays(),
+      reason:         rVal('r-reason'),
+      tone:           rVal('r-tone'),
+      notes:          rVal('r-notes'),
+      fee:            RESIGNATION_PRICE
+    },
+    // Must match the CV record's shape exactly — the admin's consent audit panel
+    // reads dataConsent.agreed, and a mismatched key would show these orders as
+    // having no consent on record when consent was in fact given.
+    dataConsent: {
+      agreed: true,
+      agreedAt: new Date().toISOString(),
+      method: 'Checkbox on submission form — customer manually ticked the box',
+      consentText: 'I give my consent to Arroyo CV Builder to collect and process the information I provide here — my name, contact details, and employment details — for the sole purpose of writing my resignation letter. My data will not be shared with any third party and will only be used to deliver the requested service.',
+      consentVersion: '1.0',
+      serviceUrl: window.location.href
+    }
+  };
+}
+
+function validateResignation(d){
+  const r = d.resignation;
+  if(!r.fullName) return 'Please enter your full name.';
+  if(!d.personal.email || !/^\S+@\S+\.\S+$/.test(d.personal.email))
+    return 'Please enter a valid email address.';
+  if(!d.personal.mobile) return 'Please enter your mobile number.';
+  if(!r.position)        return 'Please enter your current position.';
+  if(!r.company)         return 'Please enter your company name.';
+  if(!r.lastDay)         return 'Please choose your last day of work.';
+  if(r.noticeDays < 0)   return 'Your last day of work must be today or a future date.';
+  if(r.noticeType === 'immediate' && !r.justCause)
+    return 'Please select the ground for your immediate resignation.';
+  if(!r.reason)          return 'Please select a reason for leaving.';
+  return null;
+}
+
+async function submitResignation(){
+  if(!document.getElementById('r-consent').checked){
+    showNotif('Please agree to the Data Privacy Terms before submitting.', true);
+    return;
+  }
+  const data = collectResignation();
+  const err = validateResignation(data);
+  if(err){ showNotif(err, true); return; }
+
+  const btn = document.getElementById('rSubmitBtn');
+  const label = document.getElementById('rSubmitLabel');
+  const spinner = document.getElementById('rSubmitSpinner');
+  btn.disabled = true;
+  label.textContent = 'Submitting...';
+  spinner.classList.remove('hidden');
+
+  try {
+    // Read-modify-write, same as the CV form. No photos here, so no size
+    // trimming is needed — these records are tiny.
+    let record = {};
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+      });
+      if(res.ok){ const j = await res.json(); record = j?.record || {}; }
+    } catch(e){ console.warn('Could not load existing record:', e); }
+
+    const submissions = record.submissions || [];
+    submissions.push(data);
+
+    const put = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify({ ...record, submissions })
+    });
+    if(!put.ok) throw new Error('Server returned ' + put.status);
+
+    notifyAdminResignation(data);
+    emailResignationReceipt(data);
+
+    document.getElementById('r-confirm-ref').textContent = data.id;
+    document.getElementById('resignPage').classList.remove('active');
+    document.getElementById('resignConfirmPage').classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+
+  } catch(e){
+    showNotif('Could not submit — please check your connection and try again.', true);
+    btn.disabled = false;
+    label.textContent = 'Submit My Request';
+    spinner.classList.add('hidden');
+  }
+}
+
+// Fire-and-forget so a new order doesn't sit unseen.
+function notifyAdminResignation(d){
+  if(typeof emailjs === 'undefined') return;
+  const r = d.resignation;
+  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_email: ADMIN_EMAIL,
+    subject: `New Resignation Letter order — ${r.fullName} (${d.id})`,
+    message:
+      `New resignation letter request.\n\n` +
+      `Ref:       ${d.id}\n` +
+      `Name:      ${r.fullName}\n` +
+      `Email:     ${d.personal.email}\n` +
+      `Mobile:    ${d.personal.mobile}\n` +
+      `Position:  ${r.position}\n` +
+      `Company:   ${r.company}\n` +
+      `To:        ${r.addressedTo || '(HR Department)'}${r.addresseeTitle ? ' — ' + r.addresseeTitle : ''}\n` +
+      `Tenure:    ${r.tenure || '—'}\n` +
+      `Last day:  ${r.lastDay} (${r.noticeDays} days' notice)\n` +
+      `Type:      ${r.noticeType}${r.justCause ? ' — ground: ' + r.justCause : ''}\n` +
+      `Reason:    ${r.reason}\n` +
+      `Tone:      ${r.tone}\n` +
+      `Notes:     ${r.notes || '—'}\n\n` +
+      `Amount due: ${peso(RESIGNATION_PRICE)}`
+  }).catch(e => console.warn('Admin alert failed:', e));
+}
+
+// Customer-facing receipt. Sent immediately so they have their reference number
+// and the payment details in writing, rather than only on a page they might close.
+function emailResignationReceipt(d){
+  if(typeof emailjs === 'undefined') return;
+  const r = d.resignation;
+  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_email: d.personal.email,
+    subject: `We received your resignation letter request — ${d.id}`,
+    message:
+      `Hi ${r.fullName},\n\n` +
+      `Thank you — we've received your request for a resignation letter.\n\n` +
+      `Reference number: ${d.id}\n` +
+      `Position:         ${r.position}\n` +
+      `Company:          ${r.company}\n` +
+      `Last day of work: ${r.lastDay}\n` +
+      `Amount due:       ${peso(RESIGNATION_PRICE)}\n\n` +
+      `TO PAY (GCash)\n` +
+      `09063964052 — Reymar Arroyo\n` +
+      `Send your proof of payment to the same number along with your reference number.\n\n` +
+      `Once payment is confirmed we'll email your letter in Word and PDF format, usually within 24 hours.\n\n` +
+      `You can check your status any time at:\n` +
+      `https://interptools.github.io/arroyo-cv-builder/\n\n` +
+      `— Arroyo CV Builder\n` +
+      `09063964052 · areymar36@gmail.com`
+  }).catch(e => console.warn('Customer receipt failed:', e));
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ORDER TRACKER
@@ -2011,11 +2838,21 @@ async function lookupOrder(){
 }
 
 function renderTrackCard(s){
+  const isResign = s.serviceType === 'resignation';
   const idx = Math.max(0, TRACK_STAGES.findIndex(x => x.key === s.status));
   const stage = TRACK_STAGES[idx];
   const paid = !!s.payment?.paid;
-  const total = BASE_PRICE + (s.coverLetter?.requested ? CL_PRICE : 0);
+  // Resignation letters are priced separately — amountDue records what the
+  // customer was actually quoted, so it stays right across later price changes.
+  const total = isResign
+    ? ((typeof s.amountDue === 'number' && !isNaN(s.amountDue)) ? s.amountDue : RESIGNATION_PRICE)
+    : BASE_PRICE + (s.coverLetter?.requested ? CL_PRICE : 0);
   const pill = ['#dbeafe|#1d4ed8','#fef3c7|#92400e','#d1fae5|#065f46','#f0fdf4|#166534'][idx].split('|');
+  // The stage copy talks about "your CV" — swap the noun for letter orders.
+  const msg = isResign
+    ? stage.msg.replace(/your CV/gi, 'your resignation letter').replace(/Your CV/g, 'Your resignation letter')
+    : stage.msg;
+  const kind = isResign ? 'Resignation Letter' : 'CV / Resume';
 
   let when = '';
   try{ when = new Date(s.submittedAt).toLocaleDateString('en-PH',
@@ -2026,6 +2863,7 @@ function renderTrackCard(s){
       <span class="track-ref">${s.id ? escapeHtml(s.id) : 'Order'}${when ? ' · ' + when : ''}</span>
       <span class="track-pill" style="background:${pill[0]};color:${pill[1]};">${stage.label}</span>
     </div>
+    <div style="font-size:11.5px;color:#6b7280;margin:-4px 0 10px">${kind}</div>
     <div class="track-steps">
       ${TRACK_STAGES.map((st,i)=>`
         <div class="track-step ${i<=idx?'on':''}">
@@ -2034,7 +2872,7 @@ function renderTrackCard(s){
         </div>`).join('')}
     </div>
     <div class="track-msg">
-      ${stage.msg}
+      ${msg}
       ${(idx>=2 && !paid) ? `<br><br><strong>Amount due: ${peso(total)}</strong> — send via GCash to
         <strong>09063964052</strong> (Reymar Arroyo), then reply to our email with the screenshot.` : ''}
       ${paid ? `<br><br>✅ Payment received — thank you!` : ''}
