@@ -1137,6 +1137,23 @@ function previewPricing(){
   html += row('CV + Cover Letter', a1, a2);
   html += row('CV + Resignation Letter', b1, b2);
   html += row('CV + Cover Letter + Resignation', c1, c2);
+  // A package that costs MORE than buying the items separately is always a typo,
+  // and it would quietly overcharge every customer who picks that combination.
+  const warn = [];
+  const chk = (key, label, nowSum) => {
+    const b = eb[key];
+    if(b === null) return;
+    if(b > nowSum) warn.push(`<strong>${label}</strong> costs ${peso(b)} but the items alone come to ${peso(nowSum)} — customers would pay ${peso(b - nowSum)} extra.`);
+    else if(b === 0) warn.push(`<strong>${label}</strong> is set to ₱0 — that combination would be free.`);
+  };
+  chk('cvcl',   'CV + Cover Letter',              eff.base + eff.cl);
+  chk('cvrl',   'CV + Resignation Letter',        eff.base + eff.rl);
+  chk('cvclrl', 'CV + Cover Letter + Resignation', eff.base + eff.cl + eff.rl);
+  if(warn.length){
+    html += `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:9px;padding:12px 14px;font-size:12px;color:#991b1b;line-height:1.7;margin-top:12px;">
+      ⚠️ ${warn.join('<br>')}</div>`;
+  }
+
   document.getElementById('pr-preview').innerHTML = html;
 }
 
@@ -1148,7 +1165,22 @@ async function savePricing(){
     showNotif('A sale needs at least one discounted price.', true); return;
   }
   const live = saleIsLive(pr);
-  const eff = live ? (pr.sale.base ?? pr.base) : pr.base;
+  const lb2 = pr.bundles||{}, sb2 = pr.sale.bundles||{};
+  const eff2 = {
+    base: live ? (pr.sale.base ?? pr.base) : pr.base,
+    cl:   live ? (pr.sale.cl   ?? pr.cl)   : pr.cl,
+    rl:   live ? (pr.sale.rl   ?? pr.rl)   : pr.rl
+  };
+  const pk = k => live ? (sb2[k] ?? lb2[k] ?? null) : (lb2[k] ?? null);
+  const overs = [];
+  if(pk('cvcl')   !== null && pk('cvcl')   > eff2.base + eff2.cl)            overs.push('CV + Cover Letter');
+  if(pk('cvrl')   !== null && pk('cvrl')   > eff2.base + eff2.rl)            overs.push('CV + Resignation Letter');
+  if(pk('cvclrl') !== null && pk('cvclrl') > eff2.base + eff2.cl + eff2.rl)  overs.push('All three');
+  if(overs.length && !confirm(
+      `Warning: ${overs.join(' and ')} costs MORE as a package than buying the items separately.\n\n`
+    + `Customers picking that combination would be overcharged. Publish anyway?`)) return;
+
+  const eff = eff2.base;
   if(!confirm(`Publish these prices?\n\nCV will show as ${peso(eff)}.\n\n`
     + `New orders use the new prices. Existing orders keep what they were quoted.`)) return;
 
@@ -1206,7 +1238,9 @@ async function renderFunnel(){
 
   // Each visitor is counted once at their furthest step, so the number who
   // "reached" a step is that step's count plus everyone beyond it.
-  const raw = FUNNEL_LABELS.map(([k]) => Number(rec[k]) || 0);
+  // Clamp at zero: a counter can only go negative if the bin is edited by hand,
+  // and a negative would render a nonsense percentage rather than fail loudly.
+  const raw = FUNNEL_LABELS.map(([k]) => Math.max(0, Number(rec[k]) || 0));
   const reached = raw.map((_, i) => raw.slice(i).reduce((a, b) => a + b, 0));
   const top = reached[0] || 0;
 
