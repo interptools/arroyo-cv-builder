@@ -443,12 +443,12 @@
   .alt-service-btn .as-arrow { color: var(--gold); font-size: 17px; flex-shrink: 0; }
 
   /* NOTICE-PERIOD METER */
-  #noticeBox { display: none; margin-top: 14px; border-radius: 10px; padding: 13px 15px;
+  #noticeBox, #rlNoticeBox { display: none; margin-top: 14px; border-radius: 10px; padding: 13px 15px;
     font-size: 12.5px; line-height: 1.65; border: 1px solid; }
-  #noticeBox strong { display: block; font-size: 13px; margin-bottom: 3px; }
-  #noticeBox.ok   { background: #f0fdf4; border-color: #a7f3d0; color: #065f46; }
-  #noticeBox.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
-  #noticeBox.bad  { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+  #noticeBox strong, #rlNoticeBox strong { display: block; font-size: 13px; margin-bottom: 3px; }
+  #noticeBox.ok,   #rlNoticeBox.ok   { background: #f0fdf4; border-color: #a7f3d0; color: #065f46; }
+  #noticeBox.warn, #rlNoticeBox.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  #noticeBox.bad,  #rlNoticeBox.bad  { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
 
   .resign-price {
     display: inline-block; background: rgba(200,168,75,0.15);
@@ -1183,6 +1183,36 @@
       </div>
     </div>
 
+    <!-- OJT / PRACTICUM
+         For fresh graduates this is the only experience they have, and until now
+         the form had nowhere to put it — the Work Experience card hides entirely
+         for the "fresh" format. Opt-in so it stays out of the way for everyone
+         else, but auto-opens when Fresh Graduate is selected. -->
+    <div class="card" id="ojtCard">
+      <div style="background:#1a2744;border-radius:16px 16px 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleOjt()" id="ojt-toggle-hdr">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="background:rgba(200,168,75,0.2);border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" fill="none" stroke="#c8a84b" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7h-4V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><line x1="10" y1="5" x2="14" y2="5"/></svg>
+          </div>
+          <div>
+            <div style="color:#e2c97e;font-size:14px;font-weight:700">OJT / Practicum / Internship</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px">Recommended for fresh graduates — this is your experience section</div>
+          </div>
+        </div>
+        <div id="ojt-check-circle" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(200,168,75,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0">
+          <svg id="ojt-check-icon" width="14" height="14" fill="none" stroke="rgba(200,168,75,0.3)" stroke-width="2.5" viewBox="0 0 24 24" style="transition:all .2s"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+      </div>
+      <div class="card-body" id="ojt-fields" style="display:none">
+        <p style="font-size:12px;color:#6b7280;line-height:1.7;margin-bottom:14px">
+          Employers read OJT as real experience. Be specific about what you actually did —
+          "encoded 200+ client records daily using Excel" says far more than "assisted with office work".
+        </p>
+        <div id="ojtEntries"></div>
+        <button class="add-btn" onclick="addOjtEntry()">＋ Add Another OJT / Practicum</button>
+      </div>
+    </div>
+
     <!-- ═══ SEAFARER-ONLY SECTIONS ═══════════════════════════════════════════
          Hidden unless "Seafarer" is chosen. A maritime CV is a different
          document: agencies screen on rank, documents and sea time, so these
@@ -1388,7 +1418,7 @@
           </div>
           <div class="field">
             <label>Any Special Instructions</label>
-            <input type="text" id="specialInstructions" placeholder="e.g. Add OJT experience, specific format...">
+            <input type="text" id="specialInstructions" placeholder="e.g. Highlight my leadership roles, keep it to one page...">
           </div>
         </div>
       </div>
@@ -1452,6 +1482,122 @@
         </div>
       </div>
     </div>
+    <!-- RESIGNATION LETTER ADD-ON
+         Offered here because the person ordering a CV is usually leaving a job,
+         which makes this the moment they need it. Fields are kept to what the CV
+         doesn't already tell us; position and company prefill from work history. -->
+    <div style="margin-bottom:16px">
+      <div style="background:#1a2744;border-radius:12px 12px 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleResignationAddon()" id="rl-toggle-hdr">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="background:rgba(200,168,75,0.2);border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="20" height="20" fill="none" stroke="#c8a84b" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div>
+            <div style="color:#e2c97e;font-size:14px;font-weight:700">Add a Resignation Letter</div>
+            <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px">Leaving your current job? We'll write it properly</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="text-align:right">
+            <div id="rl-addon-price" style="color:#c8a84b;font-size:16px;font-weight:800">+₱50</div>
+          </div>
+          <div id="rl-check-circle" style="width:28px;height:28px;border-radius:50%;border:2px solid rgba(200,168,75,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0">
+            <svg id="rl-check-icon" width="14" height="14" fill="none" stroke="rgba(200,168,75,0.3)" stroke-width="2.5" viewBox="0 0 24 24" style="transition:all .2s"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="rl-fields" style="display:none;background:#fff;border:1.5px solid #c8a84b;border-top:none;border-radius:0 0 12px 12px;padding:18px">
+        <p style="font-size:12px;color:#6b7280;margin-bottom:14px;line-height:1.6">A professional resignation letter for the job you're leaving now, delivered with your CV. We'll check your notice period against the Labor Code.</p>
+        <div style="display:grid;gap:12px">
+          <div class="field-row">
+            <div class="field">
+              <label>Your Current Position <span class="req">*</span></label>
+              <input type="text" id="rl-position" placeholder="e.g. Customer Service Representative">
+            </div>
+            <div class="field">
+              <label>Current Company <span class="req">*</span></label>
+              <input type="text" id="rl-company" placeholder="e.g. ABC Solutions Inc.">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Addressed To</label>
+              <input type="text" id="rl-manager" placeholder="Ms. Maria Santos">
+              <span class="field-hint">Leave blank to address it to HR.</span>
+            </div>
+            <div class="field">
+              <label>Their Title</label>
+              <input type="text" id="rl-managertitle" placeholder="Operations Manager">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Type of Resignation <span class="req">*</span></label>
+              <select id="rl-noticetype" onchange="onRlNoticeTypeChange()">
+                <option value="standard">Standard — 30 days' notice</option>
+                <option value="shortened">Shorter notice — employer has agreed</option>
+                <option value="immediate">Immediate — I have a just cause</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Last Day of Work <span class="req">*</span></label>
+              <input type="date" id="rl-lastday" onchange="checkRlNotice()">
+            </div>
+          </div>
+          <div class="field-row full" id="rlJustCauseRow" style="display:none">
+            <div class="field">
+              <label>Ground for Immediate Resignation <span class="req">*</span></label>
+              <select id="rl-justcause">
+                <option value="">— Select the ground that applies —</option>
+                <option value="insult">Serious insult to my honor and person by my employer</option>
+                <option value="inhuman">Inhuman or unbearable treatment</option>
+                <option value="crime">A crime or offense committed against me or my family</option>
+                <option value="analogous">Another serious cause of the same kind</option>
+                <option value="health-danger">My health or safety is at risk if I stay</option>
+              </select>
+            </div>
+          </div>
+          <div id="rlNoticeBox"></div>
+          <div class="field-row">
+            <div class="field">
+              <label>Reason for Leaving <span class="req">*</span></label>
+              <select id="rl-reason">
+                <option value="new-opportunity">Accepted a new job opportunity</option>
+                <option value="career-growth">Career growth / change of field</option>
+                <option value="further-studies">Going back to school</option>
+                <option value="personal">Personal or family reasons</option>
+                <option value="health">Health reasons</option>
+                <option value="relocation">Relocating / moving abroad</option>
+                <option value="business">Starting my own business</option>
+                <option value="unstated">Prefer not to state a reason</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Tone of the Letter <span class="req">*</span></label>
+              <select id="rl-tone">
+                <option value="grateful">Warm &amp; grateful</option>
+                <option value="professional">Professional &amp; neutral</option>
+                <option value="brief">Very brief, but polite</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row full">
+            <div class="field">
+              <label>Anything You'd Like Included?</label>
+              <textarea id="rl-notes" rows="2" placeholder="e.g. Offer to train my replacement. Thank my team leader by name."></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="rlVentWarn" style="display:none;margin-top:12px;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:12px 14px;font-size:12px;color:#92400e;line-height:1.65">
+          <strong>A quick note:</strong> we'll leave complaints out of the letter. It stays in your 201 file permanently and gets read by future HR when they verify your employment. Raise concerns in the exit interview instead.
+        </div>
+        <div style="margin-top:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;line-height:1.6">
+          <strong>What you'll receive:</strong> A 1-page resignation letter in Word/PDF, delivered together with your CV. Total payment: <strong id="rl-total-label">₱100</strong>
+        </div>
+      </div>
+    </div>
+
     <label id="cv-consent-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <input type="checkbox" id="cv-consent-check" onchange="onCVConsentChange()" style="width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
       <div style="font-size:12px;color:#1a2744;line-height:1.7;font-family:Inter,sans-serif">
@@ -1792,6 +1938,10 @@
           <span style="color:#6b7280">Cover Letter Add-on</span>
           <span id="sum-cl-price" style="font-weight:600;color:#1a2744">₱75</span>
         </div>
+        <div id="rl-summary-row" style="display:none;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#6b7280">Resignation Letter Add-on</span>
+          <span id="sum-rl-price" style="font-weight:600;color:#1a2744">₱50</span>
+        </div>
         <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
           <span style="font-weight:700;color:#1a2744">Total</span>
           <span id="confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱50</span>
@@ -1905,6 +2055,98 @@ let workCount = 0;
 let refCount = 0;
 let photoBase64 = '';
 let coverLetterSelected = false;
+let resignAddonSelected = false;
+
+// The add-on shares the standalone service's price, so there's one number to change.
+function toggleResignationAddon() {
+  resignAddonSelected = !resignAddonSelected;
+  const fields = document.getElementById('rl-fields');
+  const circle = document.getElementById('rl-check-circle');
+  const icon   = document.getElementById('rl-check-icon');
+  const hdr    = document.getElementById('rl-toggle-hdr');
+  fields.style.display = resignAddonSelected ? 'block' : 'none';
+  circle.style.background = resignAddonSelected ? '#c8a84b' : 'transparent';
+  circle.style.borderColor = resignAddonSelected ? '#c8a84b' : 'rgba(200,168,75,0.4)';
+  icon.setAttribute('stroke', resignAddonSelected ? '#1a2744' : 'rgba(200,168,75,0.3)');
+  hdr.style.borderRadius = resignAddonSelected ? '12px 12px 0 0' : '12px';
+  if (resignAddonSelected) initRlAddon();
+  applyPricing();
+}
+
+let rlInited = false;
+function initRlAddon() {
+  if (rlInited) return;
+  rlInited = true;
+
+  // Prefill from the first work entry — the CV already asked for it, and asking
+  // twice is how people abandon a form.
+  const first = document.querySelector('#workEntries .exp-entry');
+  if (first) {
+    const inputs = first.querySelectorAll('input[type="text"]');
+    const co = inputs[0]?.value.trim();
+    const po = inputs[1]?.value.trim();
+    if (co && !document.getElementById('rl-company').value)  document.getElementById('rl-company').value  = co;
+    if (po && !document.getElementById('rl-position').value) document.getElementById('rl-position').value = po;
+  }
+
+  const el = document.getElementById('rl-lastday');
+  const t = new Date();
+  el.min = t.toISOString().split('T')[0];
+  if (!el.value) el.value = new Date(t.getTime() + NOTICE_DAYS * 86400000).toISOString().split('T')[0];
+
+  const notes = document.getElementById('rl-notes');
+  const warn  = document.getElementById('rlVentWarn');
+  const flags = /\b(hate|unfair|toxic|abusive|disrespect|bastos|awful|worst|terrible|harass|underpaid|micromanag|discriminat|bully)/i;
+  notes.addEventListener('input', () => { warn.style.display = flags.test(notes.value) ? 'block' : 'none'; });
+
+  checkRlNotice();
+}
+
+function rlNoticeDays() {
+  const v = document.getElementById('rl-lastday').value;
+  if (!v) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(v + 'T00:00:00') - today) / 86400000);
+}
+
+function onRlNoticeTypeChange() {
+  const type = document.getElementById('rl-noticetype').value;
+  document.getElementById('rlJustCauseRow').style.display = (type === 'immediate') ? '' : 'none';
+  const el = document.getElementById('rl-lastday');
+  const t = new Date();
+  if (type === 'immediate')      el.value = t.toISOString().split('T')[0];
+  else if (type === 'standard')  el.value = new Date(t.getTime() + NOTICE_DAYS * 86400000).toISOString().split('T')[0];
+  checkRlNotice();
+}
+
+// Compact version of the standalone checker — same legal logic, less copy,
+// because this sits inside a long form the customer is already deep into.
+function checkRlNotice() {
+  const box = document.getElementById('rlNoticeBox');
+  const v = document.getElementById('rl-lastday').value;
+  if (!box) return;
+  if (!v) { box.style.display = 'none'; return; }
+  const type = document.getElementById('rl-noticetype').value;
+  const days = rlNoticeDays();
+  box.style.display = 'block';
+
+  if (days < 0) {
+    box.className = 'bad';
+    box.innerHTML = '<strong>That date has already passed</strong>Pick today or a future date.';
+  } else if (type === 'immediate') {
+    box.className = 'ok';
+    box.innerHTML = '<strong>✓ No notice period required</strong>Article 300(b) allows resignation without notice when there is just cause. Keep any evidence supporting the ground — DOLE offers free consultations if you\u2019re unsure.';
+  } else if (type === 'shortened') {
+    box.className = 'warn';
+    box.innerHTML = '<strong>' + days + ' days\u2019 notice — get the waiver in writing</strong>A verbal "okay lang" won\u2019t help if payroll disputes it. Ask HR to confirm by email.';
+  } else if (days >= NOTICE_DAYS) {
+    box.className = 'ok';
+    box.innerHTML = '<strong>✓ ' + days + ' days\u2019 notice — you\u2019re covered</strong>This meets the 30 days required under Article 300(a).';
+  } else {
+    box.className = 'warn';
+    box.innerHTML = '<strong>⚠ Only ' + days + ' days\u2019 notice</strong>Short of the 30 days required. Move the date out, or switch to <em>Shorter notice</em> and get your employer to agree in writing.';
+  }
+}
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = () => {
@@ -1946,6 +2188,19 @@ function applyPricing() {
   set('resign-hdr-price',   `${peso(RESIGNATION_PRICE)} · ready within 24 hours`);
   set('r-sum-price',        peso(RESIGNATION_PRICE));
   set('r-confirm-total',    peso(RESIGNATION_PRICE));
+
+  // Resignation letter as a CV add-on.
+  set('rl-addon-price', '+' + peso(RESIGNATION_PRICE));
+  set('sum-rl-price',   peso(RESIGNATION_PRICE));
+  set('rl-total-label', peso(cvOrderTotal()));
+}
+
+// One place that knows what a CV order costs, so the toggles, the confirmation
+// summary and the admin alert can never disagree.
+function cvOrderTotal(){
+  return BASE_PRICE
+       + (coverLetterSelected  ? CL_PRICE          : 0)
+       + (resignAddonSelected  ? RESIGNATION_PRICE : 0);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2133,6 +2388,8 @@ function forceNewSubmission() {
 const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nationality','dob','civilStatus',
   'gender','address','phone','email','social','linkedin','aboutMe','hobbies','awards',
   'specialInstructions','templatePref','cl-position','cl-company','cl-reason','cl-strengths','cl-tone',
+  'rl-position','rl-company','rl-manager','rl-managertitle','rl-lastday','rl-noticetype',
+  'rl-justcause','rl-reason','rl-tone','rl-notes',
   // Seafarer scalars — harmless on other formats, the elements simply won't exist
   'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
   'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok'];
@@ -2143,7 +2400,7 @@ function saveDraft() {
   clearTimeout(draftTimer);
   draftTimer = setTimeout(() => {
     try {
-      const d = { savedAt: new Date().toISOString(), fields: {}, skills, languages, coverLetterSelected };
+      const d = { savedAt: new Date().toISOString(), fields: {}, skills, languages, coverLetterSelected, resignAddonSelected, ojtSelected };
 
       DRAFT_SIMPLE_IDS.forEach(id => {
         const el = document.getElementById(id);
@@ -2165,6 +2422,7 @@ function saveDraft() {
       d.cert = grab('#certEntries .exp-entry');
       d.sea  = grab('#seaEntries .exp-entry');
       d.vax  = grab('#vaxEntries .exp-entry');
+      d.ojt  = grab('#ojtEntries .exp-entry');
 
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch (e) { /* quota or private mode */ }
@@ -2267,9 +2525,19 @@ function restoreDraft() {
   restoreGroup(d.cert, '#certEntries .exp-entry', addCertEntry);
   restoreGroup(d.sea,  '#seaEntries .exp-entry',  addSeaEntry);
   restoreGroup(d.vax,  '#vaxEntries .exp-entry',  addVaxEntry);
+  // OJT panel has to be open before its rows can be restored into it.
+  if (d.ojtSelected && !ojtSelected) toggleOjt(true);
+  restoreGroup(d.ojt,  '#ojtEntries .exp-entry',  addOjtEntry);
 
   // Cover letter panel
   if (d.coverLetterSelected && !coverLetterSelected) toggleCoverLetter();
+  // Restore after the fields are repopulated, so initRlAddon's prefill doesn't
+  // overwrite what the customer already typed.
+  if (d.resignAddonSelected && !resignAddonSelected) {
+    toggleResignationAddon();
+    onRlNoticeTypeChange();
+    checkRlNotice();
+  }
 
   attachWorkCounters();
   initCharCounters();
@@ -2846,7 +3114,9 @@ function renderTrackCard(s){
   // customer was actually quoted, so it stays right across later price changes.
   const total = isResign
     ? ((typeof s.amountDue === 'number' && !isNaN(s.amountDue)) ? s.amountDue : RESIGNATION_PRICE)
-    : BASE_PRICE + (s.coverLetter?.requested ? CL_PRICE : 0);
+    : BASE_PRICE
+      + (s.coverLetter?.requested ? CL_PRICE : 0)
+      + (s.resignationLetter?.requested ? (s.resignationLetter.addOnFee ?? RESIGNATION_PRICE) : 0);
   const pill = ['#dbeafe|#1d4ed8','#fef3c7|#92400e','#d1fae5|#065f46','#f0fdf4|#166534'][idx].split('|');
   // The stage copy talks about "your CV" — swap the noun for letter orders.
   const msg = isResign
@@ -3231,6 +3501,12 @@ function handleEduChange() {
   if (val === 'fresh' || isSeaman) workCard.classList.add('hidden');
   else workCard.classList.remove('hidden');
 
+  // OJT replaces work history for fresh grads, so open it for them automatically.
+  // Seafarers record sea service instead, so the card steps aside there.
+  const ojtCard = document.getElementById('ojtCard');
+  if (ojtCard) ojtCard.classList.toggle('hidden', isSeaman);
+  if (val === 'fresh' && !ojtSelected) toggleOjt(true);
+
   document.querySelectorAll('.seaman-only').forEach(el => el.classList.toggle('hidden', !isSeaman));
   document.getElementById('seamanIntro')?.classList.toggle('hidden', !isSeaman);
 
@@ -3411,6 +3687,117 @@ function addEduEntry() {
 }
 
 // ─── WORK ENTRIES ──────────────────────────────────────────────────────────────
+// ─── OJT / PRACTICUM ──────────────────────────────────────────────────────────
+let ojtSelected = false;
+let ojtCount = 0;
+
+function toggleOjt(force) {
+  ojtSelected = (force === undefined) ? !ojtSelected : !!force;
+  const fields = document.getElementById('ojt-fields');
+  const circle = document.getElementById('ojt-check-circle');
+  const icon   = document.getElementById('ojt-check-icon');
+  const hdr    = document.getElementById('ojt-toggle-hdr');
+  fields.style.display = ojtSelected ? 'block' : 'none';
+  circle.style.background = ojtSelected ? '#c8a84b' : 'transparent';
+  circle.style.borderColor = ojtSelected ? '#c8a84b' : 'rgba(200,168,75,0.4)';
+  icon.setAttribute('stroke', ojtSelected ? '#1a2744' : 'rgba(200,168,75,0.3)');
+  hdr.style.borderRadius = ojtSelected ? '16px 16px 0 0' : '16px';
+  if (ojtSelected && !document.querySelector('#ojtEntries .exp-entry')) addOjtEntry();
+}
+
+// Field order matters: collectOjt reads inputs positionally, the same convention
+// the other repeating groups use, so draft restore works with no special case.
+function addOjtEntry() {
+  ojtCount++;
+  const container = document.getElementById('ojtEntries');
+  const div = document.createElement('div');
+  div.className = 'exp-entry';
+  div.id = `ojt-${ojtCount}`;
+  div.innerHTML = `
+    <div class="exp-entry-num">OJT / Practicum #${ojtCount}</div>
+    ${ojtCount > 1 ? `<button class="remove-btn" onclick="removeEntry('ojt-${ojtCount}')">✕ Remove</button>` : ''}
+    <div class="field-row">
+      <div class="field">
+        <label>Company / Establishment <span class="req">*</span></label>
+        <input type="text" placeholder="e.g. Department of Education — Division Office">
+      </div>
+      <div class="field">
+        <label>Department / Office Assigned</label>
+        <input type="text" placeholder="e.g. Records Section, IT Department">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Your Role / Designation <span class="req">*</span></label>
+        <input type="text" placeholder="e.g. IT Support Intern, Accounting Trainee">
+      </div>
+      <div class="field">
+        <label>Total Hours Rendered</label>
+        <input type="text" placeholder="e.g. 486 hours">
+      </div>
+    </div>
+    <div class="field-row triple">
+      <div class="field">
+        <label>Start Date</label>
+        <input type="text" placeholder="e.g. Feb 2025">
+      </div>
+      <div class="field">
+        <label>End Date</label>
+        <input type="text" placeholder="e.g. May 2025">
+      </div>
+      <div class="field">
+        <label>Location</label>
+        <input type="text" placeholder="e.g. Cebu City">
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Supervisor / Coordinator Name</label>
+        <input type="text" placeholder="e.g. Ms. Ana Reyes">
+      </div>
+      <div class="field">
+        <label>Supervisor's Position</label>
+        <input type="text" placeholder="e.g. Records Officer III">
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>Tools, Systems or Software Used</label>
+        <input type="text" placeholder="e.g. MS Excel, QuickBooks, Adobe Photoshop, SAP">
+      </div>
+    </div>
+    <div class="field-row full">
+      <div class="field">
+        <label>What did you actually do? <span class="req">*</span></label>
+        <textarea rows="4" placeholder="One task per line. Start with a verb and include numbers where you can:&#10;Encoded 200+ student records daily into the school database&#10;Prepared monthly inventory reports using MS Excel&#10;Assisted 30-40 walk-in clients per day with document requests"></textarea>
+      </div>
+    </div>`;
+  container.appendChild(div);
+}
+
+function collectOjt() {
+  const out = [];
+  document.querySelectorAll('#ojtEntries .exp-entry').forEach(entry => {
+    const i = entry.querySelectorAll('input');
+    const ta = entry.querySelector('textarea');
+    const row = {
+      company:         i[0]?.value.trim() || '',
+      department:      i[1]?.value.trim() || '',
+      role:            i[2]?.value.trim() || '',
+      hours:           i[3]?.value.trim() || '',
+      dateStart:       i[4]?.value.trim() || '',
+      dateEnd:         i[5]?.value.trim() || '',
+      location:        i[6]?.value.trim() || '',
+      supervisor:      i[7]?.value.trim() || '',
+      supervisorTitle: i[8]?.value.trim() || '',
+      tools:           i[9]?.value.trim() || '',
+      tasks:           ta?.value.trim() || ''
+    };
+    if (row.company || row.role) out.push(row);  // drop rows opened but never filled
+  });
+  return out;
+}
+
 function addWorkEntry() {
   workCount++;
   const container = document.getElementById('workEntries');
@@ -3565,8 +3952,9 @@ function collectFormData() {
     });
   }
 
-  // Seafarer sections — only gathered when the seaman format is chosen, so an
-  // ordinary CV never carries empty maritime scaffolding in its record.
+  // OJT / practicum — collected regardless of format, since a college graduate
+  // with one short job often still leads with their practicum.
+  const ojtData = ojtSelected ? collectOjt() : [];
   let seaman = null;
   if (eduLevel === 'seaman') {
     const sv = id => document.getElementById(id)?.value.trim() || '';
@@ -3647,6 +4035,7 @@ function collectFormData() {
     aboutMe: document.getElementById('aboutMe')?.value.trim() || '',
     education: eduData,
     workExperience: workData,
+    ojt: ojtData,
     seaman,
     skills,
     languages,
@@ -3663,6 +4052,22 @@ function collectFormData() {
       strengths: document.getElementById('cl-strengths').value.trim(),
       tone: document.getElementById('cl-tone').value,
       addOnFee: CL_PRICE
+    } : { requested: false },
+    resignationLetter: resignAddonSelected ? {
+      requested: true,
+      position:       document.getElementById('rl-position').value.trim(),
+      company:        document.getElementById('rl-company').value.trim(),
+      addressedTo:    document.getElementById('rl-manager').value.trim(),
+      addresseeTitle: document.getElementById('rl-managertitle').value.trim(),
+      lastDay:        document.getElementById('rl-lastday').value,
+      noticeType:     document.getElementById('rl-noticetype').value,
+      justCause:      document.getElementById('rl-noticetype').value === 'immediate'
+                        ? document.getElementById('rl-justcause').value : '',
+      noticeDays:     rlNoticeDays(),
+      reason:         document.getElementById('rl-reason').value,
+      tone:           document.getElementById('rl-tone').value,
+      notes:          document.getElementById('rl-notes').value.trim(),
+      addOnFee:       RESIGNATION_PRICE
     } : { requested: false }
   };
 }
@@ -3712,14 +4117,16 @@ function compressPhoto(base64) {
 let lastRefNo = '';
 
 function updateConfirmPage() {
-  var total = BASE_PRICE + (coverLetterSelected ? CL_PRICE : 0);
+  var total = cvOrderTotal();
   var refRow = document.getElementById('confirm-ref-row');
   var refEl  = document.getElementById('confirm-ref');
   if (refRow && refEl && lastRefNo) { refEl.textContent = lastRefNo; refRow.style.display = 'block'; }
   var clRow = document.getElementById('cl-summary-row');
+  var rlRow = document.getElementById('rl-summary-row');
   var totalEl = document.getElementById('confirm-total');
   var amountEl = document.getElementById('confirm-gcash-amount');
   if (clRow) clRow.style.display = coverLetterSelected ? 'flex' : 'none';
+  if (rlRow) rlRow.style.display = resignAddonSelected ? 'flex' : 'none';
   if (totalEl) totalEl.textContent = peso(total);
   if (amountEl) amountEl.textContent = '— ' + peso(total);
 }
@@ -3735,6 +4142,7 @@ function toggleCoverLetter() {
   circle.style.borderColor = coverLetterSelected ? '#c8a84b' : 'rgba(200,168,75,0.4)';
   icon.setAttribute('stroke', coverLetterSelected ? '#1a2744' : 'rgba(200,168,75,0.3)');
   hdr.style.borderRadius = coverLetterSelected ? '12px 12px 0 0' : '12px';
+  applyPricing();
 }
 
 function onCVConsentChange() {
@@ -3759,6 +4167,27 @@ async function submitForm() {
     if (!document.getElementById('cl-position').value.trim()) { showNotif('Please enter your target position for the cover letter.', true); return; }
     if (!document.getElementById('cl-company').value.trim()) { showNotif('Please enter the target company name for the cover letter.', true); return; }
     if (!document.getElementById('cl-reason').value.trim()) { showNotif('Please tell us why you want this job for the cover letter.', true); return; }
+  }
+  if (resignAddonSelected) {
+    if (!document.getElementById('rl-position').value.trim()) { showNotif('Please enter your current position for the resignation letter.', true); return; }
+    if (!document.getElementById('rl-company').value.trim())  { showNotif('Please enter your current company for the resignation letter.', true); return; }
+    if (!document.getElementById('rl-lastday').value)         { showNotif('Please choose your last day of work for the resignation letter.', true); return; }
+    if (rlNoticeDays() < 0)                                   { showNotif('Your last day of work must be today or a future date.', true); return; }
+    if (document.getElementById('rl-noticetype').value === 'immediate'
+        && !document.getElementById('rl-justcause').value)    { showNotif('Please select the ground for your immediate resignation.', true); return; }
+  }
+  if (ojtSelected) {
+    const rows = collectOjt();
+    for (let n = 0; n < rows.length; n++) {
+      const o = rows[n];
+      if (!o.company) { showNotif(`OJT #${n+1}: please enter the company or establishment.`, true); return; }
+      if (!o.role)    { showNotif(`OJT #${n+1}: please enter your role or designation.`, true); return; }
+      if (!o.tasks)   { showNotif(`OJT #${n+1}: please describe what you did during your OJT.`, true); return; }
+    }
+    const eduNow = document.querySelector('input[name="eduLevel"]:checked')?.value;
+    if (eduNow === 'fresh' && !rows.length) {
+      showNotif('Please add at least one OJT / practicum entry, or untick the OJT section.', true); return;
+    }
   }
   const data = collectFormData();
   const err = validate(data);
@@ -3871,7 +4300,8 @@ async function notifyAdminNewOrder(data) {
 
     const p = data.personal;
     const hasCL = !!data.coverLetter?.requested;
-    const total = BASE_PRICE + (hasCL ? CL_PRICE : 0);
+    const hasRL = !!data.resignationLetter?.requested;
+    const total = BASE_PRICE + (hasCL ? CL_PRICE : 0) + (hasRL ? RESIGNATION_PRICE : 0);
     const name = `${fullName(p)}`.trim();
     const eduMap = { highschool: 'High School Graduate', college: 'College Graduate', fresh: 'Fresh Graduate' };
     const when = new Date().toLocaleString('en-PH', {
@@ -4106,7 +4536,26 @@ function buildCVHtml(s,tmpl,mode){
     :`<div style="width:100%;height:100%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,.6);">👤</div>`;
 
   const edu=(s.education||[]).filter(e=>e.school);
-  const work=(!isFresh&&s.workExperience?.length)?s.workExperience.filter(w=>w.company):[];
+  // Experience list = paid work + OJT, mapped into one shape so all 13 templates
+  // render it with no per-template changes. OJT is flagged in the position line,
+  // which is how Philippine fresh-grad CVs conventionally present it.
+  const paidWork=(!isFresh&&s.workExperience?.length)?s.workExperience.filter(w=>w.company):[];
+  // Escape before injecting: these strings go into template HTML as-is, and a
+  // company name containing < would otherwise break the rendered CV.
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // Tasks are entered one per line; .i-desc has no white-space rule, so without
+  // converting newlines they'd collapse into a single run-on paragraph.
+  const lines=t=>esc(t).split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join('<br>');
+  const ojtWork=(s.ojt||[]).filter(o=>o.company||o.role).map(o=>({
+    company: esc(o.company) + (o.department?' ('+esc(o.department)+')':''),
+    position: esc(o.role||'On-the-Job Training') + ' (OJT)',
+    dateStart: esc(o.dateStart||''),
+    dateEnd: esc(o.dateEnd||''),
+    location: [o.location, o.hours].filter(Boolean).map(esc).join(' · '),
+    responsibilities: [lines(o.tasks), o.tools?('<em>Tools used: '+esc(o.tools)+'</em>'):'']
+                        .filter(Boolean).join('<br>')
+  }));
+  const work=[...paidWork,...ojtWork];
   const refs=(s.references||[]).filter(r=>r.name);
 
   const printBar=mode==='print'
@@ -4395,7 +4844,7 @@ ${pb}
   <div class="R">
     ${s.profileSummary?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${edu.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${!isFresh&&work.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${s.awards?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Awards</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -4462,7 +4911,7 @@ ${pb}
     <div class="R">
       ${s.profileSummary?`<div class="rsec"><div class="rs-head">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${edu.length?`<div class="rsec"><div class="rs-head">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${!isFresh&&work.length?`<div class="rsec"><div class="rs-head">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="rsec"><div class="rs-head">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="rsec"><div class="rs-head">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -4534,7 +4983,7 @@ ${pb}
     </div>
     <div class="R">
       ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${!isFresh&&work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -4599,7 +5048,7 @@ ${pb}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div><div class="rh-text">Profile</div><div class="rh-line"></div></div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div><div class="rh-text">Experience</div><div class="rh-line"></div></div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div><div class="rh-text">Experience</div><div class="rh-line"></div></div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Education</div><div class="rh-line"></div></div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div><div class="rh-text">Awards</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
@@ -4654,7 +5103,7 @@ ${pb}
   ${s.profileSummary?`<div class="about-bar"><p>${s.profileSummary}</p></div>`:''}
   <div class="body">
     <div class="L">
-      ${!isFresh&&work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${skills.length?`<div class="lsec"><div class="lh">Skills</div><div>${skills.map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
@@ -4736,7 +5185,7 @@ ${pb}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh">👤 Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh">💼 Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="rsec"><div class="rh">💼 Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">🎓 Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${refs.length?`<div class="rsec"><div class="rh">🤝 References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">🏆 Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
@@ -4808,7 +5257,7 @@ ${pb}
     </div>
     <div class="R">
       ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-r">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-r">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Education</div>${edu.map(e=>`<div class="item"><div class="i-header"><div class="i-co">${e.school}</div>${e.yearGrad||e.yearStart?`<div class="i-date-r">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div>Awards</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
@@ -4964,7 +5413,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="lsec"><div class="sh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="lsec"><div class="sh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="lsec"><div class="sh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="sh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="lsec"><div class="sh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
@@ -5049,7 +5498,7 @@ ${pb}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
@@ -5113,7 +5562,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
@@ -5194,7 +5643,7 @@ ${pb}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="rsec"><div class="rh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
@@ -5261,7 +5710,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="lsec"><div class="lh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
@@ -5332,7 +5781,7 @@ ${pb}
   <div class="body">
     <div class="L">
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile Summary</div><p class="about">${s.profileSummary}</p></div>`:''}
-      ${!isFresh&&work.length?`<div class="lsec"><div class="lh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${work.length?`<div class="lsec"><div class="lh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
@@ -5409,7 +5858,7 @@ ${pb}
   </div>
   <div class="R">
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
-    ${!isFresh&&work.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${work.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
