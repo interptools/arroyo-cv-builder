@@ -4095,19 +4095,68 @@ function validate(data) {
 
 // ─── SUBMIT ───────────────────────────────────────────────────────────────────
 // ─── COMPRESS PHOTO ───────────────────────────────────────────────────────────
-function compressPhoto(base64) {
+// Photo budget. The whole bin is ~100 KB, so a photo that "only" weighs 40 KB
+// takes nearly half of it and starts pushing older orders out. Fixed quality
+// settings can't guarantee a size — a detailed photo at 250px/0.5 can still land
+// at 30 KB — so this measures the result and keeps shrinking until it fits.
+const PHOTO_BUDGET_BYTES = 14000;   // ~14 KB of base64 per photo
+const PHOTO_MAX_PX       = 320;     // plenty for the 120px slot in every template
+
+// Renders `img` at `px` on the long edge and returns a JPEG data URL at `q`.
+function renderPhoto(img, px, q) {
+  let w = img.width, h = img.height;
+  if (w > h) { if (w > px) { h = Math.round(h * px / w); w = px; } }
+  else       { if (h > px) { w = Math.round(w * px / h); h = px; } }
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';               // JPEG has no alpha — avoids black edges on PNGs
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', q);
+}
+
+// Shrinks until the result fits `budget`. Two passes, and the order matters:
+//
+// These are portraits. JPEG artifacts around eyes, hair and skin are far more
+// noticeable than mild softness, so pass 1 holds quality at 0.55+ and gives up
+// pixels instead. Only if even a small image can't fit does pass 2 allow lower
+// quality — a slightly rough photo beats no photo.
+//
+// Returns null if nothing fits, so the caller can ask for a tighter crop.
+function shrinkToBudget(img, budget) {
+  const widths = [PHOTO_MAX_PX, 300, 280, 260, 240, 220, 200, 180, 160];
+
+  const search = (px, floorQ) => {
+    let lo = floorQ, hi = 0.88, out = null;
+    // Does the floor quality even fit at this size? If not, this size is out.
+    if (renderPhoto(img, px, floorQ).length > budget) return null;
+    for (let i = 0; i < 7; i++) {
+      const q = (lo + hi) / 2;
+      const candidate = renderPhoto(img, px, q);
+      if (candidate.length <= budget) { out = candidate; lo = q; }
+      else { hi = q; }
+    }
+    return out || renderPhoto(img, px, floorQ);
+  };
+
+  for (const px of widths) {            // pass 1 — keep quality clean
+    const out = search(px, 0.55);
+    if (out) return out;
+  }
+  for (const px of widths) {            // pass 2 — accept artifacts over failure
+    const out = search(px, 0.32);
+    if (out) return out;
+  }
+  return null;
+}
+
+function compressPhoto(base64, budget) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX = 250;
-      let w = img.width, h = img.height;
-      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
-      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL('image/jpeg', 0.5));
+      try { resolve(shrinkToBudget(img, budget || PHOTO_BUDGET_BYTES) || base64); }
+      catch (e) { resolve(base64); }
     };
     img.onerror = () => resolve(base64);
     img.src = base64;

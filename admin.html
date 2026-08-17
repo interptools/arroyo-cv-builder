@@ -426,6 +426,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <div id="storeWarn"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;">
           <button onclick="exportCSV()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#166534;font-size:12px;font-weight:700;cursor:pointer;">⬇ Export CSV First</button>
+          <button onclick="shrinkAllPhotos()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #6ee7b7;background:#f0fdf4;color:#065f46;font-size:12px;font-weight:700;cursor:pointer;">🗜 Shrink All Photos</button>
           <button onclick="reclaimPhotoSpace()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #fbbf24;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;">🖼 Remove Photos from Delivered</button>
           <button onclick="purgeDelivered()" style="padding:9px 16px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;">🗑 Archive &amp; Delete Delivered</button>
         </div>
@@ -1489,6 +1490,218 @@ async function renderHealth(){
 
 // Delete photos from delivered orders — the CV is already sent, so the photo
 // has done its job and it is by far the biggest field in each record.
+// ══════════════════════════════════════════════════════════════════════════════
+// ADMIN PHOTO UPLOAD
+// The customer's photo is the single largest thing in a record, and the bin is
+// capped at ~100 KB total. So this compresses hard before storing, and refuses
+// the write if it would push the bin over the edge — a silent overflow makes the
+// public form start deleting the oldest orders.
+// ══════════════════════════════════════════════════════════════════════════════
+const PHOTO_BUDGET_DEFAULT = 14000;   // ~14 KB of base64 per photo
+const PHOTO_BUDGET_MIN     = 7000;    // below this the photo looks poor — refuse instead
+const PHOTO_MAX_PX         = 320;     // plenty for the 120px slot in every template
+
+function renderPhoto(img, px, q){
+  let w = img.width, h = img.height;
+  if (w > h) { if (w > px) { h = Math.round(h * px / w); w = px; } }
+  else       { if (h > px) { w = Math.round(w * px / h); h = px; } }
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(img, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', q);
+}
+
+// Shrinks until the result fits `budget`. Two passes, and the order matters:
+//
+// These are portraits. JPEG artifacts around eyes, hair and skin are far more
+// noticeable than mild softness, so pass 1 holds quality at 0.55+ and gives up
+// pixels instead. Only if even a small image can't fit does pass 2 allow lower
+// quality — a slightly rough photo beats no photo.
+//
+// Returns null if nothing fits, so the caller can ask for a tighter crop.
+function shrinkToBudget(img, budget) {
+  const widths = [PHOTO_MAX_PX, 300, 280, 260, 240, 220, 200, 180, 160];
+
+  const search = (px, floorQ) => {
+    let lo = floorQ, hi = 0.88, out = null;
+    // Does the floor quality even fit at this size? If not, this size is out.
+    if (renderPhoto(img, px, floorQ).length > budget) return null;
+    for (let i = 0; i < 7; i++) {
+      const q = (lo + hi) / 2;
+      const candidate = renderPhoto(img, px, q);
+      if (candidate.length <= budget) { out = candidate; lo = q; }
+      else { hi = q; }
+    }
+    return out || renderPhoto(img, px, floorQ);
+  };
+
+  for (const px of widths) {            // pass 1 — keep quality clean
+    const out = search(px, 0.55);
+    if (out) return out;
+  }
+  for (const px of widths) {            // pass 2 — accept artifacts over failure
+    const out = search(px, 0.32);
+    if (out) return out;
+  }
+  return null;
+}
+
+function loadImage(src){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload  = () => resolve(img);
+    img.onerror = () => reject(new Error('That file is not a readable image.'));
+    img.src = src;
+  });
+}
+
+function readFileAsDataURL(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(new Error('Could not read that file.'));
+    r.onload  = e => resolve(e.target.result);
+    r.readAsDataURL(file);
+  });
+}
+
+// How many bytes this photo may occupy, given what's actually left in the bin.
+// Never takes more than half the free space, so one upload can't consume the
+// room the next three orders need.
+function photoBudgetFor(currentBytes, oldPhotoLen){
+  const free = (BIN_CAP_BYTES * 0.92) - (currentBytes - oldPhotoLen);
+  return Math.max(0, Math.min(PHOTO_BUDGET_DEFAULT, Math.floor(free * 0.5)));
+}
+
+async function uploadAdminPhoto(input, idx){
+  const file = input.files && input.files[0];
+  input.value = '';                       // allow re-picking the same file
+  const status = document.getElementById('adminPhotoStatus');
+  const say = (msg, colour) => { if(status){ status.textContent = msg; status.style.color = colour || 'var(--gray)'; } };
+  if(!file) return;
+  if(!/^image\//.test(file.type)){ say('That file is not an image.', '#ef4444'); return; }
+
+  // Measure the live bin first — the budget depends on what's actually free, and
+  // another device may have added records since this page loaded.
+  say('Checking storage…');
+  let ex, currentBytes;
+  try {
+    ex = await getFullRecord();
+    currentBytes = new Blob([JSON.stringify(ex)]).size;
+  } catch(e){ say('Could not reach storage. Check your connection.', '#ef4444'); return; }
+
+  const oldPhoto = submissions[idx]?.personal?.photo || '';
+  const budget = photoBudgetFor(currentBytes, oldPhoto.length);
+
+  if(budget < PHOTO_BUDGET_MIN){
+    say('Not enough storage room for a usable photo. Clear photos from delivered orders on the System Health page first.', '#ef4444');
+    showNotif('Storage nearly full — photo not saved.', true);
+    return;
+  }
+
+  say(`Resizing to fit ${(budget/1024).toFixed(0)} KB…`);
+  let photo;
+  try {
+    const img = await loadImage(await readFileAsDataURL(file));
+    photo = shrinkToBudget(img, budget);
+  } catch(e){ say(e.message, '#ef4444'); return; }
+
+  if(!photo || photo.length > budget){
+    say('That image could not be shrunk enough. Try a tighter crop of just the head and shoulders.', '#ef4444');
+    return;
+  }
+
+  say('Saving…');
+  try {
+    submissions[idx].personal.photo = photo;
+    submissions[idx].photoUploadedByAdminAt = new Date().toISOString();
+    delete submissions[idx].photoRemovedAt;   // it's no longer missing
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    const saved = (photo.length/1024).toFixed(1);
+    const was   = (file.size/1024).toFixed(0);
+    showNotif(`✅ Photo saved — resized from ${was} KB to ${saved} KB.`);
+    viewSubmission(idx);
+    renderSubmissions();
+  } catch(e){
+    submissions[idx].personal.photo = oldPhoto;   // roll the local copy back
+    say('Failed to save: ' + e.message, '#ef4444');
+  }
+}
+
+async function removeAdminPhoto(idx){
+  if(!confirm('Remove the photo from this order?\n\nThe rest of the details are kept.')) return;
+  const old = submissions[idx]?.personal?.photo || '';
+  try {
+    const ex = await getFullRecord();
+    submissions[idx].personal.photo = '';
+    submissions[idx].photoRemovedAt = new Date().toISOString();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    showNotif('Photo removed.');
+    viewSubmission(idx);
+    renderSubmissions();
+  } catch(e){
+    submissions[idx].personal.photo = old;
+    showNotif('Failed to remove: ' + e.message, true);
+  }
+}
+
+// Recompress every stored photo down to the budget. Unlike "Remove Photos",
+// this is non-destructive — the CVs can still be rebuilt afterwards. Run this
+// first; only delete photos if it isn't enough.
+async function shrinkAllPhotos(){
+  const targets = submissions
+    .map((x, i) => ({ x, i }))
+    .filter(o => o.x.personal && o.x.personal.photo
+                 && o.x.personal.photo.length > PHOTO_BUDGET_DEFAULT);
+
+  if(!targets.length){ showNotif('All stored photos are already within budget.'); return; }
+
+  const before = targets.reduce((t, o) => t + o.x.personal.photo.length, 0);
+  if(!confirm(`Shrink ${targets.length} photo(s) currently using ${(before/1024).toFixed(0)} KB?\n\n`
+    + `Each is resized to about ${(PHOTO_BUDGET_DEFAULT/1024).toFixed(0)} KB. `
+    + `Photos stay usable for rebuilding CVs — nothing is deleted.`)) return;
+
+  showNotif('Shrinking photos…');
+  const originals = targets.map(o => o.x.personal.photo);   // for rollback
+  let after = 0, failed = 0;
+
+  for(const o of targets){
+    try {
+      const img = await loadImage(o.x.personal.photo);
+      const out = shrinkToBudget(img, PHOTO_BUDGET_DEFAULT);
+      // Only keep it if it actually got smaller.
+      if(out && out.length < o.x.personal.photo.length) o.x.personal.photo = out;
+      after += o.x.personal.photo.length;
+    } catch(e){ failed++; after += o.x.personal.photo.length; }
+  }
+
+  try {
+    const ex = await getFullRecord();
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},
+      body:JSON.stringify({...ex, submissions})
+    });
+    const freed = Math.max(0, before - after);
+    showNotif(`✅ Freed ${(freed/1024).toFixed(1)} KB across ${targets.length} photo(s)`
+      + (failed ? ` — ${failed} could not be read.` : '.'));
+    renderHealth(); renderSubmissions();
+  } catch(e){
+    targets.forEach((o, n) => { o.x.personal.photo = originals[n]; });   // roll back
+    showNotif('Failed to save: ' + e.message, true);
+  }
+}
+
 async function reclaimPhotoSpace(){
   const targets = submissions.filter(x => x.status === 'Delivered' && x.personal && x.personal.photo);
   if(!targets.length){ showNotif('No delivered orders with photos to clear.'); return; }
@@ -1618,10 +1831,25 @@ function viewSubmission(idx){
   const totalPrice=isResign
     ? `${peso(orderTotal(s))} (Resignation Letter)`
     : hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
-  if(p.photo) html+='<div style="text-align:center;margin-bottom:20px;"><img src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);"></div>';
-  // A missing photo on a delivered order is expected, not a fault — say so, or
-  // you'll go looking for a bug that isn't there.
-  else if(s.photoRemovedAt) html+='<div style="text-align:center;margin-bottom:20px;padding:14px;background:var(--off-white);border:1.5px dashed var(--gray-light);border-radius:10px;font-size:12px;color:var(--gray);line-height:1.6;">\U0001f5bc\ufe0f Photo removed on delivery to free storage.<br><span style="font-size:11px;">The CV was already generated and sent. Ask the customer to resend it if you need to rebuild the file.</span></div>';
+  // Photo block. The upload control is always available, because the three
+  // common cases all need it: the customer skipped the photo, sent a bad one, or
+  // the photo was stripped on delivery and the CV now needs rebuilding.
+  html+='<div style="text-align:center;margin-bottom:20px;">';
+  if(p.photo){
+    html+='<img id="adminPhotoPreview" src="'+p.photo+'" style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--gold);box-shadow:0 4px 16px rgba(200,168,75,.3);">';
+  } else if(s.photoRemovedAt){
+    html+='<div style="padding:14px;background:var(--off-white);border:1.5px dashed var(--gray-light);border-radius:10px;font-size:12px;color:var(--gray);line-height:1.6;">🖼️ Photo removed on delivery to free storage.<br><span style="font-size:11px;">Re-upload below if you need to rebuild the CV.</span></div>';
+  } else {
+    html+='<div id="adminPhotoEmpty" style="width:120px;height:120px;border-radius:50%;margin:0 auto;background:var(--off-white);border:2px dashed var(--gray-light);display:flex;align-items:center;justify-content:center;font-size:34px;color:var(--gray-light);">👤</div>'
+      + '<div style="font-size:11.5px;color:var(--gray);margin-top:8px;">No photo on file</div>';
+  }
+  html+='<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
+    + '<button onclick="document.getElementById(\'adminPhotoInput\').click()" style="background:#eef2ff;color:#3730a3;border:1.5px solid #c7d2fe;border-radius:8px;padding:7px 14px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;">📷 '+(p.photo?'Replace Photo':'Upload Photo')+'</button>'
+    + (p.photo?'<button onclick="removeAdminPhoto('+si+')" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;border-radius:8px;padding:7px 14px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;">🗑 Remove</button>':'')
+    + '</div>'
+    + '<input type="file" id="adminPhotoInput" accept="image/*" style="display:none" onchange="uploadAdminPhoto(this,'+si+')">'
+    + '<div id="adminPhotoStatus" style="font-size:11.5px;margin-top:8px;line-height:1.6;"></div>';
+  html+='</div>';
   html+='<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">';
   html+='<span class="status-badge status-'+s.status+'">'+s.status+'</span>';
   if(hasCL) html+='<span class="cl-badge">📝 Cover Letter Add-on</span>';
