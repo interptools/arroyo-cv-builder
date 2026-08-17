@@ -4289,7 +4289,9 @@ function printCoverLetter(){
   const win=window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
 <title>Cover Letter \u2014 ${fullName(p)}</title>
-<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{height:100%;background:#d1d5db;}
@@ -4338,7 +4340,14 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 /* The script name is a signature, not a repeat of the typed name. It needs room
    to read as one — and a rule beneath it so the typed name below is clearly a
    caption, the way a real signed letter looks. */
-.cl-sign-name{font-family:'Dancing Script',cursive;font-size:30px;color:#1a2744;line-height:1;padding-bottom:6px;}
+.cl-sign-name{
+  font-family:'Dancing Script','Segoe Script','Brush Script MT','Lucida Handwriting','Apple Chancery','Bradley Hand',cursive;
+  font-weight:600;            /* must match a served weight or the face is skipped */
+  font-size:34px;
+  color:#1a2744;
+  line-height:1;
+  padding-bottom:8px;
+}
 .cl-sign-rule{width:58mm;max-width:100%;border-bottom:1px solid #9ca3af;margin-bottom:5px;}
 .cl-sign-typed{font-family:Inter,sans-serif;font-size:10px;color:#1a2744;font-weight:700;letter-spacing:.3px;}
 .cl-sign-role{font-family:Inter,sans-serif;font-size:9px;color:#6b7280;margin-top:1px;}
@@ -4394,7 +4403,22 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   </div>
 
 </div></div>
-<script>window.onload=function(){window.print();}<\/script>
+<script>
+// display=swap renders a fallback first and swaps the real font in when it
+// arrives. window.onload can fire before that swap, which is how a signature
+// ends up printed in a plain face. Wait for the fonts, with a ceiling so a
+// blocked or slow font server can't leave the dialog unopened.
+window.onload=function(){
+  var done=false;
+  var go=function(){ if(done) return; done=true; window.print(); };
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(function(){ setTimeout(go,120); });
+    setTimeout(go,3000);
+  } else {
+    setTimeout(go,600);
+  }
+};
+<\/script>
 </body></html>`);
   win.document.close();
 }
