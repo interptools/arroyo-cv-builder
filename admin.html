@@ -2535,6 +2535,22 @@ function viewSubmission(idx){
       <button onclick="copyCoverLetter()" id="copyCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">📋 Copy</button>
       <button onclick="printCoverLetter()" id="printCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #93c5fd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">🖨️ Print</button>
     </div>
+    <div id="clThemeRow" style="display:${clGen?'block':'none'};margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Letter design</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer;font-weight:600;margin-bottom:9px;">
+        <input type="checkbox" id="clShowPhoto" ${p.photo?'checked':''} ${p.photo?'':'disabled'} style="width:17px;height:17px;accent-color:#1a2744;cursor:pointer;">
+        Include photo on the letter${p.photo?'':' <span style="font-weight:400;color:var(--gray);">— no photo on file</span>'}
+      </label>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;">
+        ${Object.entries(CL_THEMES).map(([k,t],i)=>
+          `<button type="button" onclick="pickClTheme('${k}')" id="clSw_${k}" title="${t.name}"
+             style="width:30px;height:30px;border-radius:50%;background:${t.css};cursor:pointer;flex-shrink:0;
+                    border:${i===0?'3px solid var(--navy)':'2px solid var(--gray-light)'};padding:0;"></button>`
+        ).join('')}
+        <span id="clThemeName" style="font-size:11.5px;color:var(--gray);margin-left:4px;">Sunset</span>
+      </div>
+      <select id="clTheme" style="display:none;"><option value="sunset" selected></option></select>
+    </div>
     <textarea id="coverLetterDisplay" rows="14" placeholder="Cover letter will appear here after generating..." style="width:100%;font-size:13px;line-height:1.9;color:#1f2937;background:#fafafa;border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:'Georgia',serif;resize:vertical;">${clGen}</textarea>
     <button onclick="saveCoverLetter(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Cover Letter</button>
   </div>`;
@@ -4156,6 +4172,8 @@ ${isGeneral
     display.value=clGenerated;
     if(copyBtn) copyBtn.style.display='inline-flex';
     if(printBtn) printBtn.style.display='inline-flex';
+    const themeRow=document.getElementById('clThemeRow');
+    if(themeRow) themeRow.style.display='block';
     showNotif('✅ Cover letter generated!');
     // Write back to whichever block this order actually uses. Saving a standalone
     // order's letter into `coverLetter` would hide it from the generator on
@@ -4192,9 +4210,40 @@ async function saveCoverLetter(idx){
   }catch(e){showNotif('Failed to save: '+e.message,true);}
 }
 
+// Sidebar colour themes for the printed cover letter. Each is a full gradient
+// plus the accent used for the rule and the "applying to" label, so a theme
+// stays coherent rather than being a hue swap on one element.
+const CL_THEMES = {
+  sunset:   { name:'Sunset',    css:'linear-gradient(160deg,#2d7dd2 0%,#7b3fa0 45%,#e0457b 100%)', ink:'#ffffff' },
+  navy:     { name:'Corporate', css:'linear-gradient(160deg,#1a2744 0%,#243358 50%,#3b4a73 100%)', ink:'#e2c97e' },
+  forest:   { name:'Forest',    css:'linear-gradient(160deg,#134e4a 0%,#166534 50%,#3f6212 100%)', ink:'#d9f99d' },
+  ocean:    { name:'Ocean',     css:'linear-gradient(160deg,#0c4a6e 0%,#0369a1 50%,#0891b2 100%)', ink:'#bae6fd' },
+  plum:     { name:'Plum',      css:'linear-gradient(160deg,#4c1d95 0%,#7e22ce 50%,#a21caf 100%)', ink:'#f5d0fe' },
+  ember:    { name:'Ember',     css:'linear-gradient(160deg,#7c2d12 0%,#b45309 50%,#d97706 100%)', ink:'#fed7aa' },
+  slate:    { name:'Slate',     css:'linear-gradient(160deg,#0f172a 0%,#334155 50%,#64748b 100%)', ink:'#e2e8f0' },
+  rose:     { name:'Rose',      css:'linear-gradient(160deg,#881337 0%,#be123c 50%,#e11d48 100%)', ink:'#fecdd3' },
+  mono:     { name:'Charcoal',  css:'linear-gradient(160deg,#18181b 0%,#3f3f46 55%,#52525b 100%)', ink:'#d4d4d8' }
+};
+
+// Swatch picker. The hidden <select> is what printCoverLetter reads, so the
+// visual state and the printed output can't drift apart.
+function pickClTheme(key){
+  const sel=document.getElementById('clTheme');
+  if(sel) sel.innerHTML = `<option value="${key}" selected></option>`;
+  Object.keys(CL_THEMES).forEach(k=>{
+    const b=document.getElementById('clSw_'+k);
+    if(b) b.style.border = (k===key) ? '3px solid var(--navy)' : '2px solid var(--gray-light)';
+  });
+  const nm=document.getElementById('clThemeName');
+  if(nm) nm.textContent = CL_THEMES[key] ? CL_THEMES[key].name : '';
+}
+
 function printCoverLetter(){
   const text=document.getElementById('coverLetterDisplay')?.value?.trim();
   if(!text){showNotif('No cover letter to print.',true);return;}
+  const themeKey=document.getElementById('clTheme')?.value||'sunset';
+  const showPhoto=!!document.getElementById('clShowPhoto')?.checked;
+  const theme=CL_THEMES[themeKey]||CL_THEMES.sunset;
   const s=submissions[currentSubmission]||{};
   const p=s.personal||{};
   const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'Applicant';
@@ -4255,9 +4304,17 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
 /* LEFT SIDEBAR */
 .sidebar{width:72mm;flex-shrink:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
-.sidebar-gradient{position:absolute;inset:0;background:linear-gradient(160deg,#2d7dd2 0%,#7b3fa0 45%,#e0457b 100%);}
+.sidebar-gradient{position:absolute;inset:0;background:${theme.css};}
+/* Every gradient is lightest at the bottom, which is exactly where the small
+   "applying to" text sits. A soft dark scrim keeps that block readable on all
+   themes without touching the palettes themselves. */
+.sidebar-scrim{position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,0.32) 100%);pointer-events:none;}
 .sidebar-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:32px 22px 28px;}
 .photo-ring{width:90px;height:90px;border-radius:50%;border:3px solid rgba(255,255,255,0.9);overflow:hidden;margin:0 auto 16px;flex-shrink:0;background:rgba(255,255,255,0.2);}
+/* Without a photo the name would sit oddly high against the top edge, so the
+   sidebar takes back the space the photo would have used. */
+.sidebar-content.no-photo{padding-top:46px;}
+.sidebar-content.no-photo .applicant-name{font-size:16px;}
 .applicant-name{font-family:Inter,sans-serif;font-size:14px;font-weight:700;color:white;text-align:center;margin-bottom:3px;line-height:1.3;}
 .applicant-title{font-family:Inter,sans-serif;font-size:8.5px;font-weight:600;color:rgba(255,255,255,0.75);text-align:center;letter-spacing:2px;text-transform:uppercase;margin-bottom:22px;}
 .contact-divider{border:none;border-top:1px solid rgba(255,255,255,0.25);margin-bottom:16px;}
@@ -4277,9 +4334,14 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .cl-body{flex:1;}
 .cl-body p{font-family:'Crimson Text',serif;font-size:10.5pt;line-height:1.75;color:#2a2a2a;margin-bottom:10px;text-align:justify;}
 .cl-signature{margin-top:16px;}
-.cl-sign-closing{font-family:Inter,sans-serif;font-size:10px;color:#6b7280;margin-bottom:8px;}
-.cl-sign-name{font-family:'Dancing Script',cursive;font-size:26px;color:#1a2744;line-height:1.2;}
-.cl-sign-typed{font-family:Inter,sans-serif;font-size:10px;color:#374151;margin-top:3px;font-weight:500;}
+.cl-sign-closing{font-family:Inter,sans-serif;font-size:10.5px;color:#6b7280;margin-bottom:6px;}
+/* The script name is a signature, not a repeat of the typed name. It needs room
+   to read as one — and a rule beneath it so the typed name below is clearly a
+   caption, the way a real signed letter looks. */
+.cl-sign-name{font-family:'Dancing Script',cursive;font-size:30px;color:#1a2744;line-height:1;padding-bottom:6px;}
+.cl-sign-rule{width:58mm;max-width:100%;border-bottom:1px solid #9ca3af;margin-bottom:5px;}
+.cl-sign-typed{font-family:Inter,sans-serif;font-size:10px;color:#1a2744;font-weight:700;letter-spacing:.3px;}
+.cl-sign-role{font-family:Inter,sans-serif;font-size:9px;color:#6b7280;margin-top:1px;}
 @media print{
   .no-print{display:none!important;}
   html,body{background:white;}
@@ -4299,8 +4361,9 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-gradient"></div>
-    <div class="sidebar-content">
-      <div class="photo-ring">${photoHtml}</div>
+    <div class="sidebar-scrim"></div>
+    <div class="sidebar-content${showPhoto?'':' no-photo'}">
+      ${showPhoto?`<div class="photo-ring">${photoHtml}</div>`:''}
       <div class="applicant-name">${fullName(p)}</div>
       <div class="applicant-title">${position}</div>
       <hr class="contact-divider">
@@ -4323,8 +4386,10 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     <div class="cl-body">${parasHtml}</div>
     <div class="cl-signature">
       <div class="cl-sign-closing">Sincerely,</div>
-      <div class="cl-sign-name">${signature||((p.firstName||'')+ ' ' +(p.lastName||''))}</div>
-      <div class="cl-sign-typed">${fullName(p)}</div>
+      <div class="cl-sign-name">${fullName(p)}</div>
+      <div class="cl-sign-rule"></div>
+      <div class="cl-sign-typed">${fullName(p).toUpperCase()}</div>
+      ${position?`<div class="cl-sign-role">${position}</div>`:''}
     </div>
   </div>
 
