@@ -375,7 +375,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div class="card" style="max-width:640px;">
         <h3>🏷️ Regular Prices</h3>
         <p>These are your normal prices. Customers see them unless a sale is running.</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">
           <div><label class="field-label">CV / Resume</label><input type="number" min="0" id="pr-base" class="field-input" placeholder="50"></div>
           <div><label class="field-label">Cover Letter</label><input type="number" min="0" id="pr-cl" class="field-input" placeholder="75"></div>
           <div><label class="field-label">Resignation Letter</label><input type="number" min="0" id="pr-rl" class="field-input" placeholder="50"></div>
@@ -391,7 +391,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         </label>
         <label class="field-label">Sale name — shown to customers</label>
         <input type="text" id="pr-sale-label" class="field-input" placeholder="e.g. Back-to-School Sale">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">
           <div><label class="field-label">CV sale price</label><input type="number" min="0" id="pr-sale-base" class="field-input" placeholder="regular"></div>
           <div><label class="field-label">Cover Letter sale</label><input type="number" min="0" id="pr-sale-cl" class="field-input" placeholder="regular"></div>
           <div><label class="field-label">Resignation sale</label><input type="number" min="0" id="pr-sale-rl" class="field-input" placeholder="regular"></div>

@@ -3025,9 +3025,11 @@ function collectResignation(){
     // Flat personal block so the admin list and the order tracker can find a
     // name and email without knowing about resignation records specifically.
     personal: {
-      firstName: rVal('r-name'),
+      // Split so email greetings read "Dear Maria," rather than "Dear Maria Cruz
+      // Santos,". fullName() rejoins these, so the admin list is unaffected.
+      firstName: rVal('r-name').split(/\s+/)[0] || rVal('r-name'),
       middleName: '',
-      lastName: '',
+      lastName: rVal('r-name').split(/\s+/).slice(1).join(' '),
       email: rVal('r-email'),
       phone: rVal('r-mobile'),
       mobile: rVal('r-mobile'),
