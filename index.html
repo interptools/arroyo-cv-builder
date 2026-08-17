@@ -943,6 +943,14 @@
            between — most visitors are here for a CV. -->
       <div class="alt-service">
         <div class="alt-divider"><span>or</span></div>
+        <button class="alt-service-btn" onclick="showClPage()" style="margin-bottom:10px;">
+          <span class="as-emoji">📝</span>
+          <span class="as-text">
+            <span class="as-title">I just need a cover letter</span>
+            <span class="as-sub">Already have a CV? We'll write the letter — <span id="cl-btn-price">₱75</span></span>
+          </span>
+          <span class="as-arrow">→</span>
+        </button>
         <button class="alt-service-btn" onclick="showResignPage()">
           <span class="as-emoji">✉️</span>
           <span class="as-text">
@@ -1623,6 +1631,170 @@
        fill in education history and references to get one letter. Shares the
        card/field styling so it doesn't read as a bolted-on second product.
        ══════════════════════════════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PAGE 1D: COVER LETTER ONLY
+       Standalone, for people who already have a CV. Unlike the add-on version,
+       there's no CV to draw background from, so this asks for the few career
+       facts a cover letter genuinely needs.
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="page" id="clPage">
+
+    <button class="back-to-start" onclick="backToStart()">← Back</button>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">📝</div>
+        <div>
+          <h2>Cover Letter</h2>
+          <p>Professionally written, delivered in Word and PDF</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--gray);line-height:1.7;margin-bottom:14px">
+          Already have a CV? We'll write a one-page cover letter tailored to the job you're
+          applying for — the part most applicants get wrong.
+        </p>
+        <span class="resign-price" id="cl-hdr-price">₱75 · ready within 24 hours</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div><h2>Your Details</h2><p>So we know who the letter is from and where to send it</p></div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Full Name <span class="req">*</span></label>
+            <input type="text" id="c-name" placeholder="Juan D. Dela Cruz"></div>
+          <div class="field"><label>Mobile Number <span class="req">*</span></label>
+            <input type="tel" id="c-mobile" placeholder="09XX XXX XXXX"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>Email Address <span class="req">*</span></label>
+            <input type="email" id="c-email" placeholder="juan@email.com">
+            <span class="field-hint">We'll send the finished letter here.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">🎯</div>
+        <div><h2>The Job You're Applying For</h2><p>The letter is written specifically for this role</p></div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Target Position <span class="req">*</span></label>
+            <input type="text" id="c-position" placeholder="e.g. Customer Service Representative"></div>
+          <div class="field"><label>Target Company <span class="req">*</span></label>
+            <input type="text" id="c-company" placeholder="e.g. Accenture"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Addressed To</label>
+            <input type="text" id="c-manager" placeholder="Ms. Maria Santos">
+            <span class="field-hint">Leave blank to address it to the Hiring Manager.</span></div>
+          <div class="field"><label>Where did you see the job?</label>
+            <input type="text" id="c-source" placeholder="e.g. JobStreet, Facebook, referral"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>Why do you want this job? <span class="req">*</span></label>
+            <textarea id="c-reason" rows="3" placeholder="e.g. I want to grow with a global company and use my 3 years of BPO experience in a bigger team."></textarea></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon">💼</div>
+        <div><h2>Your Background</h2><p>Without your CV we need the basics to write about you</p></div>
+      </div>
+      <div class="card-body">
+        <div class="field-row">
+          <div class="field"><label>Current or Most Recent Role <span class="req">*</span></label>
+            <input type="text" id="c-currentrole" placeholder="e.g. Sales Associate at SM Retail"></div>
+          <div class="field"><label>Years of Experience</label>
+            <input type="text" id="c-years" placeholder="e.g. 3 years"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>Your Top 2–3 Strengths <span class="req">*</span></label>
+            <input type="text" id="c-strengths" placeholder="e.g. Communication, fast learner, 3 years BPO experience"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>One Achievement You're Proud Of</label>
+            <textarea id="c-achievement" rows="2" placeholder="e.g. Handled 60+ calls a day with a 95% satisfaction score. Numbers make a cover letter far stronger."></textarea></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>Highest Education</label>
+            <input type="text" id="c-education" placeholder="e.g. BS Business Administration, University of Cebu, 2022"></div>
+        </div>
+        <div class="field-row full">
+          <div class="field"><label>Tone of the Letter <span class="req">*</span></label>
+            <select id="c-tone">
+              <option value="professional">Professional &amp; formal</option>
+              <option value="friendly">Friendly &amp; enthusiastic</option>
+              <option value="confident">Confident &amp; direct</option>
+              <option value="creative">Creative &amp; expressive</option>
+            </select></div>
+        </div>
+      </div>
+    </div>
+
+    <label id="c-consent-label" style="display:flex;align-items:flex-start;gap:12px;cursor:pointer;background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <input type="checkbox" id="c-consent" onchange="onClConsent()" style="width:20px;height:20px;flex-shrink:0;margin-top:2px;accent-color:#1a2744;cursor:pointer">
+      <div style="font-size:12px;color:#1a2744;line-height:1.7;font-family:Inter,sans-serif">
+        <strong style="font-size:13px">I agree to the Data Privacy Terms</strong><br>
+        I give my consent to <strong>Arroyo CV Builder</strong> to collect and process the
+        information I provide here — my name, contact details, and career details — for the sole
+        purpose of writing my cover letter. My data will not be shared with any third party and
+        will only be used to deliver the requested service.
+      </div>
+    </label>
+
+    <button class="submit-btn" id="cSubmitBtn" onclick="submitCoverLetter()" disabled style="opacity:0.5;cursor:not-allowed">
+      <span id="cSubmitLabel">Please agree to the Data Privacy Terms above</span>
+      <span id="cSubmitSpinner" class="spinner hidden"></span>
+    </button>
+
+    <p class="footer-note">
+      <strong>Contact: Reymar Arroyo</strong> · 09063964052 · areymar36@gmail.com
+    </p>
+  </div>
+
+  <!-- PAGE 1E: COVER LETTER CONFIRMATION -->
+  <div class="page" id="clConfirmPage">
+    <div class="confirm-card">
+      <div class="confirm-icon">✅</div>
+      <h2>Request Received</h2>
+      <p>Your cover letter is being prepared. We'll email it to you in Word and PDF format once payment is confirmed.</p>
+      <div style="background:#f7f8fc;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:left">
+        <div style="font-size:12px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Order Summary</div>
+        <div style="background:#1a2744;border-radius:8px;padding:11px 14px;margin-bottom:12px;text-align:center">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#c8a84b;margin-bottom:3px">Your reference number</div>
+          <div id="c-confirm-ref" style="font-size:17px;font-weight:900;color:#fff;letter-spacing:1px">—</div>
+          <div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:4px">Save this — you can check your status any time on the home page.</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+          <span style="color:#6b7280">Cover Letter</span>
+          <span id="c-sum-price" style="font-weight:600;color:#1a2744">₱75</span>
+        </div>
+        <div style="border-top:1px solid #e5e7eb;margin-top:8px;padding-top:8px;display:flex;justify-content:space-between;font-size:14px">
+          <span style="font-weight:700;color:#1a2744">Total</span>
+          <span id="c-confirm-total" style="font-weight:800;color:#c8a84b;font-size:16px">₱75</span>
+        </div>
+      </div>
+      <div class="contact-box">
+        <h3>📞 Contact Details</h3>
+        <div class="contact-item"><div class="ci-icon">📱</div>
+          <div><strong>09063964052</strong><br><span style="font-size:12px;color:#6b7280">Reymar Arroyo — GCash</span></div></div>
+        <div class="contact-item"><div class="ci-icon">✉️</div><div><strong>areymar36@gmail.com</strong></div></div>
+      </div>
+      <p style="font-size:12px;color:#6b7280;margin-top:16px;line-height:1.7">
+        Send your proof of payment to the number above, together with your reference number.
+      </p>
+    </div>
+  </div>
+
   <div class="page" id="resignPage">
 
     <button class="back-to-start" onclick="backToStart()">← Back</button>
@@ -2286,6 +2458,10 @@ function applyPricing() {
   set('r-confirm-total',    peso(RESIGNATION_PRICE));
 
   // Resignation letter as a CV add-on.
+  set('cl-btn-price',    peso(CL_PRICE));
+  set('cl-hdr-price',    `${peso(CL_PRICE)} · ready within 24 hours`);
+  set('c-sum-price',     peso(CL_PRICE));
+  set('c-confirm-total', peso(CL_PRICE));
   set('rl-addon-price', '+' + peso(RESIGNATION_PRICE));
   set('sum-rl-price',   peso(RESIGNATION_PRICE));
   set('rl-total-label', peso(cvOrderTotal()));
@@ -2493,6 +2669,7 @@ function checkAlreadySubmitted() {
         Looking for a <strong>resignation letter</strong> instead? That's a separate service.
       </p>
       <button class="new-submission-btn" onclick="showResignPage()" style="margin-top:8px;">✉️ Order a Resignation Letter</button>
+      <button class="new-submission-btn" onclick="showClPage()" style="margin-top:8px;">📝 Order a Cover Letter</button>
     </div>`;
   return true;
 }
@@ -2740,7 +2917,197 @@ function startFresh(){ showFormPage(); }
 
 function backToStart(){
   document.getElementById('resignPage').classList.remove('active');
+  document.getElementById('clPage').classList.remove('active');
   showStartPage();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COVER LETTER SERVICE (standalone)
+// Separate from the CV add-on: there's no CV to draw on, so the form collects
+// the background facts the letter needs. Shares the price with the add-on.
+// ══════════════════════════════════════════════════════════════════════════════
+function showClPage(){
+  markFunnel('form');
+  document.getElementById('startPage').classList.remove('active');
+  document.getElementById('formPage').classList.remove('active');
+  document.getElementById('clPage').classList.add('active');
+  const bar = document.getElementById('stepsBar');
+  if(bar) bar.style.display = 'none';
+  applyPricing();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function onClConsent(){
+  const on = document.getElementById('c-consent').checked;
+  const btn = document.getElementById('cSubmitBtn');
+  const label = document.getElementById('cSubmitLabel');
+  const box = document.getElementById('c-consent-label');
+  btn.disabled = !on;
+  label.textContent = on ? 'Submit My Request' : 'Please agree to the Data Privacy Terms above';
+  btn.style.opacity = on ? '1' : '0.5';
+  btn.style.cursor = on ? 'pointer' : 'not-allowed';
+  box.style.borderColor = on ? '#10b981' : '#fde68a';
+  box.style.background  = on ? '#f0fdf4' : '#fffbeb';
+}
+
+const cVal = id => document.getElementById(id).value.trim();
+
+function collectCoverLetter(){
+  return {
+    id: 'ACL-' + Date.now().toString(36).toUpperCase().slice(-5),
+    serviceType: 'coverLetter',
+    submittedAt: new Date().toISOString(),
+    status: 'New',
+    amountDue: CL_PRICE,
+    quotedTotal: CL_PRICE,
+    pricing: { cl: CL_PRICE, sale: SALE ? SALE.label : '' },
+    personal: {
+      firstName: cVal('c-name').split(/\s+/)[0] || cVal('c-name'),
+      middleName: '',
+      lastName: cVal('c-name').split(/\s+/).slice(1).join(' '),
+      email: cVal('c-email'),
+      phone: cVal('c-mobile'),
+      mobile: cVal('c-mobile'),
+      jobTitle: cVal('c-position'),
+      photo: ''
+    },
+    coverLetterOnly: {
+      fullName:    cVal('c-name'),
+      position:    cVal('c-position'),
+      company:     cVal('c-company'),
+      addressedTo: cVal('c-manager'),
+      source:      cVal('c-source'),
+      reason:      cVal('c-reason'),
+      currentRole: cVal('c-currentrole'),
+      years:       cVal('c-years'),
+      strengths:   cVal('c-strengths'),
+      achievement: cVal('c-achievement'),
+      education:   cVal('c-education'),
+      tone:        cVal('c-tone'),
+      fee:         CL_PRICE
+    },
+    dataConsent: {
+      agreed: true,
+      agreedAt: new Date().toISOString(),
+      method: 'Checkbox on submission form — customer manually ticked the box',
+      consentText: 'I give my consent to Arroyo CV Builder to collect and process the information I provide here — my name, contact details, and career details — for the sole purpose of writing my cover letter. My data will not be shared with any third party and will only be used to deliver the requested service.',
+      consentVersion: '1.0',
+      serviceUrl: window.location.href
+    }
+  };
+}
+
+function validateCoverLetter(d){
+  const c = d.coverLetterOnly;
+  if(!c.fullName) return 'Please enter your full name.';
+  if(!d.personal.email || !/^\S+@\S+\.\S+$/.test(d.personal.email))
+    return 'Please enter a valid email address.';
+  if(!d.personal.mobile) return 'Please enter your mobile number.';
+  if(!c.position)    return 'Please enter the position you are applying for.';
+  if(!c.company)     return 'Please enter the company you are applying to.';
+  if(!c.reason)      return 'Please tell us why you want this job.';
+  if(!c.currentRole) return 'Please enter your current or most recent role.';
+  if(!c.strengths)   return 'Please list your top strengths.';
+  return null;
+}
+
+async function submitCoverLetter(){
+  try { await pricingReady; } catch(e){}
+  if(!document.getElementById('c-consent').checked){
+    showNotif('Please agree to the Data Privacy Terms before submitting.', true); return;
+  }
+  const data = collectCoverLetter();
+  const err = validateCoverLetter(data);
+  if(err){ showNotif(err, true); return; }
+
+  const btn = document.getElementById('cSubmitBtn');
+  const label = document.getElementById('cSubmitLabel');
+  const spinner = document.getElementById('cSubmitSpinner');
+  btn.disabled = true; label.textContent = 'Submitting...';
+  spinner.classList.remove('hidden');
+
+  try {
+    let record = {};
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+        headers: { 'X-Master-Key': JSONBIN_API_KEY }
+      });
+      if(res.ok){ const j = await res.json(); record = j?.record || {}; }
+    } catch(e){ console.warn('Could not load existing record:', e); }
+
+    const submissions = record.submissions || [];
+    submissions.push(data);
+
+    const put = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify({ ...record, submissions })
+    });
+    if(!put.ok) throw new Error('Server returned ' + put.status);
+
+    markFunnel('submitted');
+    notifyAdminCoverLetter(data);
+    emailCoverLetterReceipt(data);
+
+    document.getElementById('c-confirm-ref').textContent = data.id;
+    document.getElementById('clPage').classList.remove('active');
+    document.getElementById('clConfirmPage').classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+
+  } catch(e){
+    showNotif('Could not submit — please check your connection and try again.', true);
+    btn.disabled = false; label.textContent = 'Submit My Request';
+    spinner.classList.add('hidden');
+  }
+}
+
+function notifyAdminCoverLetter(d){
+  if(typeof emailjs === 'undefined') return;
+  const c = d.coverLetterOnly;
+  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_email: ADMIN_EMAIL,
+    subject: `New Cover Letter order — ${c.fullName} (${d.id})`,
+    message:
+      `New cover letter request.\n\n` +
+      `Ref:          ${d.id}\n` +
+      `Name:         ${c.fullName}\n` +
+      `Email:        ${d.personal.email}\n` +
+      `Mobile:       ${d.personal.mobile}\n` +
+      `Applying for: ${c.position} at ${c.company}\n` +
+      `Addressed to: ${c.addressedTo || '(Hiring Manager)'}\n` +
+      `Saw job on:   ${c.source || '—'}\n` +
+      `Current role: ${c.currentRole}\n` +
+      `Experience:   ${c.years || '—'}\n` +
+      `Strengths:    ${c.strengths}\n` +
+      `Achievement:  ${c.achievement || '—'}\n` +
+      `Education:    ${c.education || '—'}\n` +
+      `Why:          ${c.reason}\n` +
+      `Tone:         ${c.tone}\n\n` +
+      `Amount due: ${peso(d.quotedTotal)}`
+  }).catch(e => console.warn('Admin alert failed:', e));
+}
+
+function emailCoverLetterReceipt(d){
+  if(typeof emailjs === 'undefined') return;
+  const c = d.coverLetterOnly;
+  emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+    to_email: d.personal.email,
+    subject: `We received your cover letter request — ${d.id}`,
+    message:
+      `Hi ${d.personal.firstName},\n\n` +
+      `Thank you — we've received your request for a cover letter.\n\n` +
+      `Reference number: ${d.id}\n` +
+      `Applying for:     ${c.position} at ${c.company}\n` +
+      `Amount due:       ${peso(d.quotedTotal)}\n\n` +
+      `TO PAY (GCash)\n` +
+      `09063964052 — Reymar Arroyo\n` +
+      `Send your proof of payment to the same number along with your reference number.\n\n` +
+      `Once payment is confirmed we'll email your letter in Word and PDF format, usually within 24 hours.\n\n` +
+      `You can check your status any time at:\n` +
+      `https://interptools.github.io/arroyo-cv-builder/\n\n` +
+      `— Arroyo CV Builder\n` +
+      `09063964052 · areymar36@gmail.com`
+  }).catch(e => console.warn('Customer receipt failed:', e));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2824,6 +3191,7 @@ async function loadPricing(){
 const NOTICE_DAYS = 30;   // Art. 300, Labor Code of the Philippines
 
 function showResignPage(){
+  markFunnel('form');
   document.getElementById('startPage').classList.remove('active');
   document.getElementById('formPage').classList.remove('active');
   document.getElementById('resignPage').classList.add('active');
@@ -3164,6 +3532,7 @@ async function submitResignation(){
     });
     if(!put.ok) throw new Error('Server returned ' + put.status);
 
+    markFunnel('submitted');
     notifyAdminResignation(data);
     emailResignationReceipt(data);
 
@@ -3307,22 +3676,27 @@ async function lookupOrder(){
 
 function renderTrackCard(s){
   const isResign = s.serviceType === 'resignation';
+  const isClOnly = s.serviceType === 'coverLetter';
   const idx = Math.max(0, TRACK_STAGES.findIndex(x => x.key === s.status));
   const stage = TRACK_STAGES[idx];
   const paid = !!s.payment?.paid;
   // Resignation letters are priced separately — amountDue records what the
   // customer was actually quoted, so it stays right across later price changes.
-  const total = isResign
-    ? ((typeof s.amountDue === 'number' && !isNaN(s.amountDue)) ? s.amountDue : RESIGNATION_PRICE)
+  const total = (isResign || isClOnly)
+    ? ((typeof s.amountDue === 'number' && !isNaN(s.amountDue)) ? s.amountDue : (isClOnly ? CL_PRICE : RESIGNATION_PRICE))
     : BASE_PRICE
       + (s.coverLetter?.requested ? CL_PRICE : 0)
       + (s.resignationLetter?.requested ? (s.resignationLetter.addOnFee ?? RESIGNATION_PRICE) : 0);
   const pill = ['#dbeafe|#1d4ed8','#fef3c7|#92400e','#d1fae5|#065f46','#f0fdf4|#166534'][idx].split('|');
   // The stage copy talks about "your CV" — swap the noun for letter orders.
-  const msg = isResign
-    ? stage.msg.replace(/your CV/gi, 'your resignation letter').replace(/Your CV/g, 'Your resignation letter')
+  const noun = isResign ? 'your resignation letter' : isClOnly ? 'your cover letter' : null;
+  // Replace case-sensitively: "Your CV" starts a sentence and must stay
+  // capitalised, while "your CV" mid-sentence must not be.
+  const msg = noun
+    ? stage.msg.replace(/Your CV/g, noun.charAt(0).toUpperCase() + noun.slice(1))
+                .replace(/your CV/g, noun)
     : stage.msg;
-  const kind = isResign ? 'Resignation Letter' : 'CV / Resume';
+  const kind = isResign ? 'Resignation Letter' : isClOnly ? 'Cover Letter' : 'CV / Resume';
 
   let when = '';
   try{ when = new Date(s.submittedAt).toLocaleDateString('en-PH',

@@ -333,6 +333,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
         <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
         <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
+        <button class="filter-btn" data-filter="clOnly" onclick="setFilter('clOnly',this)">📝 CL Only <span class="fcount" id="fc_clOnly">0</span></button>
         <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
         <button class="filter-btn" data-filter="paid" onclick="setFilter('paid',this)">✅ Paid <span class="fcount" id="fc_paid">0</span></button>
         <div style="flex:1;min-width:10px;"></div>
@@ -788,6 +789,10 @@ const orderTotal = s => {
   // through to the per-item stored fees, then finally to today's prices.
   if(typeof s?.quotedTotal === 'number' && !isNaN(s.quotedTotal)) return s.quotedTotal;
 
+  if(s?.serviceType === 'coverLetter'){
+    return (typeof s.amountDue === 'number' && !isNaN(s.amountDue))
+      ? s.amountDue : (s?.coverLetterOnly?.fee || CL_PRICE);
+  }
   if(s?.serviceType === 'resignation'){
     return (typeof s.amountDue === 'number' && !isNaN(s.amountDue))
       ? s.amountDue
@@ -1287,7 +1292,10 @@ async function renderFunnel(){
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
   renderFunnel();
-  const clOrders=submissions.filter(s=>s.coverLetter?.requested);
+  // Counts every cover letter written — add-ons and standalone orders alike.
+  // Filtering on coverLetter.requested alone silently reported standalone
+  // orders as zero.
+  const clOrders=submissions.filter(s=>s.coverLetter?.requested || s.serviceType==='coverLetter');
   // Collected is money actually received. Outstanding is what has been promised
   // but not yet paid — the old card summed every order regardless, which
   // flattered the figure and told you nothing actionable.
@@ -1394,9 +1402,10 @@ function renderSubmissions(){
 
   const passesFilter = (s,f) =>
     f==='all' ? true
-    : f==='coverLetter' ? !!s.coverLetter?.requested
+    : f==='coverLetter' ? (!!s.coverLetter?.requested || s.serviceType==='coverLetter')
     : f==='seaman' ? s.eduLevel==='seaman'
     : f==='resignation' ? (s.serviceType==='resignation' || !!s.resignationLetter?.requested)
+    : f==='clOnly' ? s.serviceType==='coverLetter'
     : f==='unpaid' ? !isPaid(s)
     : f==='paid'   ? isPaid(s)
     : s.status===f;
@@ -1404,7 +1413,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','resignation','unpaid','paid'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','resignation','clOnly','unpaid','paid'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -1448,7 +1457,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -1467,6 +1476,7 @@ function renderSubmissions(){
     const p=s.personal;
     const hasCL=s.coverLetter?.requested;
     const isRes=s.serviceType==='resignation';
+    const isClOnly=s.serviceType==='coverLetter';
     const h=hoursWaiting(s);
     const open=s.status!=='Delivered'&&s.status!=='Done';
     const whenCls = open&&h>72 ? ' late' : open&&h>24 ? ' warn' : '';
@@ -1475,8 +1485,8 @@ function renderSubmissions(){
       <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
-        ${isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
+        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
+        ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
         <div class="sub-mail">${p.email||'No email on file'}</div>
       </td>
 
@@ -1492,7 +1502,7 @@ function renderSubmissions(){
 
       <td data-label="Order">
         <div class="sub-price">${peso(orderTotal(s))}</div>
-        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${isRes?'Resignation Letter':[ 'CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation':null ].filter(Boolean).join(' + ')}</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${isClOnly?'Cover Letter only':isRes?'Resignation Letter':[ 'CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation':null ].filter(Boolean).join(' + ')}</div>
         <div style="margin-top:4px;">${isRes
           ? `<span class="sub-tmpl" style="${s.resignation?.noticeType==='immediate'?'background:#fef2f2;color:#991b1b;border-color:#fecaca;':''}">${s.resignation?.noticeType==='immediate'?'⚠️ Immediate':s.resignation?.noticeType==='shortened'?'Short notice':'30-day notice'}</span>`
           : `<span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span>`}</div>
@@ -1508,7 +1518,7 @@ function renderSubmissions(){
       <td data-label="Actions">
         <div class="sub-actions">
           <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
-          ${isRes?'':`<button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>`}
+          ${(isRes||isClOnly)?'':`<button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>`}
           ${s.status==='Delivered'
             ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
             : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
@@ -1553,7 +1563,13 @@ function exportCSV(){
 
   const rows = submissions.map((s, i) => {
     const p = s.personal || {};
-    const cl = s.coverLetter || {};
+    // Standalone cover letters populate the same CL columns as the add-on, so
+    // one set of columns covers both and the export stays readable.
+    const cl = (s.serviceType==='coverLetter')
+      ? { requested:true, position:s.coverLetterOnly?.position, company:s.coverLetterOnly?.company,
+          reason:s.coverLetterOnly?.reason, strengths:s.coverLetterOnly?.strengths,
+          tone:s.coverLetterOnly?.tone, generated:s.coverLetterOnly?.generated }
+      : (s.coverLetter || {});
     // Two storage shapes: standalone orders use `resignation`, CV add-ons use
     // `resignationLetter`. Collapse them so the CSV has one set of columns.
     const isStandaloneRL = s.serviceType === 'resignation';
@@ -2226,7 +2242,10 @@ function viewSubmission(idx){
   let html='';
   const hasCL=s.coverLetter?.requested;
   const isResign=s.serviceType==='resignation';
-  const totalPrice=isResign
+  const isClOnly=s.serviceType==='coverLetter';
+  const totalPrice=isClOnly
+    ? `${peso(orderTotal(s))} (Cover Letter only)`
+    : isResign
     ? `${peso(orderTotal(s))} (Resignation Letter)`
     : hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
   // Photo block. The upload control is always available, because the three
@@ -2257,6 +2276,30 @@ function viewSubmission(idx){
   // Resignation orders carry a completely different field set from CVs. Without
   // this block the admin shows a name and nothing else — every detail needed to
   // write the letter would be invisible.
+  // Standalone cover letters carry their own field set — without this the admin
+  // shows a name and nothing you could actually write the letter from.
+  if(isClOnly){
+    const c=s.coverLetterOnly||{};
+    const e=t=>String(t==null?'':t).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+    const TONE={professional:'Professional & formal',friendly:'Friendly & enthusiastic',confident:'Confident & direct',creative:'Creative & expressive'};
+    const row=(k,v)=>'<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--gray-light);font-size:12.5px;"><div style="min-width:130px;color:var(--gray);font-weight:600;">'+k+'</div><div style="flex:1;color:var(--text);">'+e(v||'—')+'</div></div>';
+    html+='<div style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;margin-bottom:16px;">';
+    html+='<div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📝 Cover Letter Brief</div>';
+    html+=row('Applicant', c.fullName||fullName(s.personal));
+    html+=row('Applying for', c.position);
+    html+=row('Company', c.company);
+    html+=row('Addressed to', c.addressedTo||'Hiring Manager (no name given)');
+    html+=row('Saw job on', c.source);
+    html+=row('Current role', c.currentRole);
+    html+=row('Experience', c.years);
+    html+=row('Strengths', c.strengths);
+    html+=row('Education', c.education);
+    html+=row('Tone', TONE[c.tone]||c.tone);
+    html+='<div style="padding:9px 0 0;font-size:12.5px;"><div style="color:var(--gray);font-weight:600;margin-bottom:4px;">Why they want the job</div><div style="background:#fff;border:1px solid var(--gray-light);border-radius:8px;padding:10px 12px;line-height:1.65;white-space:pre-wrap;">'+e(c.reason||'—')+'</div></div>';
+    if(c.achievement) html+='<div style="padding:9px 0 0;font-size:12.5px;"><div style="color:var(--gray);font-weight:600;margin-bottom:4px;">Achievement</div><div style="background:#fff;border:1px solid var(--gray-light);border-radius:8px;padding:10px 12px;line-height:1.65;white-space:pre-wrap;">'+e(c.achievement)+'</div></div>';
+    html+='</div>';
+  }
+
   if(isResign || s.resignationLetter?.requested){
     const r = isResign ? (s.resignation||{}) : (s.resignationLetter||{});
     const addon = !isResign;
@@ -5423,7 +5466,9 @@ async function sendDoneEmail(idx){
   const total=peso(orderTotal(s));
   // Name the actual documents. A resignation-letter customer being told their
   // "CV" is ready reads as a mix-up and generates a support message.
-  const docLabel = s.serviceType==='resignation'
+  const docLabel = s.serviceType==='coverLetter'
+    ? 'Cover Letter'
+    : s.serviceType==='resignation'
     ? 'Resignation Letter'
     : ['CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation Letter':null]
         .filter(Boolean).join(' and ');
@@ -5556,7 +5601,9 @@ async function emailCustomer(idx, type){
   const total=peso(orderTotal(s));
   // Name the actual documents. A resignation-letter customer being told their
   // "CV" is ready reads as a mix-up and generates a support message.
-  const docLabel = s.serviceType==='resignation'
+  const docLabel = s.serviceType==='coverLetter'
+    ? 'Cover Letter'
+    : s.serviceType==='resignation'
     ? 'Resignation Letter'
     : ['CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation Letter':null]
         .filter(Boolean).join(' and ');
