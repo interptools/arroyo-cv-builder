@@ -234,6 +234,20 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .sub-price{font-size:12px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;}
 .sub-actions{display:flex;gap:5px;flex-wrap:wrap;}
 
+/* Document buttons in the Actions column. CV already had one; cover letters and
+   resignation letters get their own so every order type has a visible route to
+   its output instead of only the generic View. */
+.btn-cl{background:#fef3c7;color:#92400e;border:1.5px solid #fbbf24!important;}
+.btn-rl{background:#ede9fe;color:#5b21b6;border:1.5px solid #c4b5fd!important;}
+
+/* Transient ring on the panel viewLetter() scrolls to, so the jump is visible. */
+@keyframes panelFlash{
+  0%{box-shadow:0 0 0 0 rgba(200,168,75,.75);}
+  35%{box-shadow:0 0 0 5px rgba(200,168,75,.30);}
+  100%{box-shadow:0 0 0 0 rgba(200,168,75,0);}
+}
+.panel-flash{animation:panelFlash 1.6s ease-out;border-radius:10px;scroll-margin-top:12px;}
+
 /* Mobile: the 6-column table collapses into stacked cards. Labels come from
    data-label so no markup is duplicated between the two layouts. */
 @media(max-width:900px){
@@ -1584,6 +1598,8 @@ function renderSubmissions(){
         <div class="sub-actions">
           <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
           ${(isRes||isClOnly)?'':`<button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>`}
+          ${(isClOnly||hasCL)?`<button class="action-btn btn-cl" onclick="viewLetter(${ri},'cl')" title="${isClOnly?'Open the cover letter':'Open the cover letter add-on'}">📝 CL</button>`:''}
+          ${(isRes||s.resignationLetter?.requested)?`<button class="action-btn btn-rl" onclick="viewLetter(${ri},'rl')" title="${isRes?'Open the resignation letter':'Open the resignation letter add-on'}">✉️ RL</button>`:''}
           ${s.status==='Delivered'
             ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
             : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
@@ -2424,7 +2440,7 @@ function viewSubmission(idx){
         + '</div>';
     }
 
-    html+='<div style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;margin-bottom:16px;">';
+    html+='<div id="rlPanel" style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;margin-bottom:16px;">';
     html+='<div style="font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✉️ Resignation Letter '+(addon?'(Add-on to CV)':'Details')+'</div>';
     html+=row('Employee', r.fullName || fullName(s.personal));
     html+=row('Position', r.position);
@@ -2586,7 +2602,7 @@ function viewSubmission(idx){
   const clGen = clSrc.generated || '';
   const clBadge = (s.coverLetter?.requested || s.serviceType === 'coverLetter')
     ? '<span style="margin-left:8px;font-size:10px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-weight:700;">💳 Paid</span>' : '';
-  html+=`<div class="info-group"><h4>✉️ Cover Letter Generator${clBadge}</h4>
+  html+=`<div class="info-group" id="clPanel"><h4>✉️ Cover Letter Generator${clBadge}</h4>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Position *</label>
@@ -2796,6 +2812,44 @@ async function copyText(text, label, btn){
 }
 
 // ── TEMPLATE OVERLAY ──────────────────────────────────────────────────────────
+// ── JUMP STRAIGHT TO A LETTER ────────────────────────────────────────────────
+// The Actions column previously offered no way to reach a Cover Letter or
+// Resignation Letter: you opened "View" and scrolled hunting for the panel.
+// This opens the submission and scrolls that panel into view, briefly ringing
+// it so it's obvious where you landed. For a cover letter that has already
+// been generated it also focuses the text so Print/Copy are one click away.
+function viewLetter(idx, kind){
+  viewSubmission(idx);
+  // viewSubmission rebuilds modalBody synchronously, but let the browser paint
+  // and the modal's open transition start before measuring scroll positions.
+  setTimeout(()=>{
+    const panel = document.getElementById(kind === 'rl' ? 'rlPanel' : 'clPanel');
+    if(!panel){
+      showNotif(kind === 'rl'
+        ? 'No resignation letter details on this order.'
+        : 'No cover letter panel on this order.', true);
+      return;
+    }
+    // Scroll within the modal body, not the page — the modal is the scroller.
+    panel.scrollIntoView({behavior:'smooth', block:'start'});
+    // Transient highlight ring, removed so repeat clicks re-trigger it.
+    panel.classList.remove('panel-flash');
+    void panel.offsetWidth;               // force reflow so the animation restarts
+    panel.classList.add('panel-flash');
+    setTimeout(()=>panel.classList.remove('panel-flash'), 1800);
+
+    if(kind === 'cl'){
+      const ta = document.getElementById('coverLetterDisplay');
+      if(ta && ta.value.trim()){
+        // Already generated — put the caret in it so Copy/Print read as ready.
+        ta.focus({preventScroll:true});
+      } else {
+        showNotif('No cover letter generated yet — click "Generate Cover Letter".');
+      }
+    }
+  }, 180);
+}
+
 function openTemplateOverlay(idx){
   currentSubmission=idx;
   document.getElementById('templateOverlay').classList.add('open');
