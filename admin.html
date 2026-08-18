@@ -279,6 +279,32 @@ tr:hover td{background:rgba(247,248,252,.8);}
 /* TEMPLATE OVERLAY - Full Screen Preview */
 #templateOverlay{position:fixed;inset:0;background:#0f1422;z-index:9500;display:none;flex-direction:column;}
 #templateOverlay.open{display:flex;}
+
+/* LETTER OVERLAY — shares the .to-* shell with the CV overlay so the two read as
+   the same tool; only the sidebar contents differ (themes, not templates). */
+#letterOverlay{position:fixed;inset:0;background:#0f1422;z-index:9600;display:none;flex-direction:column;}
+#letterOverlay.open{display:flex;}
+#letterOverlay .to-sidebar{width:196px;}
+.lo-sec{font-size:9.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.38);margin:2px 0 9px 4px;}
+.lo-sw{width:100%;display:flex;align-items:center;gap:9px;margin-bottom:6px;padding:7px 9px;border:2px solid rgba(255,255,255,.08);border-radius:9px;background:rgba(255,255,255,.03);cursor:pointer;transition:all .18s;text-align:left;font-family:inherit;}
+.lo-sw:hover{border-color:rgba(200,168,75,.45);background:rgba(200,168,75,.06);}
+.lo-sw.active{border-color:var(--gold);background:rgba(200,168,75,.12);}
+.lo-sw-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;border:1.5px solid rgba(255,255,255,.35);}
+.lo-sw-name{font-size:11.5px;font-weight:700;color:white;}
+.lo-opt{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:600;color:rgba(255,255,255,.8);transition:background .18s;}
+.lo-opt:hover{background:rgba(255,255,255,.05);}
+.lo-opt input{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.lo-note{font-size:10px;color:rgba(255,255,255,.32);line-height:1.55;margin:12px 4px 0;}
+@media(max-width:768px){
+  #letterOverlay .to-body{flex-direction:column;}
+  #letterOverlay .to-sidebar{width:100%;max-height:132px;display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start;}
+  #letterOverlay .lo-sec,#letterOverlay .lo-note{width:100%;}
+  #letterOverlay #loSwatches{display:flex;flex-wrap:wrap;gap:6px;}
+  #letterOverlay .lo-sw{width:auto;}
+  #letterOverlay .lo-sw-name{display:none;}
+  #letterOverlay .to-actions{flex-wrap:wrap;}
+  #letterOverlay .to-hint{display:none;}
+}
 .to-topbar{background:#1a2744;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;}
 .to-topbar h3{color:white;font-size:16px;font-weight:700;}
 .to-topbar p{color:rgba(255,255,255,.5);font-size:12px;margin-top:2px;}
@@ -641,6 +667,38 @@ tr:hover td{background:rgba(247,248,252,.8);}
 </div>
 
 <!-- FULL SCREEN TEMPLATE PREVIEW OVERLAY -->
+<!-- LETTER PREVIEW OVERLAY — Cover Letters & Resignation Letters -->
+<div id="letterOverlay">
+  <div class="to-topbar">
+    <div>
+      <h3 id="loTitle">Letter Preview</h3>
+      <p id="loSubtitle">Pick a design, then print.</p>
+    </div>
+  </div>
+  <div class="to-body">
+    <div class="to-sidebar">
+      <div class="lo-sec">Letter design</div>
+      <div id="loSwatches"></div>
+      <div class="lo-sec" style="margin-top:16px;">Options</div>
+      <label class="lo-opt" id="loPhotoRow">
+        <input type="checkbox" id="loShowPhoto" onchange="toggleLetterPhoto(this)">
+        <span>Include photo</span>
+      </label>
+      <div class="lo-note">The page shrinks its own type to stay on one A4 sheet.</div>
+    </div>
+    <div class="to-preview">
+      <div class="to-preview-wrap" id="loWrap">
+        <iframe id="loFrame" title="Letter preview"></iframe>
+      </div>
+    </div>
+  </div>
+  <div class="to-actions">
+    <button class="to-gen-btn" onclick="printLetterFromOverlay()">&#128424; Print / Save as PDF</button>
+    <button class="to-close-btn" onclick="closeLetterOverlay()">&#x2715; Cancel</button>
+    <span class="to-hint">A4 portrait &middot; set Margins=None and Background graphics=ON in the print dialog.</span>
+  </div>
+</div>
+
 <div id="templateOverlay">
   <div class="to-topbar">
     <div>
@@ -1598,8 +1656,8 @@ function renderSubmissions(){
         <div class="sub-actions">
           <button class="action-btn btn-view" onclick="viewSubmission(${ri})">👁 View</button>
           ${(isRes||isClOnly)?'':`<button class="action-btn btn-template" onclick="openTemplateOverlay(${ri})">🎨 CV</button>`}
-          ${(isClOnly||hasCL)?`<button class="action-btn btn-cl" onclick="viewLetter(${ri},'cl')" title="${isClOnly?'Open the cover letter':'Open the cover letter add-on'}">📝 CL</button>`:''}
-          ${(isRes||s.resignationLetter?.requested)?`<button class="action-btn btn-rl" onclick="viewLetter(${ri},'rl')" title="${isRes?'Open the resignation letter':'Open the resignation letter add-on'}">✉️ RL</button>`:''}
+          ${(isClOnly||hasCL)?`<button class="action-btn btn-cl" onclick="openLetterOverlay(${ri},'cl')" title="Preview and print the cover letter">📝 CL</button>`:''}
+          ${(isRes||s.resignationLetter?.requested)?`<button class="action-btn btn-rl" onclick="openLetterOverlay(${ri},'rl')" title="Preview and print the resignation letter">✉️ RL</button>`:''}
           ${s.status==='Delivered'
             ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
             : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
@@ -2453,6 +2511,8 @@ function viewSubmission(idx){
     html+=row('Reason', REASONS[r.reason]||r.reason);
     html+=row('Tone', TONES[r.tone]||r.tone);
     html+='<div style="padding:9px 0 0;font-size:12.5px;"><div style="color:var(--gray);font-weight:600;margin-bottom:4px;">Customer notes</div><div style="background:#fff;border:1px solid var(--gray-light);border-radius:8px;padding:10px 12px;line-height:1.65;white-space:pre-wrap;">'+esc(r.notes||'—')+'</div></div>';
+    html+='<button onclick="openLetterOverlay('+si+',\'rl\')" style="margin-top:12px;padding:10px 18px;background:linear-gradient(135deg,#5b21b6,#7c3aed);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;width:100%;">👁 Preview &amp; Print Resignation Letter</button>';
+    html+='<div style="font-size:10.5px;color:var(--gray);margin-top:6px;line-height:1.55;">The letter is composed from the details above. Pick a design in the preview, then print.</div>';
     html+='</div>';
   }
   // Consent badge — fully safe, no crashes on missing fields
@@ -2642,7 +2702,7 @@ function viewSubmission(idx){
         <span id="genCLSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;"></span>
       </button>
       <button onclick="copyCoverLetter()" id="copyCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#f0fdf4;color:#166534;border:1.5px solid #86efac;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">📋 Copy</button>
-      <button onclick="printCoverLetter()" id="printCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #93c5fd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">🖨️ Print</button>
+      <button onclick="printCoverLetter()" id="printCLBtn" style="display:${clGen?'inline-flex':'none'};padding:9px 16px;background:#eff6ff;color:#1d4ed8;border:1.5px solid #93c5fd;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:6px;">👁 Preview &amp; Print</button>
     </div>
     <div id="clThemeRow" style="display:${clGen?'block':'none'};margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Letter design</div>
@@ -4390,83 +4450,222 @@ function pickClTheme(key){
   if(nm) nm.textContent = CL_THEMES[key] ? CL_THEMES[key].name : '';
 }
 
-function printCoverLetter(){
-  const text=document.getElementById('coverLetterDisplay')?.value?.trim();
-  if(!text){showNotif('No cover letter to print.',true);return;}
-  const themeKey=document.getElementById('clTheme')?.value||'sunset';
-  const showPhoto=!!document.getElementById('clShowPhoto')?.checked;
-  const theme=CL_THEMES[themeKey]||CL_THEMES.sunset;
-  const s=submissions[currentSubmission]||{};
-  const p=s.personal||{};
-  const position=(document.getElementById('clPosition')?.value||'').trim()||p.jobTitle||'Applicant';
-  const company=(document.getElementById('clCompany')?.value||'').trim()||'The Company';
-  // Debug photo
-  console.log('Photo available:', !!p.photo, p.photo ? p.photo.substring(0,30) : 'none');
+// ══════════════════════════════════════════════════════════════════════════════
+// LETTER PREVIEW & PRINT — Cover Letters and Resignation Letters
+//
+// Both letter types share one A4 document template and the CL_THEMES palette, so
+// a theme added in one place applies everywhere. The overlay mirrors the CV
+// template overlay: swatches on the left, a scaled A4 page in the middle, and
+// Print / Cancel at the bottom. The page auto-fits to a single sheet — a long
+// letter shrinks its own type rather than silently spilling onto page 2, which
+// the old print path did (the .page has overflow:hidden, so the overflow was
+// simply clipped and lost).
+// ══════════════════════════════════════════════════════════════════════════════
 
-  // Split body (skip date line and greeting if AI included them, keep paragraphs)
-  const allLines=text.split(/\n/).map(l=>l.trim()).filter(l=>l);
-  // Extract greeting line (Dear ...) and signature (Sincerely / the name at end)
-  let greeting='Dear Hiring Manager,';
-  let signature=`${fullName(p)}`.trim();
-  let bodyLines=[];
-  let foundGreeting=false;
-  let signatureStartIdx=-1;
-  for(let i=0;i<allLines.length;i++){
-    const l=allLines[i];
-    if(/^dear\b/i.test(l)){greeting=l;foundGreeting=true;continue;}
-    if(foundGreeting){
-      if(/^(sincerely|regards|warm regards|best regards|respectfully|yours truly)/i.test(l)){
-        signatureStartIdx=i;break;
-      }
-      bodyLines.push(l);
-    }
+let letterState = { idx:null, kind:'cl', theme:'sunset', showPhoto:true };
+
+// ── RESIGNATION LETTER TEXT ───────────────────────────────────────────────────
+// Composed from the fields the customer already filled in, so there is always
+// something to preview. Deterministic on purpose: a resignation may be read by
+// HR or a labor arbiter, so the wording must be predictable and reviewable, not
+// freshly invented on every click. Admin edits are respected when present.
+const RL_REASONS = {
+  'new-opportunity':'I have accepted an opportunity with another organization',
+  'career-growth'  :'I have decided to pursue a new direction in my career',
+  'further-studies':'I have decided to return to school to continue my studies',
+  'personal'       :'I need to attend to personal and family matters',
+  'health'         :'I need to prioritize my health',
+  'relocation'     :'I will be relocating',
+  'business'       :'I will be starting my own business',
+  'unstated'       :'I have decided to move on to the next chapter of my career'
+};
+
+function composeResignationText(s){
+  const isResign = s.serviceType === 'resignation';
+  const r = (isResign ? s.resignation : s.resignationLetter) || {};
+  if(r.generated && String(r.generated).trim()) return String(r.generated).trim();
+
+  const p        = s.personal || {};
+  const name     = (r.fullName || fullName(p) || '').trim();
+  const position = (r.position || p.jobTitle || 'my position').trim();
+  const company  = (r.company  || 'the company').trim();
+  const lastDay  = r.lastDay ? prettyDOB(r.lastDay) : '';
+  const to       = (r.addressedTo || '').trim();
+  const greeting = to ? `Dear ${to},` : 'Dear Sir/Madam,';
+  const tone     = r.tone || 'professional';
+  const notice   = r.noticeType || 'standard';
+  const reason   = RL_REASONS[r.reason] || RL_REASONS.unstated;
+
+  const paras = [];
+
+  // 1. The declaration — must be unambiguous and name the effective date.
+  if(notice === 'immediate'){
+    paras.push(
+      `I am writing to formally tender my immediate resignation from my position as ${position} at ${company}` +
+      (lastDay ? `, effective ${lastDay}` : ', effective immediately') + `.`
+    );
+    paras.push(
+      `I am invoking my right to terminate this employment without serving the thirty (30) day notice period, ` +
+      `pursuant to Article 300 (formerly 285) of the Labor Code of the Philippines.`
+    );
+  } else if(notice === 'shortened'){
+    paras.push(
+      `I am writing to formally tender my resignation from my position as ${position} at ${company}` +
+      (lastDay ? `, with my last day of work being ${lastDay}` : '') + `.`
+    );
+    paras.push(
+      `I respectfully request a waiver of the remaining portion of the thirty (30) day notice period` +
+      (r.noticeDays != null ? `, as this letter provides ${r.noticeDays} days' notice` : '') +
+      `. I understand this requires the company's approval, and I am willing to discuss a reasonable arrangement.`
+    );
+  } else {
+    paras.push(
+      `I am writing to formally tender my resignation from my position as ${position} at ${company}` +
+      (lastDay ? `, effective ${lastDay}` : '') + `.` +
+      (lastDay ? ` This letter serves as my thirty (30) day written notice as required.` : '')
+    );
+    paras.push(`${reason}, and after careful consideration I believe this is the right step for me at this time.`);
   }
-  if(!foundGreeting) bodyLines=allLines.filter(l=>!/^\d{1,2}[\s,]|^\w+ \d{1,2},/.test(l));
-  if(signatureStartIdx!==-1&&allLines[signatureStartIdx+1]) signature=allLines[signatureStartIdx+1];
 
-  // Group body lines into paragraphs
-  const rawParas=text.split(/\n\n+/).filter(x=>x.trim());
-  const bodyParas=rawParas.filter(p=>{
-    const t=p.trim();
-    return !/^dear\b/i.test(t) && !/^(sincerely|regards|warm regards|best regards|respectfully|yours truly)/i.test(t) && !/^\d{1,2}[\s,]/.test(t) && !(/^\w+ \d{1,2}, \d{4}/.test(t));
-  });
-  const parasHtml=bodyParas.map(para=>`<p>${para.replace(/\n/g,'<br>')}</p>`).join('');
+  // 2. Gratitude — the tone setting decides how much of it there is.
+  if(tone === 'grateful'){
+    paras.push(
+      `I want to sincerely thank you and the entire team for the opportunity to be part of ${company}. ` +
+      `The experience I gained and the people I worked alongside have shaped me both professionally and personally, ` +
+      `and I will always look back on my time here with gratitude.`
+    );
+  } else if(tone !== 'brief'){
+    paras.push(`I am grateful for the opportunities and professional experience I gained during my time at ${company}.`);
+  }
 
-  const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
-  const photoSrc=p.photo&&p.photo.length>100?p.photo:'';
-  const photoHtml=photoSrc
-    ?`<img src="${photoSrc}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-    :`<div style="width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#1a2744;font-family:Inter,sans-serif;">${(p.firstName||'?')[0]}${(p.lastName||'?')[0]}</div>`;
+  // 3. Handover — omitted for immediate resignations, where it would ring hollow.
+  if(notice !== 'immediate' && tone !== 'brief'){
+    paras.push(
+      `I am fully committed to ensuring a smooth transition. I am glad to assist in turning over my ` +
+      `responsibilities, documenting my ongoing work, and helping train my replacement before my last day.`
+    );
+  }
 
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
-<title>Cover Letter \u2014 ${fullName(p)}</title>
+  // 4. Any note the customer added, in their own words.
+  if(r.notes && String(r.notes).trim()) paras.push(String(r.notes).trim());
+
+  paras.push(`Thank you for your understanding and support.`);
+
+  return `${greeting}\n\n${paras.join('\n\n')}\n\nSincerely,\n${name}`;
+}
+
+// ── SOURCE TEXT ───────────────────────────────────────────────────────────────
+// Prefers whatever is currently in the modal's textarea, so unsaved edits show
+// up in the preview instead of being silently ignored.
+function letterSourceText(s, kind){
+  if(kind === 'rl') return composeResignationText(s);
+  const live = document.getElementById('coverLetterDisplay')?.value?.trim();
+  if(live) return live;
+  const src = (s.serviceType === 'coverLetter') ? (s.coverLetterOnly || {}) : (s.coverLetter || {});
+  return (src.generated || '').trim();
+}
+
+// ── SHARED A4 DOCUMENT BUILDER ────────────────────────────────────────────────
+// mode 'preview' omits the toolbar and does not auto-print; mode 'print' shows
+// the toolbar and opens the dialog once webfonts have settled.
+function buildLetterHtml(s, kind, opts){
+  const o        = opts || {};
+  const mode     = o.mode || 'preview';
+  const themeKey = o.theme || 'sunset';
+  const theme    = CL_THEMES[themeKey] || CL_THEMES.sunset;
+  const p        = s.personal || {};
+  const isRL     = kind === 'rl';
+  const r        = (s.serviceType === 'resignation' ? s.resignation : s.resignationLetter) || {};
+  const text     = (o.text != null ? o.text : letterSourceText(s, kind)) || '';
+  const esc      = t => String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+  const showPhoto = !!o.showPhoto && !!(p.photo && p.photo.length > 100);
+  const docTitle  = isRL ? 'Resignation Letter' : 'Cover Letter';
+
+  // For a resignation the sidebar "applying to" block becomes the employer being
+  // resigned from, and the role line is the position being vacated.
+  const position = isRL
+    ? (r.position || p.jobTitle || '')
+    : ((document.getElementById('clPosition')?.value || '').trim() || p.jobTitle || 'Applicant');
+  const company  = isRL
+    ? (r.company || '')
+    : ((document.getElementById('clCompany')?.value || '').trim() || 'The Company');
+  const toName   = isRL ? (r.addressedTo || 'Human Resources Department') : 'Hiring Manager';
+  const toTitle  = isRL ? (r.addresseeTitle || '') : '';
+
+  // ── Parse the letter into greeting / paragraphs / signature ────────────────
+  const CLOSERS = /^(sincerely|regards|warm regards|best regards|respectfully|yours truly|very truly yours)/i;
+  const lines = text.split(/\n/).map(l=>l.trim());
+  let greeting = isRL ? 'Dear Sir/Madam,' : 'Dear Hiring Manager,';
+  let signature = String(fullName(p)||'').trim();
+  let foundGreeting = false, closerIdx = -1;
+
+  for(let i=0;i<lines.length;i++){
+    const l = lines[i];
+    if(!l) continue;
+    if(!foundGreeting && /^dear\b/i.test(l)){ greeting = l; foundGreeting = true; continue; }
+    if(CLOSERS.test(l)){ closerIdx = i; break; }
+  }
+  if(closerIdx !== -1){
+    const after = lines.slice(closerIdx+1).filter(Boolean);
+    if(after.length) signature = after[0];
+  }
+
+  // Paragraph split on blank lines, dropping the greeting, the closer, the
+  // signature name and any leading date line.
+  const paras = text.split(/\n\s*\n+/).map(x=>x.trim()).filter(x=>{
+    if(!x) return false;
+    if(/^dear\b/i.test(x)) return false;
+    if(CLOSERS.test(x)) return false;
+    if(x === signature) return false;
+    if(/^\d{1,2}[\s,\/-]/.test(x)) return false;
+    if(/^\w+ \d{1,2}, \d{4}$/.test(x)) return false;
+    return true;
+  }).map(x=>{
+    // A closer glued to the signature ("Sincerely,\nJuan Santos") arrives as one
+    // paragraph; strip those trailing lines rather than printing them twice.
+    const kept = x.split(/\n/).filter(l=>!CLOSERS.test(l.trim()) && l.trim() !== signature);
+    return kept.join('\n').trim();
+  }).filter(Boolean);
+
+  const parasHtml = paras.map(x=>`<p>${esc(x).replace(/\n/g,'<br>')}</p>`).join('');
+  const today = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+
+  const photoHtml = showPhoto
+    ? `<img src="${p.photo}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+    : `<div style="width:100%;height:100%;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#1a2744;font-family:Inter,sans-serif;">${esc((p.firstName||'?')[0])}${esc((p.lastName||'?')[0])}</div>`;
+
+  const toolbar = mode === 'print' ? `
+<div class="no-print">
+  <span>${esc(docTitle)} \u2014 ${esc(fullName(p))}</span>
+  <button onclick="window.print()">&#128424; Print / Save as PDF</button>
+  <button class="close-btn" onclick="window.close()">&#x2715; Close</button>
+  <span class="hint">Paper=A4 &middot; Margins=None &middot; Background graphics=ON</span>
+</div>` : '';
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<title>${esc(docTitle)} \u2014 ${esc(fullName(p))}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400..700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;background:#d1d5db;}
+html,body{height:100%;background:${mode==='print'?'#d1d5db':'transparent'};}
 body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .no-print{position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;}
 .no-print span{color:white;font-family:Inter,sans-serif;font-size:13px;font-weight:600;}
 .no-print button{background:#c8a84b;color:#1a2744;border:none;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:Inter,sans-serif;}
 .no-print .close-btn{background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);}
 .no-print .hint{color:rgba(255,255,255,.4);font-size:11px;font-family:Inter,sans-serif;}
-.page-wrap{display:flex;justify-content:center;padding:72px 20px 40px;min-height:100vh;}
-.page{width:210mm;min-height:297mm;background:white;display:flex;flex-direction:row;box-shadow:0 8px 40px rgba(0,0,0,.35);overflow:hidden;}
+.page-wrap{display:flex;justify-content:center;padding:${mode==='print'?'72px 20px 40px':'0'};min-height:${mode==='print'?'100vh':'0'};}
+.page{width:210mm;min-height:297mm;height:297mm;background:white;display:flex;flex-direction:row;box-shadow:${mode==='print'?'0 8px 40px rgba(0,0,0,.35)':'none'};overflow:hidden;}
 
 /* LEFT SIDEBAR */
 .sidebar{width:72mm;flex-shrink:0;display:flex;flex-direction:column;position:relative;overflow:hidden;}
 .sidebar-gradient{position:absolute;inset:0;background:${theme.css};}
-/* Every gradient is lightest at the bottom, which is exactly where the small
-   "applying to" text sits. A soft dark scrim keeps that block readable on all
-   themes without touching the palettes themselves. */
 .sidebar-scrim{position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,0.32) 100%);pointer-events:none;}
 .sidebar-content{position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:32px 22px 28px;}
 .photo-ring{width:90px;height:90px;border-radius:50%;border:3px solid rgba(255,255,255,0.9);overflow:hidden;margin:0 auto 16px;flex-shrink:0;background:rgba(255,255,255,0.2);}
-/* Without a photo the name would sit oddly high against the top edge, so the
-   sidebar takes back the space the photo would have used. */
 .sidebar-content.no-photo{padding-top:46px;}
 .sidebar-content.no-photo .applicant-name{font-size:16px;}
 .applicant-name{font-family:Inter,sans-serif;font-size:14px;font-weight:700;color:white;text-align:center;margin-bottom:3px;line-height:1.3;}
@@ -4479,27 +4678,17 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 .to-label{font-family:Inter,sans-serif;font-size:7.5px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.6);margin-bottom:8px;}
 .to-name{font-family:Inter,sans-serif;font-size:10px;font-weight:700;color:white;margin-bottom:2px;}
 .to-detail{font-family:Inter,sans-serif;font-size:9px;color:rgba(255,255,255,0.7);line-height:1.5;}
-.sender-address{font-family:Inter,sans-serif;font-size:9px;color:rgba(255,255,255,0.7);line-height:1.6;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.15);}
 
-/* RIGHT MAIN */
-.main{flex:1;padding:28px 32px 24px;display:flex;flex-direction:column;}
+/* RIGHT MAIN — font-size and line-height are variables so the auto-fit script
+   can shrink the body copy without touching any other rule. */
+.main{flex:1;padding:28px 32px 24px;display:flex;flex-direction:column;min-width:0;}
 .cl-date{font-family:Inter,sans-serif;font-size:10px;color:#6b7280;margin-bottom:14px;}
 .cl-greeting{font-family:Inter,sans-serif;font-size:16px;font-weight:700;color:#1a2744;margin-bottom:14px;line-height:1.3;}
 .cl-body{flex:1;}
-.cl-body p{font-family:'Crimson Text',serif;font-size:10.5pt;line-height:1.75;color:#2a2a2a;margin-bottom:10px;text-align:justify;}
+.cl-body p{font-family:'Crimson Text',serif;font-size:var(--cl-fs,10.5pt);line-height:var(--cl-lh,1.75);color:#2a2a2a;margin-bottom:var(--cl-mb,10px);text-align:justify;}
 .cl-signature{margin-top:16px;}
 .cl-sign-closing{font-family:Inter,sans-serif;font-size:10.5px;color:#6b7280;margin-bottom:6px;}
-/* The script name is a signature, not a repeat of the typed name. It needs room
-   to read as one — and a rule beneath it so the typed name below is clearly a
-   caption, the way a real signed letter looks. */
-.cl-sign-name{
-  font-family:'Dancing Script','Segoe Script','Brush Script MT','Lucida Handwriting','Apple Chancery','Bradley Hand',cursive;
-  font-weight:600;            /* must match a served weight or the face is skipped */
-  font-size:34px;
-  color:#1a2744;
-  line-height:1;
-  padding-bottom:8px;
-}
+.cl-sign-name{font-family:'Dancing Script','Segoe Script','Brush Script MT','Lucida Handwriting','Apple Chancery','Bradley Hand',cursive;font-weight:600;font-size:var(--cl-sig,34px);color:#1a2744;line-height:1;padding-bottom:8px;}
 .cl-sign-rule{width:58mm;max-width:100%;border-bottom:1px solid #9ca3af;margin-bottom:5px;}
 .cl-sign-typed{font-family:Inter,sans-serif;font-size:10px;color:#1a2744;font-weight:700;letter-spacing:.3px;}
 .cl-sign-role{font-family:Inter,sans-serif;font-size:9px;color:#6b7280;margin-top:1px;}
@@ -4507,72 +4696,237 @@ body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .no-print{display:none!important;}
   html,body{background:white;}
   .page-wrap{padding:0;display:block;min-height:unset;}
-  .page{width:210mm;min-height:297mm;box-shadow:none;}
+  .page{width:210mm;height:297mm;box-shadow:none;}
   @page{margin:0;size:A4 portrait;}
 }
 </style></head><body>
-<div class="no-print">
-  <span>Cover Letter \u2014 ${fullName(p)}</span>
-  <button onclick="window.print()">&#128424; Print / Save as PDF</button>
-  <button class="close-btn" onclick="window.close()">&#x2715; Close</button>
-  <span class="hint">Paper=A4 &middot; Margins=None &middot; Background graphics=ON</span>
-</div>
+${toolbar}
 <div class="page-wrap"><div class="page">
 
-  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-gradient"></div>
     <div class="sidebar-scrim"></div>
     <div class="sidebar-content${showPhoto?'':' no-photo'}">
       ${showPhoto?`<div class="photo-ring">${photoHtml}</div>`:''}
-      <div class="applicant-name">${fullName(p)}</div>
-      <div class="applicant-title">${position}</div>
+      <div class="applicant-name">${esc(fullName(p))}</div>
+      ${position?`<div class="applicant-title">${esc(position)}</div>`:''}
       <hr class="contact-divider">
-      ${p.email?`<div class="contact-item"><div class="contact-icon">&#9993;</div><div class="contact-text">${p.email}</div></div>`:''}
-      ${p.phone?`<div class="contact-item"><div class="contact-icon">&#128222;</div><div class="contact-text">${p.phone}</div></div>`:''}
-      ${p.address?`<div class="contact-item"><div class="contact-icon">&#128205;</div><div class="contact-text">${p.address}</div></div>`:''}
-      ${(p.social||p.linkedin)?`<div class="contact-item"><div class="contact-icon">&#127760;</div><div class="contact-text">${p.social||p.linkedin}</div></div>`:''}
+      ${p.email?`<div class="contact-item"><div class="contact-icon">&#9993;</div><div class="contact-text">${esc(p.email)}</div></div>`:''}
+      ${p.phone?`<div class="contact-item"><div class="contact-icon">&#128222;</div><div class="contact-text">${esc(p.phone)}</div></div>`:''}
+      ${p.address?`<div class="contact-item"><div class="contact-icon">&#128205;</div><div class="contact-text">${esc(p.address)}</div></div>`:''}
+      ${(p.social||p.linkedin)?`<div class="contact-item"><div class="contact-icon">&#127760;</div><div class="contact-text">${esc(p.social||p.linkedin)}</div></div>`:''}
       <div class="to-block">
-        <div class="to-label">Applying To</div>
-        <div class="to-name">Hiring Manager</div>
-        <div class="to-detail">${company}</div>
+        <div class="to-label">${isRL?'Submitted To':'Applying To'}</div>
+        <div class="to-name">${esc(toName)}</div>
+        ${toTitle?`<div class="to-detail">${esc(toTitle)}</div>`:''}
+        ${company?`<div class="to-detail">${esc(company)}</div>`:''}
       </div>
     </div>
   </div>
 
-  <!-- MAIN -->
   <div class="main">
     <div class="cl-date">${today}</div>
-    <div class="cl-greeting">${greeting}</div>
-    <div class="cl-body">${parasHtml}</div>
+    <div class="cl-greeting">${esc(greeting)}</div>
+    <div class="cl-body">${parasHtml||'<p><em>No letter content yet.</em></p>'}</div>
     <div class="cl-signature">
       <div class="cl-sign-closing">Sincerely,</div>
-      <div class="cl-sign-name">${fullName(p)}</div>
+      <div class="cl-sign-name">${esc(signature)}</div>
       <div class="cl-sign-rule"></div>
-      <div class="cl-sign-typed">${fullName(p).toUpperCase()}</div>
-      ${position?`<div class="cl-sign-role">${position}</div>`:''}
+      <div class="cl-sign-typed">${esc(String(signature).toUpperCase())}</div>
+      ${position?`<div class="cl-sign-role">${esc(position)}</div>`:''}
     </div>
   </div>
 
 </div></div>
 <script>
-// display=swap renders a fallback first and swaps the real font in when it
-// arrives. window.onload can fire before that swap, which is how a signature
-// ends up printed in a plain face. Wait for the fonts, with a ceiling so a
-// blocked or slow font server can't leave the dialog unopened.
-window.onload=function(){
+// ── ONE-PAGE AUTO-FIT ───────────────────────────────────────────────────────
+// .page is a fixed 297mm with overflow:hidden, so anything too long used to be
+// silently CLIPPED. Instead, step the body type down until the content fits.
+// Body copy shrinks first and the signature only later, because a smaller
+// signature is more noticeable than slightly tighter paragraphs.
+function autofitLetter(){
+  var page = document.querySelector('.page');
+  var main = document.querySelector('.main');
+  var body = document.querySelector('.cl-body');
+  if(!page || !main || !body) return;
+
+  // Check BOTH boxes: .cl-body is a flex child, so overflow can register on the
+  // .main column or push past the fixed-height .page depending on content shape.
+  var fits = function(){
+    return main.scrollHeight <= main.clientHeight + 1
+        && page.scrollHeight <= page.clientHeight + 1;
+  };
+  if(fits()) return;
+
+  var fs = 10.5, lh = 1.75, mb = 10, sig = 34;
+  for(var i=0; i<40 && !fits(); i++){
+    if(fs > 7.6)      fs  = Math.round((fs - 0.15)*100)/100;
+    if(lh > 1.36)     lh  = Math.round((lh - 0.012)*1000)/1000;
+    if(mb > 5)        mb  = Math.round((mb - 0.25)*100)/100;
+    else if(sig > 22) sig = sig - 1;          // last resort
+    body.style.setProperty('--cl-fs', fs+'pt');
+    body.style.setProperty('--cl-lh', lh);
+    body.style.setProperty('--cl-mb', mb+'px');
+    page.style.setProperty('--cl-sig', sig+'px');
+    if(fs <= 7.6 && lh <= 1.36 && mb <= 5 && sig <= 22) break;
+  }
+}
+
+function runLetterLayout(cb){
   var done=false;
-  var go=function(){ if(done) return; done=true; window.print(); };
+  var go=function(){ if(done) return; done=true; autofitLetter(); if(cb) cb(); };
   if(document.fonts && document.fonts.ready){
     document.fonts.ready.then(function(){ setTimeout(go,120); });
-    setTimeout(go,3000);
+    setTimeout(go,3000);              // ceiling: a blocked font server must not hang this
   } else {
     setTimeout(go,600);
   }
-};
+}
+window.onload=function(){ runLetterLayout(${mode==='print'?'function(){ window.print(); }':'null'}); };
 <\/script>
-</body></html>`);
+</body></html>`;
+}
+
+// ── OVERLAY CONTROL ───────────────────────────────────────────────────────────
+function openLetterOverlay(idx, kind){
+  const s = submissions[idx];
+  if(!s){ showNotif('That submission could not be found.', true); return; }
+
+  // A cover letter with no text has nothing to preview — send the user to the
+  // generator instead of showing them a blank sheet.
+  if(kind === 'cl' && !letterSourceText(s, 'cl')){
+    showNotif('No cover letter generated yet — opening the generator.', true);
+    viewLetter(idx, 'cl');
+    return;
+  }
+
+  currentSubmission = idx;
+  letterState.idx  = idx;
+  letterState.kind = kind;
+  // Seed the theme from whatever the modal picker is showing, so the two agree.
+  letterState.theme = document.getElementById('clTheme')?.value || letterState.theme || 'sunset';
+  const p = s.personal || {};
+  const hasPhoto = !!(p.photo && p.photo.length > 100);
+  // Respect the modal's checkbox when it exists, so opening the preview from the
+  // generator carries the choice across instead of silently resetting it.
+  const modalChk = document.getElementById('clShowPhoto');
+  letterState.showPhoto = hasPhoto && (kind === 'cl' && modalChk ? !!modalChk.checked : true);
+
+  document.getElementById('loTitle').textContent =
+    (kind === 'rl' ? 'Resignation Letter' : 'Cover Letter') + ' — ' + fullName(p);
+  document.getElementById('loSubtitle').textContent =
+    'Pick a design, then print. The page auto-fits to one A4 sheet.';
+
+  // Photo toggle is meaningless without a photo on file.
+  const photoRow = document.getElementById('loPhotoRow');
+  const photoChk = document.getElementById('loShowPhoto');
+  if(photoChk){ photoChk.checked = letterState.showPhoto; photoChk.disabled = !hasPhoto; }
+  if(photoRow) photoRow.style.opacity = hasPhoto ? '1' : '.45';
+
+  renderLetterSwatches();
+  document.getElementById('letterOverlay').classList.add('open');
+  updateLetterPreview();
+  setTimeout(scaleLetterPreview, 100);
+}
+
+function closeLetterOverlay(){
+  document.getElementById('letterOverlay').classList.remove('open');
+}
+
+// Escape closes the preview. Guarded on the overlay being open so it can't
+// swallow the key from the confirm dialogs, which sit above it at z-index 99000.
+document.addEventListener('keydown', function(e){
+  if(e.key !== 'Escape') return;
+  const ov = document.getElementById('letterOverlay');
+  if(ov && ov.classList.contains('open')) closeLetterOverlay();
+});
+
+function renderLetterSwatches(){
+  const box = document.getElementById('loSwatches');
+  if(!box) return;
+  box.innerHTML = Object.entries(CL_THEMES).map(([k,t])=>
+    `<button type="button" class="lo-sw${k===letterState.theme?' active':''}" onclick="pickLetterTheme('${k}')" title="${t.name}">
+       <span class="lo-sw-dot" style="background:${t.css};"></span>
+       <span class="lo-sw-name">${t.name}</span>
+     </button>`
+  ).join('');
+}
+
+function pickLetterTheme(key){
+  letterState.theme = key;
+  renderLetterSwatches();
+  // Keep the modal's hidden <select> in step so printCoverLetter and the
+  // overlay can never disagree about which theme is current.
+  const sel = document.getElementById('clTheme');
+  if(sel) sel.innerHTML = `<option value="${key}" selected></option>`;
+  if(typeof pickClTheme === 'function' && document.getElementById('clSw_'+key)) pickClTheme(key);
+  updateLetterPreview();
+}
+
+function toggleLetterPhoto(el){
+  letterState.showPhoto = !!el.checked;
+  updateLetterPreview();
+}
+
+function updateLetterPreview(){
+  const s = submissions[letterState.idx];
+  if(!s) return;
+  const frame = document.getElementById('loFrame');
+  frame.srcdoc = buildLetterHtml(s, letterState.kind, {
+    mode:'preview', theme:letterState.theme, showPhoto:letterState.showPhoto
+  });
+  frame.onload = () => scaleLetterPreview();
+}
+
+// Scale the 210x297mm page down to whatever space the preview pane has. Same
+// approach as scalePreview() for CVs: full-size iframe, CSS transform.
+function scaleLetterPreview(){
+  const overlay = document.getElementById('letterOverlay');
+  if(!overlay || !overlay.classList.contains('open')) return;
+  const area  = overlay.querySelector('.to-preview');
+  const wrap  = document.getElementById('loWrap');
+  const frame = document.getElementById('loFrame');
+  if(!area || !wrap || !frame) return;
+
+  const W = 794, H = 1123;                       // A4 at 96dpi
+  const availW = Math.max(80, area.clientWidth  - 32);
+  const availH = Math.max(80, area.clientHeight - 32);
+  const scale  = Math.min(availW / W, availH / H);
+
+  wrap.style.width  = Math.floor(W*scale)+'px';
+  wrap.style.height = Math.floor(H*scale)+'px';
+  wrap.style.position='relative'; wrap.style.overflow='hidden'; wrap.style.flexShrink='0';
+
+  frame.style.width = W+'px';
+  frame.style.height= H+'px';
+  frame.style.position='absolute'; frame.style.top='0'; frame.style.left='0';
+  frame.style.transform=`scale(${scale})`;
+  frame.style.transformOrigin='top left';
+}
+window.addEventListener('resize', scaleLetterPreview);
+
+function printLetterFromOverlay(){
+  const s = submissions[letterState.idx];
+  if(!s){ showNotif('Nothing to print.', true); return; }
+  const html = buildLetterHtml(s, letterState.kind, {
+    mode:'print', theme:letterState.theme, showPhoto:letterState.showPhoto
+  });
+  const win = window.open('', '_blank');
+  if(!win){ showNotif('Your browser blocked the print window — allow pop-ups for this site.', true); return; }
+  win.document.write(html);
   win.document.close();
+}
+
+// The old printCoverLetter built its own 130-line document inline. It now
+// delegates to buildLetterHtml() so cover letters and resignation letters can
+// never drift apart in styling, and so cover letters gain the one-page auto-fit.
+function printCoverLetter(){
+  const s = submissions[currentSubmission];
+  if(!s){ showNotif('Open a submission first.', true); return; }
+  if(!letterSourceText(s,'cl')){ showNotif('No cover letter to print.', true); return; }
+  // Preview first rather than firing a blind print dialog — the admin picks the
+  // design and sees the fitted page before committing paper or a PDF.
+  openLetterOverlay(currentSubmission, 'cl');
 }
 
 function copyCoverLetter(){
