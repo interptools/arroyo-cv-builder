@@ -154,6 +154,45 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .notif{position:fixed;top:20px;right:20px;background:white;border-radius:10px;padding:14px 18px;box-shadow:0 8px 30px rgba(0,0,0,.12);display:flex;align-items:center;gap:10px;font-size:13px;font-weight:500;z-index:99999;transform:translateX(120%);transition:transform .3s ease;max-width:320px;border-left:4px solid var(--success);}
 .notif.show{transform:translateX(0);}
 .notif.error{border-color:var(--error);}
+
+/* ── CUSTOM DIALOG SYSTEM ─────────────────────────────────────────────────── */
+.cdlg-overlay{position:fixed;inset:0;background:rgba(10,15,30,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:99000;padding:20px;opacity:0;transition:opacity .18s ease;}
+.cdlg-overlay.cdlg-in{opacity:1;}
+.cdlg{background:#fff;border-radius:20px;width:100%;max-width:420px;box-shadow:0 32px 80px rgba(0,0,0,.22),0 0 0 1px rgba(0,0,0,.04);overflow:hidden;transform:scale(.93) translateY(12px);transition:transform .2s cubic-bezier(.34,1.56,.64,1),opacity .18s ease;opacity:0;}
+.cdlg-overlay.cdlg-in .cdlg{transform:scale(1) translateY(0);opacity:1;}
+.cdlg-top{padding:28px 28px 0;text-align:center;}
+.cdlg-icon-wrap{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px;flex-shrink:0;}
+.cdlg-icon-wrap.type-info{background:linear-gradient(135deg,#dbeafe,#bfdbfe);}
+.cdlg-icon-wrap.type-warning{background:linear-gradient(135deg,#fef3c7,#fde68a);}
+.cdlg-icon-wrap.type-danger{background:linear-gradient(135deg,#fee2e2,#fca5a5);}
+.cdlg-icon-wrap.type-success{background:linear-gradient(135deg,#d1fae5,#6ee7b7);}
+.cdlg-icon-wrap.type-payment{background:linear-gradient(135deg,#fef3c7,#e2c97e);}
+.cdlg-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--navy);margin-bottom:8px;line-height:1.3;}
+.cdlg-msg{font-size:13.5px;color:#4b5563;line-height:1.65;padding:0 4px;}
+.cdlg-msg ul{text-align:left;padding-left:18px;margin:8px 0 0;}
+.cdlg-msg ul li{margin-bottom:4px;}
+.cdlg-warn-box{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:10px 14px;margin-top:12px;text-align:left;font-size:12px;color:#92400e;line-height:1.6;}
+.cdlg-warn-box strong{color:#78350f;}
+.cdlg-body{padding:20px 28px 0;}
+.cdlg-field-label{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--navy);margin-bottom:6px;display:block;}
+.cdlg-input{width:100%;padding:11px 14px;border:1.5px solid var(--gray-light);border-radius:10px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;color:var(--text);}
+.cdlg-input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(26,39,68,.08);}
+.cdlg-input-note{font-size:11.5px;color:var(--gray);margin-top:5px;}
+.cdlg-sep{height:1px;background:var(--gray-light);margin:18px 0 0;}
+.cdlg-footer{display:flex;gap:10px;padding:18px 28px 24px;justify-content:flex-end;}
+.cdlg-btn{padding:10px 22px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all .18s;min-width:90px;}
+.cdlg-btn-cancel{background:var(--off-white);color:var(--gray);border:1.5px solid var(--gray-light);}
+.cdlg-btn-cancel:hover{background:var(--gray-light);color:var(--text);}
+.cdlg-btn-ok{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;box-shadow:0 4px 14px rgba(26,39,68,.25);}
+.cdlg-btn-ok:hover{opacity:.9;box-shadow:0 6px 18px rgba(26,39,68,.3);}
+.cdlg-btn-danger{background:linear-gradient(135deg,#dc2626,#ef4444);color:white;box-shadow:0 4px 14px rgba(220,38,38,.3);}
+.cdlg-btn-danger:hover{opacity:.9;}
+.cdlg-btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-light));color:var(--navy);box-shadow:0 4px 14px rgba(200,168,75,.3);}
+.cdlg-btn-gold:hover{opacity:.9;}
+.cdlg-payment-meta{background:linear-gradient(135deg,var(--navy),var(--navy-light));border-radius:12px;padding:14px 18px;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between;}
+.cdlg-payment-meta .pm-name{color:rgba(255,255,255,.7);font-size:12px;}
+.cdlg-payment-meta .pm-amt{color:var(--gold-light);font-size:22px;font-weight:800;letter-spacing:.5px;}
+@media(max-width:480px){.cdlg{max-width:100%;}.cdlg-footer{flex-direction:column-reverse;}.cdlg-btn{width:100%;text-align:center;padding:13px;}}
 .empty-state{text-align:center;padding:48px;color:var(--gray);}
 .empty-state .es-icon{font-size:48px;margin-bottom:12px;}
 .hidden{display:none!important;}
@@ -676,6 +715,23 @@ tr:hover td{background:rgba(247,248,252,.8);}
 
 <div class="notif" id="notif"><span id="notifIcon">✅</span><span id="notifMsg"></span></div>
 
+<!-- CUSTOM DIALOG SYSTEM -->
+<div class="cdlg-overlay" id="cdlg-overlay" role="dialog" aria-modal="true" style="display:none;">
+  <div class="cdlg" id="cdlg">
+    <div class="cdlg-top" id="cdlg-top">
+      <div class="cdlg-icon-wrap type-info" id="cdlg-icon-wrap"><span id="cdlg-icon">ℹ️</span></div>
+      <div class="cdlg-title" id="cdlg-title"></div>
+      <div class="cdlg-msg" id="cdlg-msg"></div>
+    </div>
+    <div class="cdlg-body" id="cdlg-body" style="display:none;"></div>
+    <div class="cdlg-sep"></div>
+    <div class="cdlg-footer" id="cdlg-footer">
+      <button class="cdlg-btn cdlg-btn-cancel" id="cdlg-cancel">Cancel</button>
+      <button class="cdlg-btn cdlg-btn-ok"     id="cdlg-ok">OK</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const EMAILJS_SVC='service_wog8mwj';
 const EMAILJS_TPL='template_31e2nts';
@@ -1181,13 +1237,22 @@ async function savePricing(){
   if(pk('cvcl')   !== null && pk('cvcl')   > eff2.base + eff2.cl)            overs.push('CV + Cover Letter');
   if(pk('cvrl')   !== null && pk('cvrl')   > eff2.base + eff2.rl)            overs.push('CV + Resignation Letter');
   if(pk('cvclrl') !== null && pk('cvclrl') > eff2.base + eff2.cl + eff2.rl)  overs.push('All three');
-  if(overs.length && !confirm(
-      `Warning: ${overs.join(' and ')} costs MORE as a package than buying the items separately.\n\n`
-    + `Customers picking that combination would be overcharged. Publish anyway?`)) return;
+  if(overs.length){
+    const ok = await showConfirm({
+      type:'warning', title:'Pricing Warning',
+      message:`<strong>${cdlgEsc(overs.join(' & '))}</strong> costs <em>more</em> as a package than buying items separately — customers would be overcharged.<br><br>Publish anyway?`,
+      confirmText:'Publish Anyway', confirmClass:'cdlg-btn-danger', cancelText:'Go Back'
+    });
+    if(!ok) return;
+  }
 
   const eff = eff2.base;
-  if(!confirm(`Publish these prices?\n\nCV will show as ${peso(eff)}.\n\n`
-    + `New orders use the new prices. Existing orders keep what they were quoted.`)) return;
+  const okPub = await showConfirm({
+    type:'info', title:'Publish New Prices?',
+    message:`CV will show as <strong>${peso(eff)}</strong>.<br><br>New orders use the new prices. Existing orders keep what they were quoted.`,
+    confirmText:'Publish', confirmClass:'cdlg-btn-gold', cancelText:'Cancel'
+  });
+  if(!okPub) return;
 
   try {
     const ex = await getFullRecord();
@@ -1679,15 +1744,18 @@ async function cycleStatus(idx){
   // Marking Delivered is one-way and discards the photo, so confirm it once.
   if(newStatus==='Delivered'){
     const nm=fullName(submissions[idx].personal);
-    if(!confirm(
-      `Mark ${nm}'s order as Delivered?\n\n`+
-      (isPaid(submissions[idx]) ? '' : `⚠ THIS ORDER IS NOT MARKED PAID (${peso(orderTotal(submissions[idx]))} due)\n\n`)+
-      `• The status locks — no more changes without using Reopen\n`+
-      `• No email is sent\n`+
-      (submissions[idx].personal?.photo
-        ? `• The photo is deleted to free storage. Regenerate the CV first if you still need it.`
-        : `• No photo stored on this record`)
-    )) return;
+    const unpaidWarn = !isPaid(submissions[idx])
+      ? `<div class="cdlg-warn-box"><strong>⚠ Unpaid:</strong> This order is not marked paid — ${peso(orderTotal(submissions[idx]))} still due.</div>`
+      : '';
+    const photoNote = submissions[idx].personal?.photo
+      ? `<li>The applicant photo is deleted to free storage. Regenerate the CV first if you still need it.</li>`
+      : `<li>No photo stored on this record.</li>`;
+    const ok = await showConfirm({
+      type:'warning', title:`Mark as Delivered?`,
+      message:`<strong>${cdlgEsc(nm)}</strong>'s order will be marked Delivered.${unpaidWarn}<ul><li>Status locks — no further changes without using Reopen.</li><li>No email is sent.</li>${photoNote}</ul>`,
+      confirmText:'Mark Delivered', confirmClass:'cdlg-btn-ok', cancelText:'Cancel'
+    });
+    if(!ok) return;
   }
 
   submissions[idx].status=newStatus;
@@ -1725,7 +1793,12 @@ async function reopenSubmission(idx){
   const s=submissions[idx];
   if(!s) return;
   const name=`${fullName(s.personal)}`.trim();
-  if(!confirm(`Reopen the order for ${name}?\n\nStatus goes back to Processing. No email is sent.`)) return;
+  const okReopen = await showConfirm({
+    type:'warning', title:'Reopen Order?',
+    message:`Reopen <strong>${cdlgEsc(name)}</strong>'s order? Status goes back to <em>Processing</em>. No email is sent.`,
+    confirmText:'Reopen', confirmClass:'cdlg-btn-ok', cancelText:'Cancel'
+  });
+  if(!okReopen) return;
   s.status='Processing';
   const ex=await getFullRecord();
   await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_API_KEY},body:JSON.stringify({...ex,submissions})});
@@ -2050,7 +2123,12 @@ async function uploadAdminPhoto(input, idx){
 }
 
 async function removeAdminPhoto(idx){
-  if(!confirm('Remove the photo from this order?\n\nThe rest of the details are kept.')) return;
+  const okRmPhoto = await showConfirm({
+    type:'danger', title:'Remove Photo?',
+    message:'The applicant photo will be permanently removed from this order. All other details are kept.',
+    confirmText:'Remove Photo', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!okRmPhoto) return;
   const old = submissions[idx]?.personal?.photo || '';
   try {
     const ex = await getFullRecord();
@@ -2082,9 +2160,12 @@ async function shrinkAllPhotos(){
   if(!targets.length){ showNotif('All stored photos are already within budget.'); return; }
 
   const before = targets.reduce((t, o) => t + o.x.personal.photo.length, 0);
-  if(!confirm(`Shrink ${targets.length} photo(s) currently using ${(before/1024).toFixed(0)} KB?\n\n`
-    + `Each is resized to about ${(PHOTO_BUDGET_DEFAULT/1024).toFixed(0)} KB. `
-    + `Photos stay usable for rebuilding CVs — nothing is deleted.`)) return;
+  const okShrink = await showConfirm({
+    type:'info', title:`Shrink ${targets.length} Photo${targets.length>1?'s':''}?`,
+    message:`Currently using <strong>${(before/1024).toFixed(0)} KB</strong>. Each photo will be resized to ~${(PHOTO_BUDGET_DEFAULT/1024).toFixed(0)} KB. Photos stay usable for rebuilding CVs — nothing is deleted.`,
+    confirmText:'Shrink Photos', confirmClass:'cdlg-btn-ok', cancelText:'Cancel'
+  });
+  if(!okShrink) return;
 
   showNotif('Shrinking photos…');
   const originals = targets.map(o => o.x.personal.photo);   // for rollback
@@ -2120,9 +2201,12 @@ async function shrinkAllPhotos(){
 async function reclaimPhotoSpace(){
   const targets = submissions.filter(x => x.status === 'Delivered' && x.personal && x.personal.photo);
   if(!targets.length){ showNotif('No delivered orders with photos to clear.'); return; }
-  if(!confirm(`Remove the photo from ${targets.length} delivered order(s)?\n\n`
-    + `All other details are kept. Do this only after the CV has been sent — `
-    + `you cannot regenerate the CV with a photo afterwards.`)) return;
+  const okReclaim = await showConfirm({
+    type:'danger', title:`Remove ${targets.length} Photo${targets.length>1?'s':''}?`,
+    message:`Photos from <strong>${targets.length} delivered order${targets.length>1?'s':''}</strong> will be permanently removed.<br><br>All other details are kept. Do this only after the CV has been sent — you cannot regenerate the CV with a photo afterwards.`,
+    confirmText:'Remove Photos', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!okReclaim) return;
   targets.forEach(x => { x.personal.photo = ''; });
   try{
     const ex = await getFullRecord();
@@ -2141,11 +2225,20 @@ async function purgeDelivered(){
   const keep = submissions.filter(x => x.status !== 'Delivered');
   const drop = submissions.length - keep.length;
   if(!drop){ showNotif('No delivered orders to archive.'); return; }
-  if(!confirm(`Archive and delete ${drop} delivered order(s)?\n\n`
-    + `A CSV of ALL records downloads first. This cannot be undone.`)) return;
+  const okPurge = await showConfirm({
+    type:'danger', title:`Archive ${drop} Delivered Order${drop>1?'s':''}?`,
+    message:`<strong>This cannot be undone.</strong><br><br>A CSV of all records will download first as a backup. Only proceed if you have the file.`,
+    confirmText:'Download CSV & Continue', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!okPurge) return;
   exportCSV();
   await new Promise(r => setTimeout(r, 900)); // let the download start
-  if(!confirm('Did the CSV download successfully?\n\nClick OK only if you have the file.')) {
+  const okGotCSV = await showConfirm({
+    type:'warning', title:'CSV Downloaded?',
+    message:'Confirm the CSV file is in your downloads folder before records are permanently deleted.',
+    confirmText:'Yes, Delete Records', confirmClass:'cdlg-btn-danger', cancelText:'Cancel — Keep Records'
+  });
+  if(!okGotCSV) {
     showNotif('Cancelled — nothing was deleted.'); return;
   }
   submissions = keep;
@@ -3634,7 +3727,12 @@ async function deleteSubmission(idx){
   const name = `${fullName(s.personal)}`;
   
   // Confirm before deleting
-  if(!confirm(`Are you sure you want to delete the submission of ${name}? This cannot be undone.`)) return;
+  const okDel = await showConfirm({
+    type:'danger', title:'Delete Submission?',
+    message:`<strong>${cdlgEsc(name)}</strong>'s submission will be permanently deleted. This cannot be undone.`,
+    confirmText:'Delete', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!okDel) return;
 
   submissions.splice(idx, 1);
 
@@ -5511,25 +5609,24 @@ async function togglePaid(idx){
   const due = orderTotal(s);
 
   if(isPaid(s)){
-    if(!confirm(`Mark ${nm}'s order as UNPAID again?\n\nUse this only if you recorded it by mistake.`)) return;
+    const okUnpay = await showConfirm({
+      type:'warning', title:'Mark as Unpaid?',
+      message:`Mark <strong>${cdlgEsc(nm)}</strong>'s order as UNPAID again?<br><br>Use this only if you recorded the payment by mistake.`,
+      confirmText:'Mark Unpaid', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+    });
+    if(!okUnpay) return;
     s.payment = { paid:false };
   } else {
     // Amount is asked for rather than assumed: partial payments and the odd
     // discount happen, and a total that silently disagrees with GCash is worse
     // than no total at all.
-    const amtRaw = prompt(
-      `Record payment from ${nm}\n\nAmount received in pesos (order total is ${peso(due)}):`,
-      String(due)
-    );
-    if(amtRaw === null) return;
-    const amt = parseFloat(String(amtRaw).replace(/[^\d.]/g,''));
-    if(isNaN(amt) || amt <= 0){ showNotif('That is not a valid amount — nothing recorded.', true); return; }
-
-    const ref = prompt('GCash reference number (optional — press OK to skip):', '') || '';
+    const payResult = await showPaymentDialog(nm, peso(due));
+    if(!payResult) return;                       // cancelled — amount is validated in-dialog
+    const { amount: amt, reference: ref } = payResult;
     s.payment = {
       paid: true,
       amount: amt,
-      reference: ref.trim(),
+      reference: ref,
       paidAt: new Date().toISOString(),
       method: 'GCash'
     };
@@ -5741,11 +5838,12 @@ async function emailCustomer(idx, type){
   const prevTs = emailSentAt(s, type);
   if(prevTs){
     const what = type==='delivered' ? 'CV Has Been Delivered' : 'CV is Ready / Request Payment';
-    if(!confirm(
-      `"${what}" was already sent to ${p.email} on ${emailStamp(prevTs)}.\n\n`+
-      `Send it a second time?\n\n`+
-      `This uses one more of your monthly email allowance (${getMailCount()}/${getMailCap()} used).`
-    )) { showNotif('Cancelled — no email sent.'); return; }
+    const okResend = await showConfirm({
+      type:'mail', title:'Email Already Sent',
+      message:`"<strong>${what}</strong>" was already sent to <em>${cdlgEsc(p.email)}</em> on ${emailStamp(prevTs)}.<br><br>Send it a second time? This uses one more of your monthly email allowance (<strong>${getMailCount()}/${getMailCap()}</strong> used).`,
+      confirmText:'Send Again', confirmClass:'cdlg-btn-ok', cancelText:'Cancel'
+    });
+    if(!okResend){ showNotif('Cancelled — no email sent.'); return; }
   }
 
   // ── Disable button to prevent double-send ────────────────────
@@ -6092,6 +6190,206 @@ function showNotif(msg,isError=false){
   setTimeout(()=>{n.className='notif'+(isError?' error':'');},4000);
 }
 window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CUSTOM DIALOG ENGINE — replaces all native confirm() / prompt() calls
+// All public helpers return Promises so callers can `await` them.
+// ══════════════════════════════════════════════════════════════════════════════
+(function(){
+  const overlay  = document.getElementById('cdlg-overlay');
+  const iconWrap = document.getElementById('cdlg-icon-wrap');
+  const icon     = document.getElementById('cdlg-icon');
+  const title    = document.getElementById('cdlg-title');
+  const msg      = document.getElementById('cdlg-msg');
+  const body     = document.getElementById('cdlg-body');
+  const footer   = document.getElementById('cdlg-footer');
+  const cancelBtn= document.getElementById('cdlg-cancel');
+  const okBtn    = document.getElementById('cdlg-ok');
+  let _resolve   = null;
+  let _focusTimer= null;
+  let _validator = null;   // optional veto fn; return false to keep dialog open
+
+  // Escapes text before it goes into a dialog's innerHTML. Applicant names come
+  // from a public form, so a stray "<" or "&" must never break the markup.
+  const cdlgEsc = t => String(t==null?'':t)
+    .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  window.cdlgEsc = cdlgEsc;
+
+  const TYPE_META = {
+    info:    { icon:'ℹ️',  cls:'type-info'   },
+    warning: { icon:'⚠️',  cls:'type-warning' },
+    danger:  { icon:'🗑️', cls:'type-danger'  },
+    success: { icon:'✅',  cls:'type-success' },
+    payment: { icon:'💳',  cls:'type-payment' },
+    lock:    { icon:'🔒',  cls:'type-warning' },
+    mail:    { icon:'📧',  cls:'type-info'    },
+  };
+
+  function openDialog(){
+    overlay.style.display='flex';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('cdlg-in')));
+    // Focus the safe (confirm) button once the entrance animation settles.
+    // Guarded because a fast Escape can dismiss the dialog before this fires.
+    clearTimeout(_focusTimer);
+    _focusTimer = setTimeout(()=>{ if(_resolve) okBtn.focus(); },220);
+    // Escape key closes
+    document._cdlgEscHandler = e=>{ if(e.key==='Escape') _dismiss(false); };
+    document.addEventListener('keydown', document._cdlgEscHandler);
+    // Click outside closes
+    overlay._cdlgClickHandler = e=>{ if(e.target===overlay) _dismiss(false); };
+    overlay.addEventListener('click', overlay._cdlgClickHandler);
+  }
+
+  function _dismiss(value){
+    if(!_resolve) return;
+    // A validator can veto a confirm, keeping the dialog open so the user can
+    // correct the field instead of losing everything they typed.
+    if(value===true && _validator && _validator()===false) return;
+    clearTimeout(_focusTimer);
+    overlay.classList.remove('cdlg-in');
+    document.removeEventListener('keydown', document._cdlgEscHandler);
+    overlay.removeEventListener('click', overlay._cdlgClickHandler);
+    setTimeout(()=>{
+      // Only tear down if no NEW dialog opened during the fade-out.
+      if(!_resolve){ overlay.style.display='none'; body.style.display='none'; body.innerHTML=''; }
+    }, 200);
+    const cb = _resolve; _resolve = null; _validator = null; cb(value);
+  }
+
+  cancelBtn.addEventListener('click', ()=>_dismiss(false));
+  okBtn.addEventListener('click', ()=>_dismiss(true));
+
+  // Enter submits — but NOT when the Cancel button holds focus, where the
+  // browser would also fire a click and the two would race (Enter fires first,
+  // so a focused Cancel would have confirmed the action instead of aborting).
+  document.getElementById('cdlg').addEventListener('keydown', e=>{
+    if(e.key!=='Enter') return;
+    if(e.target.tagName==='TEXTAREA') return;
+    if(e.target===cancelBtn) return;
+    e.preventDefault();
+    _dismiss(true);
+  });
+
+  /* ── Low-level builder ─────────────────────────────────────────────────── */
+
+  // If a dialog is somehow already open when a new one is requested, settle the
+  // old promise as "cancelled" rather than overwriting _resolve — an overwritten
+  // resolver never fires, which would leave the earlier `await` hanging forever.
+  function _takeover(){
+    if(_resolve){ const cb=_resolve; _resolve=null; _validator=null; cb(false); }
+    _validator = null;
+  }
+
+  function _build(opts){
+    const meta = TYPE_META[opts.type||'info'] || TYPE_META.info;
+    iconWrap.className = 'cdlg-icon-wrap ' + meta.cls;
+    icon.textContent   = opts.icon || meta.icon;
+    title.textContent  = opts.title || '';
+    // message can be plain string or HTML (set with innerHTML if starts with '<')
+    if(typeof opts.message === 'string' && opts.message.trimStart().startsWith('<')){
+      msg.innerHTML = opts.message;
+    } else {
+      msg.textContent = opts.message || '';
+    }
+
+    // Cancel button
+    cancelBtn.style.display = opts.hideCancelBtn ? 'none' : '';
+    cancelBtn.textContent   = opts.cancelText || 'Cancel';
+    cancelBtn.className     = 'cdlg-btn cdlg-btn-cancel';
+
+    // OK button
+    okBtn.textContent = opts.confirmText || 'OK';
+    okBtn.className   = 'cdlg-btn ' + (opts.confirmClass || 'cdlg-btn-ok');
+  }
+
+  /* ── PUBLIC: simple confirm ───────────────────────────────────────────── */
+  window.showConfirm = function(opts){
+    return new Promise(resolve=>{
+      _takeover();
+      _resolve = resolve;
+      _build(opts);
+      body.style.display='none'; body.innerHTML='';
+      openDialog();
+    });
+  };
+
+  /* ── PUBLIC: single-field prompt ─────────────────────────────────────── */
+  window.showPrompt = function(opts){
+    return new Promise(resolve=>{
+      _takeover();
+      _resolve = (confirmed)=>{
+        const inp = document.getElementById('_cdlg_input');
+        resolve(confirmed && inp ? inp.value : null);
+      };
+      _build(opts);
+      body.innerHTML =
+        `<label class="cdlg-field-label">${opts.inputLabel||''}</label>`+
+        `<input id="_cdlg_input" class="cdlg-input" type="${opts.inputType||'text'}"
+          placeholder="${opts.placeholder||''}"
+          value="${(opts.defaultValue||'').toString().replace(/"/g,'&quot;')}"
+          autocomplete="off">`+
+        (opts.inputNote ? `<div class="cdlg-input-note">${opts.inputNote}</div>` : '');
+      body.style.display='block';
+      openDialog();
+      setTimeout(()=>{ const i=document.getElementById('_cdlg_input'); if(i){i.focus();i.select();} },220);
+    });
+  };
+
+  /* ── PUBLIC: payment dialog (amount + optional GCash ref) ────────────── */
+  window.showPaymentDialog = function(name, due){
+    return new Promise(resolve=>{
+      _takeover();
+      _resolve = (confirmed)=>{
+        const amtEl = document.getElementById('_cdlg_amt');
+        const refEl = document.getElementById('_cdlg_ref');
+        if(!confirmed || !amtEl){ resolve(null); return; }
+        const amt = parseFloat(String(amtEl.value).replace(/[^\d.]/g,''));
+        if(isNaN(amt)||amt<=0){ resolve(null); return; }
+        resolve({ amount: amt, reference: (refEl?refEl.value.trim():'') });
+      };
+      // Keep the dialog open on a bad amount rather than silently cancelling —
+      // a typo used to discard the whole entry with no explanation.
+      _validator = ()=>{
+        const amtEl = document.getElementById('_cdlg_amt');
+        const errEl = document.getElementById('_cdlg_amt_err');
+        const amt = parseFloat(String(amtEl?amtEl.value:'').replace(/[^\d.]/g,''));
+        const bad = isNaN(amt) || amt <= 0;
+        if(errEl) errEl.style.display = bad ? 'block' : 'none';
+        if(bad && amtEl){ amtEl.style.borderColor = '#ef4444'; amtEl.focus(); }
+        else if(amtEl){ amtEl.style.borderColor = ''; }
+        return !bad;
+      };
+      _build({
+        type:'payment', title:'Record Payment',
+        message:``, confirmText:'Record Payment',
+        confirmClass:'cdlg-btn-gold', cancelText:'Cancel'
+      });
+      msg.innerHTML='';
+      body.innerHTML =
+        `<div class="cdlg-payment-meta">
+          <div><div class="pm-name">Customer</div><div style="color:white;font-weight:700;font-size:14px;">${cdlgEsc(name)}</div></div>
+          <div style="text-align:right"><div class="pm-name">Order Total</div><div class="pm-amt">${due}</div></div>
+        </div>
+        <div style="margin-top:14px;">
+          <label class="cdlg-field-label">Amount Received (₱)</label>
+          <input id="_cdlg_amt" class="cdlg-input" type="number" min="1" step="any"
+            placeholder="Enter amount" value="${parseFloat(due.replace(/[^\d.]/g,''))||''}"
+            autocomplete="off">
+          <div id="_cdlg_amt_err" style="display:none;font-size:11.5px;font-weight:600;color:#dc2626;margin-top:5px;">Enter a valid amount greater than zero.</div>
+        </div>
+        <div style="margin-top:12px;">
+          <label class="cdlg-field-label">GCash Reference # <span style="font-weight:400;color:var(--gray);text-transform:none;letter-spacing:0;">(optional)</span></label>
+          <input id="_cdlg_ref" class="cdlg-input" type="text"
+            placeholder="e.g. 123456789012" autocomplete="off">
+          <div class="cdlg-input-note">Leave blank if paying cash or no ref available.</div>
+        </div>`;
+      body.style.display='block';
+      openDialog();
+      setTimeout(()=>{ const i=document.getElementById('_cdlg_amt'); if(i){i.focus();i.select();} },220);
+    });
+  };
+})();
+// ── END CUSTOM DIALOG ENGINE ──────────────────────────────────────────────────
 </script>
 </body>
 </html>
