@@ -6208,6 +6208,9 @@ window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.quer
   let _resolve   = null;
   let _focusTimer= null;
   let _validator = null;   // optional veto fn; return false to keep dialog open
+  let _prevFocus = null;   // element focused before the dialog opened
+  let _prevOverflow = '';  // body overflow to restore on close
+  let _locked    = false;  // true while a dialog (or chain of them) is open
 
   // Escapes text before it goes into a dialog's innerHTML. Applicant names come
   // from a public form, so a stray "<" or "&" must never break the markup.
@@ -6226,6 +6229,17 @@ window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.quer
   };
 
   function openDialog(){
+    // Only capture the pre-dialog state on the FIRST dialog of a chain. A second
+    // dialog (the CSV backup flow opens two back-to-back) would otherwise capture
+    // the already-locked 'hidden' overflow and restore *that* at the end, leaving
+    // the page permanently unscrollable — and would capture the previous dialog's
+    // OK button as the focus target, handing focus to a hidden element.
+    if(!_locked){
+      _prevFocus    = document.activeElement;
+      _prevOverflow = document.body.style.overflow;
+      _locked = true;
+    }
+    document.body.style.overflow = 'hidden';
     overlay.style.display='flex';
     requestAnimationFrame(()=>requestAnimationFrame(()=>overlay.classList.add('cdlg-in')));
     // Focus the safe (confirm) button once the entrance animation settles.
@@ -6250,8 +6264,17 @@ window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.quer
     document.removeEventListener('keydown', document._cdlgEscHandler);
     overlay.removeEventListener('click', overlay._cdlgClickHandler);
     setTimeout(()=>{
-      // Only tear down if no NEW dialog opened during the fade-out.
-      if(!_resolve){ overlay.style.display='none'; body.style.display='none'; body.innerHTML=''; }
+      // Only tear down if no NEW dialog opened during the fade-out. A chained
+      // dialog (e.g. the CSV backup flow) must not have its scroll lock removed.
+      if(!_resolve){
+        overlay.style.display='none'; body.style.display='none'; body.innerHTML='';
+        document.body.style.overflow = _prevOverflow;
+        _locked = false;
+        if(_prevFocus && typeof _prevFocus.focus==='function'){
+          try{ _prevFocus.focus(); }catch(e){}
+        }
+        _prevFocus = null;
+      }
     }, 200);
     const cb = _resolve; _resolve = null; _validator = null; cb(value);
   }
@@ -6285,12 +6308,12 @@ window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.quer
     iconWrap.className = 'cdlg-icon-wrap ' + meta.cls;
     icon.textContent   = opts.icon || meta.icon;
     title.textContent  = opts.title || '';
-    // message can be plain string or HTML (set with innerHTML if starts with '<')
-    if(typeof opts.message === 'string' && opts.message.trimStart().startsWith('<')){
-      msg.innerHTML = opts.message;
-    } else {
-      msg.textContent = opts.message || '';
-    }
+    // Messages are always treated as HTML. The previous version guessed by
+    // testing whether the string STARTED with "<", so any message that opened
+    // with plain text ("Mark <strong>Ryan</strong>'s order…") had its tags
+    // escaped and shown literally to the user. Every caller-supplied value that
+    // could contain markup is passed through cdlgEsc() at the call site.
+    msg.innerHTML = opts.message == null ? '' : String(opts.message);
 
     // Cancel button
     cancelBtn.style.display = opts.hideCancelBtn ? 'none' : '';
@@ -6323,12 +6346,12 @@ window.onclick=e=>{if(e.target.classList.contains('modal-overlay'))document.quer
       };
       _build(opts);
       body.innerHTML =
-        `<label class="cdlg-field-label">${opts.inputLabel||''}</label>`+
-        `<input id="_cdlg_input" class="cdlg-input" type="${opts.inputType||'text'}"
-          placeholder="${opts.placeholder||''}"
-          value="${(opts.defaultValue||'').toString().replace(/"/g,'&quot;')}"
+        `<label class="cdlg-field-label">${cdlgEsc(opts.inputLabel||'')}</label>`+
+        `<input id="_cdlg_input" class="cdlg-input" type="${cdlgEsc(opts.inputType||'text')}"
+          placeholder="${cdlgEsc(opts.placeholder||'')}"
+          value="${cdlgEsc(opts.defaultValue||'')}"
           autocomplete="off">`+
-        (opts.inputNote ? `<div class="cdlg-input-note">${opts.inputNote}</div>` : '');
+        (opts.inputNote ? `<div class="cdlg-input-note">${cdlgEsc(opts.inputNote)}</div>` : '');
       body.style.display='block';
       openDialog();
       setTimeout(()=>{ const i=document.getElementById('_cdlg_input'); if(i){i.focus();i.select();} },220);
