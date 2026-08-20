@@ -1045,6 +1045,10 @@
               Anything you type into the form below is picked up automatically, so this is only for
               things the form has no box for.</small>
           </div>
+          <div class="lc-continue" id="lcContinue">
+            <button type="button" onclick="continueToForm()">Continue to the form →</button>
+            <small>You can still change any of this later — nothing is final until you submit.</small>
+          </div>
         </div>
         <button class="start-skip" onclick="startFresh()">Skip this — I'll type it myself</button>
       </div>
@@ -2716,12 +2720,29 @@ function normaliseTokens(t) {
 
 function offerLayoutChoice(card) {
   const box = document.getElementById('layoutChoice');
-  if (!box) return;
+  if (!box) return false;
   // There is one box but two scanners — the start screen and the card inside
   // the form. Move it to whichever one they used, or it opens on a hidden page.
   if (card && card.appendChild && box.parentNode !== card) card.appendChild(box);
   box.classList.add('show');
-  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Set when the question is asked from the start screen: answering it is then
+  // what carries them to the form.
+  layoutPending = !document.getElementById('formPage')?.classList.contains('active');
+  setTimeout(() => box.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 250);
+  return true;
+}
+
+// True while the customer is sitting on the start screen with the SAME/NEW
+// question open and has not yet been taken to the form.
+let layoutPending = false;
+
+function goToFormFromChoice(delay) {
+  if (!layoutPending) return;
+  layoutPending = false;
+  setTimeout(() => {
+    showFormPage();
+    showNotif('✅ Details filled from your CV — please check each one');
+  }, delay || 900);
 }
 
 function lcSay(cls, html) {
@@ -2740,9 +2761,10 @@ async function chooseLayout(mode) {
   if (mode === 'new') {
     layoutTokens = null; layoutSourceImg = '';
     document.getElementById('lcTokens').innerHTML = '';
-    lcSay('ok', '👍 Noted — pick any design you like from the template list further down.');
+    lcSay('ok', '👍 Noted — taking you to the form, where you can pick any design you like.');
     renderTemplateSwatches();
     saveDraft();
+    goToFormFromChoice();
     return;
   }
 
@@ -2866,7 +2888,8 @@ Rules:
       ? 'single column'
       : `two columns, sidebar on the ${layoutTokens.columns.layout === 'two-left' ? 'left' : 'right'}`;
     lcSay('ok', `✅ Design captured — ${shape}, ${layoutTokens.typography.headingFamily} headings. ` +
-                `We'll rebuild your CV in this style. Tell us below what should change.`);
+                `We'll rebuild your CV in this style. Add your photo and any changes below.`);
+    document.getElementById('lcContinue')?.classList.add('show');
 
     document.getElementById('lcPhoto')?.classList.add('show');
     lcSetSlot(layoutTokens.header.photo);
@@ -2887,6 +2910,7 @@ Rules:
       '<button type="button" onclick="chooseLayout(\'new\')" style="margin-top:8px;padding:6px 14px;' +
       'background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;' +
       'font-size:12px;cursor:pointer;font-family:inherit;">🎨 Use a template instead</button>');
+    document.getElementById('lcContinue')?.classList.add('show');
   }
 }
 
@@ -2965,11 +2989,27 @@ function lcSetSlot(slot) {
   saveDraft();
 }
 
+// Pressed from the SAME panel once they have added their photo and notes.
+function continueToForm() {
+  if (layoutMode === 'same' && layoutTokens && !photoBase64 && !layoutTokens.__nagged) {
+    // Nagging once is a reminder; nagging twice is an obstacle. The form's own
+    // validator still blocks submission without a photo, so let them past after.
+    layoutTokens.__nagged = true;
+    lcSay('bad', '📷 Please add a formal attire photo — it is required on every CV. ' +
+                 'If you would rather do it further down the form, tap Continue again.');
+    return;
+  }
+  goToFormFromChoice(200);
+}
+
 function layoutReplicaPayload() {
   if (layoutMode !== 'same' || !layoutTokens) return { mode: layoutMode || 'new' };
+  // Strip the UI-only scratch flag so it never reaches the bin or the admin.
+  const tokens = { ...layoutTokens };
+  delete tokens.__nagged;
   return {
     mode: 'same',
-    tokens: layoutTokens,
+    tokens,
     sourceImage: layoutSourceImg,
     changeNotes: document.getElementById('layoutChangeNotes')?.value.trim() || '',
     // Filled in by the admin panel after review — kept here so one record holds
@@ -4591,19 +4631,26 @@ Rules:
     // pointed at nothing. Say what happened, then move them there.
     const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
     const cappedTxt = capped ? ` <br><small>Only the first ${MAX_PAGES} pages were read — add anything missing by hand.</small>` : '';
-    status.innerHTML = (fromForm
-      ? `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} filled in below — please review each one before submitting.`
-      : `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up — taking you to the form to review…`) + cappedTxt;
-
-    // Only travel to the form if we're not already on it.
     // The data is in. Now ask whether they want the look of it too — asking
     // before the scan finished would have been a question about nothing.
-    offerLayoutChoice(card);
+    const asked = offerLayoutChoice(card);
 
-    setTimeout(() => {
-      if (!fromForm) showFormPage();
-      showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV — please check each one`);
-    }, 1400);
+    status.innerHTML = (fromForm
+      ? `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} filled in below — please review each one before submitting.`
+      : asked
+      ? `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up. One question before we go to the form 👇`
+      : `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up — taking you to the form to review…`) + cappedTxt;
+
+    if (asked) {
+      // Stay put. chooseLayout() moves them on once they have answered — either
+      // straight away for NEW, or after the photo and change notes for SAME.
+      showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV`);
+    } else {
+      setTimeout(() => {
+        if (!fromForm) showFormPage();
+        showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV — please check each one`);
+      }, 1400);
+    }
 
   } catch(err) {
     console.error('Scan error:', err);
