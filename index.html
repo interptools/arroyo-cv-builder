@@ -392,6 +392,65 @@
   }
 
   /* EDUCATION TYPE SELECTOR */
+  /* ── KEEP-MY-DESIGN (layout replica) ─────────────────────────────────── */
+  .layout-choice { display:none; width:100%; margin-top:14px; background:rgba(255,255,255,.06);
+    border:1.5px solid rgba(201,168,76,.35); border-radius:14px; padding:16px 18px; }
+  .layout-choice.show { display:block; }
+  .layout-choice h4 { font-family:'DM Serif Display',serif; color:#e8c97a; font-size:16px; margin-bottom:4px; }
+  .layout-choice p.lc-sub { color:rgba(255,255,255,.7); font-size:12px; line-height:1.55; margin-bottom:12px; }
+  .lc-btns { display:flex; gap:10px; flex-wrap:wrap; }
+  .lc-btn { flex:1; min-width:150px; text-align:left; background:rgba(255,255,255,.08);
+    border:1.5px solid rgba(255,255,255,.2); border-radius:10px; padding:12px 14px; cursor:pointer;
+    color:#fff; font-family:inherit; transition:border-color .15s, background .15s; }
+  .lc-btn:hover { border-color:rgba(201,168,76,.6); background:rgba(255,255,255,.13); }
+  .lc-btn.sel { border-color:#c9a84c; background:rgba(201,168,76,.18); }
+  .lc-btn strong { display:block; font-size:13.5px; font-weight:700; margin-bottom:3px; }
+  .lc-btn span { display:block; font-size:11.5px; color:rgba(255,255,255,.62); line-height:1.45; }
+  .lc-changes { display:none; margin-top:14px; }
+  .lc-changes.show { display:block; }
+  .lc-changes label { display:block; font-size:12px; font-weight:700; color:#e8c97a; margin-bottom:5px; }
+  .lc-changes textarea { width:100%; min-height:88px; border-radius:9px; padding:10px 12px;
+    border:1.5px solid rgba(255,255,255,.22); background:rgba(0,0,0,.22); color:#fff;
+    font-family:inherit; font-size:12.5px; line-height:1.5; resize:vertical; }
+  .lc-changes textarea::placeholder { color:rgba(255,255,255,.35); }
+  .lc-changes small { display:block; margin-top:6px; font-size:11px; color:rgba(255,255,255,.5); line-height:1.5; }
+  .lc-photo { display:none; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14); }
+  .lc-photo.show { display:block; }
+  .lc-photo > label { display:block; font-size:12px; font-weight:700; color:#e8c97a; margin-bottom:5px; }
+  .lc-photo-row { display:flex; gap:12px; align-items:flex-start; }
+  .lc-photo-drop { flex:1; border:1.5px dashed rgba(255,255,255,.3); border-radius:10px; padding:14px;
+    text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .lc-photo-drop:hover { border-color:#c9a84c; background:rgba(255,255,255,.06); }
+  .lc-photo-drop.filled { border-color:rgba(22,163,74,.6); border-style:solid; }
+  .lc-photo-drop .pd-icon { font-size:26px; margin-bottom:4px; }
+  .lc-photo-drop strong { display:block; font-size:12.5px; color:#fff; margin-bottom:2px; }
+  .lc-photo-drop span { font-size:11px; color:rgba(255,255,255,.55); }
+  .lc-photo-prev { width:78px; height:96px; object-fit:cover; border-radius:8px;
+    border:2px solid rgba(201,168,76,.55); display:none; flex-shrink:0; background:rgba(0,0,0,.2); }
+  .lc-attire { margin-top:10px; background:rgba(0,0,0,.22); border:1px solid rgba(201,168,76,.28);
+    border-radius:9px; padding:10px 12px; display:flex; gap:9px; align-items:flex-start; }
+  .lc-attire .la-i { font-size:17px; flex-shrink:0; }
+  .lc-attire b { display:block; font-size:11.5px; color:#e8c97a; margin-bottom:3px; }
+  .lc-attire p { font-size:11.5px; color:rgba(255,255,255,.65); line-height:1.55; margin:0; }
+  .lc-slot { margin-top:10px; }
+  .lc-slot label { display:block; font-size:11px; font-weight:700; color:rgba(255,255,255,.6);
+    text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px; }
+  .lc-slot-btns { display:flex; gap:7px; flex-wrap:wrap; }
+  .lc-slot-btn { background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.2);
+    color:#fff; border-radius:8px; padding:6px 13px; font-size:11.5px; font-weight:600;
+    cursor:pointer; font-family:inherit; }
+  .lc-slot-btn.sel { border-color:#c9a84c; background:rgba(201,168,76,.2); color:#e8c97a; }
+
+  .lc-state { margin-top:12px; font-size:12px; line-height:1.55; padding:10px 12px; border-radius:9px; display:none; }
+  .lc-state.show { display:block; }
+  .lc-state.busy { background:rgba(255,255,255,.1); color:rgba(255,255,255,.8); }
+  .lc-state.ok   { background:rgba(22,163,74,.16); color:#86efac; border:1px solid rgba(22,163,74,.3); }
+  .lc-state.bad  { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
+  .lc-tokens { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
+  .lc-swatch { width:26px; height:26px; border-radius:6px; border:1.5px solid rgba(255,255,255,.3); }
+  /* the extra swatch that appears in the template grid once a design is captured */
+  .tsw.tsw-replica .tsw-chip { background:linear-gradient(135deg,#c9a84c,#e8c97a); color:#1a2744; }
+
   /* CV Scanner */
   .scan-card { background: linear-gradient(135deg, #1a2744 0%, #243560 100%); border-radius: 16px; padding: 20px 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1.5px solid rgba(201,168,76,0.3); }
   .scan-card-text { flex: 1; min-width: 200px; }
@@ -933,6 +992,60 @@
         <input type="file" id="cvScanInput" accept="image/*" multiple style="display:none" onchange="scanExistingCV(this)">
         <div class="scan-pages" id="scanPages"></div>
         <div class="scan-status" id="scanStatus"></div>
+        <div class="layout-choice" id="layoutChoice">
+          <h4>Do you want to keep this design?</h4>
+          <p class="lc-sub">We read your CV. Now — should the new one look like the one you just
+            uploaded, or would you like a fresh design from our templates?</p>
+          <div class="lc-btns">
+            <button type="button" class="lc-btn" id="lcSame" onclick="chooseLayout('same')">
+              <strong>SAME — keep my design</strong>
+              <span>We rebuild it in the same style, with your changes</span>
+            </button>
+            <button type="button" class="lc-btn" id="lcNew" onclick="chooseLayout('new')">
+              <strong>NEW — pick a fresh design</strong>
+              <span>Choose from our templates further down the form</span>
+            </button>
+          </div>
+          <div class="lc-state" id="lcState"></div>
+          <div class="lc-tokens" id="lcTokens"></div>
+          <div class="lc-photo" id="lcPhoto">
+            <label>Your photo for the new CV</label>
+            <div class="lc-photo-row">
+              <img id="lcPhotoPrev" class="lc-photo-prev" alt="Photo preview">
+              <div class="lc-photo-drop" id="lcPhotoDrop" onclick="document.getElementById('lcPhotoInput').click()">
+                <div class="pd-icon">📷</div>
+                <strong>Upload a formal attire photo</strong>
+                <span>JPG or PNG · tap to choose</span>
+              </div>
+            </div>
+            <input type="file" id="lcPhotoInput" accept="image/*" style="display:none" onchange="lcPhotoPicked(this)">
+            <div class="lc-attire">
+              <span class="la-i">👔</span>
+              <div>
+                <b>Photo attire requirement</b>
+                <p>Please wear <strong style="color:#e8c97a;">formal or smart casual attire</strong> —
+                  a collared shirt, blouse or blazer. No selfies, no group photos, no busy backgrounds.
+                  A plain wall behind you looks best.<br>
+                  The photo on the CV you uploaded is too low-resolution to reuse, so we need a fresh one.</p>
+              </div>
+            </div>
+            <div class="lc-slot" id="lcSlot">
+              <label>Where should it sit?</label>
+              <div class="lc-slot-btns">
+                <button type="button" class="lc-slot-btn" data-slot="circle" onclick="lcSetSlot('circle')">Circle</button>
+                <button type="button" class="lc-slot-btn" data-slot="square" onclick="lcSetSlot('square')">Square</button>
+                <button type="button" class="lc-slot-btn" data-slot="none" onclick="lcSetSlot('none')">No photo</button>
+              </div>
+            </div>
+          </div>
+          <div class="lc-changes" id="lcChanges">
+            <label>What should change on it?</label>
+            <textarea id="layoutChangeNotes" placeholder="ADD: certifications section — TESDA NCII, First Aid, Basic Safety&#10;EDIT: update my current job description&#10;REMOVE: the references section"></textarea>
+            <small>Write it however you like — ADD / EDIT / REMOVE is just a handy way to keep it clear.
+              Anything you type into the form below is picked up automatically, so this is only for
+              things the form has no box for.</small>
+          </div>
+        </div>
         <button class="start-skip" onclick="startFresh()">Skip this — I'll type it myself</button>
       </div>
 
@@ -2519,6 +2632,355 @@ function cvBundleSaving(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// LAYOUT REPLICA — "keep the design of the CV I uploaded"
+// ══════════════════════════════════════════════════════════════════════════════
+// The scan above pulls the CONTENT out of an uploaded CV. This pulls the LOOK
+// out of the same images: palette, column split, type, dividers, section order.
+//
+// Worth being straight about what this can and cannot do. A vision model reads
+// structure well — two columns, dark header band, serif headings, gold rule under
+// each section. It reads exact metrics badly, and it cannot identify a typeface
+// from a phone photo; anything sans-serif comes back "Calibri". So the promise to
+// the customer is "same style", never "exact copy", and every value below is a
+// starting point the admin can correct before anything is sent.
+
+let layoutMode = '';              // '' | 'same' | 'new'
+let layoutTokens = null;          // extracted design description
+let layoutSourceImg = '';         // page-1 thumbnail, for side-by-side in admin
+
+// Model font guesses are unreliable and its answers cluster on a handful of
+// names, so we map the guess onto a stack that will actually render rather
+// than passing it through and hoping the machine has it.
+const REPLICA_FONT_STACKS = {
+  serif:      "'DM Serif Display', Georgia, 'Times New Roman', serif",
+  slab:       "Rockwell, 'Roboto Slab', Georgia, serif",
+  sans:       "'Helvetica Neue', Arial, Helvetica, sans-serif",
+  geometric:  "'Century Gothic', 'Futura', 'Avenir Next', sans-serif",
+  humanist:   "Calibri, 'Segoe UI', 'Trebuchet MS', sans-serif",
+  mono:       "'DM Mono', Consolas, 'Courier New', monospace"
+};
+
+function normaliseTokens(t) {
+  t = t || {};
+  const hex = (v, fb) => (typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v.trim())) ? v.trim() : fb;
+  const pick = (v, allowed, fb) => allowed.includes(v) ? v : fb;
+  const p = t.palette || {}, ty = t.typography || {}, h = t.header || {},
+        se = t.sections || {}, sp = t.spacing || {}, c = t.columns || {};
+
+  return {
+    columns: {
+      layout: pick(c.layout, ['single','two-left','two-right'], 'single'),
+      // A sidebar narrower than a quarter of the page cannot hold a heading,
+      // and past half it is not a sidebar any more.
+      sidebarWidth: Math.min(46, Math.max(24, parseInt(c.sidebarWidth) || 33))
+    },
+    palette: {
+      primary:     hex(p.primary,     '#1a2744'),
+      accent:      hex(p.accent,      '#c8a84b'),
+      text:        hex(p.text,        '#1f2937'),
+      muted:       hex(p.muted,       '#6b7280'),
+      pageBg:      hex(p.pageBg,      '#ffffff'),
+      sidebarBg:   hex(p.sidebarBg,   hex(p.primary, '#1a2744')),
+      sidebarText: hex(p.sidebarText, '#ffffff')
+    },
+    typography: {
+      headingFamily: pick(ty.headingFamily, Object.keys(REPLICA_FONT_STACKS), 'sans'),
+      bodyFamily:    pick(ty.bodyFamily,    Object.keys(REPLICA_FONT_STACKS), 'sans'),
+      nameSize:      Math.min(44, Math.max(18, parseInt(ty.nameSize)    || 28)),
+      sectionSize:   Math.min(18, Math.max(9,  parseInt(ty.sectionSize) || 12)),
+      bodySize:      Math.min(13, Math.max(8,  parseInt(ty.bodySize)    || 10)),
+      headingCase:   pick(ty.headingCase, ['upper','title'], 'upper'),
+      letterSpacing: pick(ty.letterSpacing, ['normal','wide'], 'normal')
+    },
+    header: {
+      style: pick(h.style, ['band','plain','centered','rule'], 'plain'),
+      align: pick(h.align, ['left','center'], 'left'),
+      photo: pick(h.photo, ['none','circle','square'], 'none')
+    },
+    sections: {
+      order: Array.isArray(se.order) && se.order.length ? se.order.slice(0, 14) : null,
+      divider: pick(se.divider, ['rule','underline','box','none'], 'rule'),
+      bullet:  pick(se.bullet,  ['disc','dash','square','chevron','none'], 'disc')
+    },
+    spacing: {
+      sectionGap: Math.min(28, Math.max(6,  parseInt(sp.sectionGap) || 14)),
+      entryGap:   Math.min(20, Math.max(4,  parseInt(sp.entryGap)   || 9)),
+      lineHeight: Math.min(2,  Math.max(1.1, parseFloat(sp.lineHeight) || 1.45)),
+      margin:     Math.min(28, Math.max(8,  parseInt(sp.margin)     || 16))
+    },
+    notes: typeof t.notes === 'string' ? t.notes.slice(0, 600) : '',
+    // Set once the tokens have actually been through a real extraction.
+    extractedAt: new Date().toISOString()
+  };
+}
+
+function offerLayoutChoice(card) {
+  const box = document.getElementById('layoutChoice');
+  if (!box) return;
+  // There is one box but two scanners — the start screen and the card inside
+  // the form. Move it to whichever one they used, or it opens on a hidden page.
+  if (card && card.appendChild && box.parentNode !== card) card.appendChild(box);
+  box.classList.add('show');
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function lcSay(cls, html) {
+  const el = document.getElementById('lcState');
+  if (!el) return;
+  el.className = 'lc-state show ' + cls;
+  el.innerHTML = html;
+}
+
+async function chooseLayout(mode) {
+  layoutMode = mode;
+  document.getElementById('lcSame')?.classList.toggle('sel', mode === 'same');
+  document.getElementById('lcNew') ?.classList.toggle('sel', mode === 'new');
+  document.getElementById('lcChanges')?.classList.toggle('show', mode === 'same');
+
+  if (mode === 'new') {
+    layoutTokens = null; layoutSourceImg = '';
+    document.getElementById('lcTokens').innerHTML = '';
+    lcSay('ok', '👍 Noted — pick any design you like from the template list further down.');
+    renderTemplateSwatches();
+    saveDraft();
+    return;
+  }
+
+  // SAME. If we already read the design once, don't pay for it twice.
+  if (layoutTokens) {
+    document.getElementById('lcPhoto')?.classList.add('show');
+    lcSetSlot(layoutTokens.header.photo);
+    lcSyncPhoto();
+    lcSay('ok', '✅ We already have your design saved. Add any changes below.');
+    return;
+  }
+  await extractDesignTokens();
+}
+
+async function extractDesignTokens() {
+  const pages = window.__scanPages || [];
+  if (!pages.length) {
+    lcSay('bad', '❌ We no longer have the uploaded image. Please scan your CV again, then choose SAME.');
+    return;
+  }
+
+  lcSay('busy', '⏳ Reading the design of your CV — colours, columns, headings… about 20 seconds.');
+
+  // Only the first two pages matter here: page 3 of a CV never introduces a new
+  // design, and every extra image is another 10s against the proxy timeout.
+  const design = pages.slice(0, 2);
+
+  const prompt = `You are a document DESIGN analyst. You are shown ${design.length} image(s) of one CV/resume.
+Describe ONLY its visual design. Ignore the words and the person entirely.
+
+Return ONLY a valid JSON object — no markdown, no backticks, no explanation:
+
+{
+  "columns": { "layout": "single|two-left|two-right", "sidebarWidth": 33 },
+  "palette": {
+    "primary": "#hex", "accent": "#hex", "text": "#hex", "muted": "#hex",
+    "pageBg": "#hex", "sidebarBg": "#hex", "sidebarText": "#hex"
+  },
+  "typography": {
+    "headingFamily": "serif|slab|sans|geometric|humanist|mono",
+    "bodyFamily": "serif|slab|sans|geometric|humanist|mono",
+    "nameSize": 28, "sectionSize": 12, "bodySize": 10,
+    "headingCase": "upper|title", "letterSpacing": "normal|wide"
+  },
+  "header": { "style": "band|plain|centered|rule", "align": "left|center", "photo": "none|circle|square" },
+  "sections": {
+    "order": ["Profile","Work Experience","Education","Skills","References"],
+    "divider": "rule|underline|box|none",
+    "bullet": "disc|dash|square|chevron|none"
+  },
+  "spacing": { "sectionGap": 14, "entryGap": 9, "lineHeight": 1.45, "margin": 16 },
+  "notes": "one or two sentences on anything unusual about the layout"
+}
+
+Rules:
+- "two-left" means the narrow coloured/shaded column is on the LEFT.
+- sidebarWidth is the sidebar's share of page width as a whole number percent.
+- If there is no sidebar, layout is "single" and sidebarBg equals pageBg.
+- Sizes are points at A4. Estimate from the proportions you can see.
+- "order" lists the section headings top to bottom, in the words the CV itself uses.
+- Never guess a specific font name. Choose the closest family word from the list.
+- Judge colours from large flat areas, not from JPEG noise or shadow on the photo.
+- Return ONLY the JSON.`;
+
+  const parts = [{ text: prompt }];
+  design.forEach((p, i) => {
+    if (design.length > 1) parts.push({ text: `--- PAGE ${i + 1} ---` });
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
+  });
+
+  async function withTimeout(url, opts, ms) {
+    const ctrl = new AbortController();
+    const id = setTimeout(() => ctrl.abort(), ms);
+    try { const r = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(id); return r; }
+    catch (e) { clearTimeout(id); throw e; }
+  }
+
+  try {
+    let json = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        if (attempt === 2) lcSay('busy', '⏳ Still reading the design — one more try…');
+        const res = await withTimeout('https://gemini-proxy.areymar36.workers.dev', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: 1200 }
+          })
+        }, 26000);
+        if (!res.ok) throw new Error('status ' + res.status);
+        const d = await res.json();
+        if (d.error) throw new Error(d.error.message || 'proxy error');
+        json = d;
+        break;
+      } catch (e) {
+        if (attempt === 2) throw e;
+        await new Promise(r => setTimeout(r, 1800));
+      }
+    }
+
+    let text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (typeof text !== 'string') text = JSON.stringify(text);
+    text = text.replace(/```json|```/g, '').trim();
+    const a = text.indexOf('{'), b = text.lastIndexOf('}');
+    if (a < 0 || b < 0) throw new Error('no JSON in response');
+
+    layoutTokens = normaliseTokens(JSON.parse(text.slice(a, b + 1)));
+    // Small enough to ride along in the submission without bloating the bin.
+    // 320px is above what anything downstream needs — the pixel analysis
+    // resamples to 190px and the review pane displays at ~400px — and it keeps
+    // this near the 14 KB the customer photo is budgeted, instead of ~59 KB.
+    layoutSourceImg = await shrinkForRecord(pages[0].dataUrl, 320, 0.5);
+
+    const p = layoutTokens.palette;
+    document.getElementById('lcTokens').innerHTML =
+      [p.primary, p.accent, p.sidebarBg, p.text, p.pageBg]
+        .map(c => `<div class="lc-swatch" style="background:${c}" title="${c}"></div>`).join('');
+
+    const shape = layoutTokens.columns.layout === 'single'
+      ? 'single column'
+      : `two columns, sidebar on the ${layoutTokens.columns.layout === 'two-left' ? 'left' : 'right'}`;
+    lcSay('ok', `✅ Design captured — ${shape}, ${layoutTokens.typography.headingFamily} headings. ` +
+                `We'll rebuild your CV in this style. Tell us below what should change.`);
+
+    document.getElementById('lcPhoto')?.classList.add('show');
+    lcSetSlot(layoutTokens.header.photo);
+    lcSyncPhoto();
+
+    renderTemplateSwatches();
+    saveDraft();
+
+  } catch (err) {
+    console.warn('Design extraction failed:', err);
+    layoutTokens = null;
+    lcSay('bad',
+      "❌ We couldn't read the design clearly. " +
+      "A flat, well-lit, straight-on photo of the whole page works best — angles and shadows confuse it. " +
+      '<br><button type="button" onclick="extractDesignTokens()" style="margin-top:8px;padding:6px 14px;' +
+      'background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;' +
+      'font-size:12px;cursor:pointer;font-family:inherit;">🔄 Try again</button> ' +
+      '<button type="button" onclick="chooseLayout(\'new\')" style="margin-top:8px;padding:6px 14px;' +
+      'background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;' +
+      'font-size:12px;cursor:pointer;font-family:inherit;">🎨 Use a template instead</button>');
+  }
+}
+
+// The scan images are sized for a vision model, which is far bigger than a
+// thumbnail needs to be. The bin is capped at 100 KB, so this goes in small.
+function shrinkForRecord(dataUrl, maxW, quality) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxW / img.width);
+        const c = document.createElement('canvas');
+        c.width  = Math.round(img.width  * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', quality || 0.6));
+      } catch (e) { resolve(''); }
+    };
+    img.onerror = () => resolve('');
+    img.src = dataUrl;
+  });
+}
+
+// ── Formal attire photo, collected inside the replica flow ──────────────────
+// The photo on a scanned CV is a photo of a photo — a few hundred pixels of a
+// print, already through one round of JPEG. Reusing it produces a blurred
+// grey square. So the replica asks for a fresh one here, and writes it to the
+// same photoBase64 the form uses, keeping the two in step in both directions.
+
+function lcPhotoPicked(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    lcSay('bad', '❌ That is not an image file. Please choose a JPG or PNG.');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoBase64 = e.target.result;
+    lcSyncPhoto();
+    // The scanned design may have had no photo at all. They have just given us
+    // one, so open a slot for it rather than quietly discarding it.
+    if (layoutTokens && layoutTokens.header.photo === 'none') lcSetSlot('circle');
+    else lcSetSlot(layoutTokens?.header.photo || 'circle');
+    saveDraft();
+  };
+  reader.onerror = () => lcSay('bad', '❌ Could not read that file. Please try another.');
+  reader.readAsDataURL(file);
+}
+
+// Keeps the replica panel, the form's own photo card and photoBase64 agreeing.
+function lcSyncPhoto() {
+  const prev = document.getElementById('lcPhotoPrev');
+  const drop = document.getElementById('lcPhotoDrop');
+  if (prev) {
+    prev.src = photoBase64 || '';
+    prev.style.display = photoBase64 ? 'block' : 'none';
+  }
+  if (drop) {
+    drop.classList.toggle('filled', !!photoBase64);
+    drop.querySelector('strong').textContent = photoBase64
+      ? 'Photo added — tap to replace' : 'Upload a formal attire photo';
+  }
+  // Mirror into the form card so they are never asked for it twice.
+  const fp = document.getElementById('photoPreview');
+  if (fp && photoBase64) { fp.src = photoBase64; fp.style.display = 'block'; }
+  const area = document.getElementById('photoUploadArea');
+  if (area && photoBase64) area.style.borderColor = 'var(--success)';
+}
+
+function lcSetSlot(slot) {
+  if (layoutTokens) layoutTokens.header.photo = slot;
+  document.querySelectorAll('#lcSlot .lc-slot-btn').forEach(b =>
+    b.classList.toggle('sel', b.dataset.slot === slot));
+  saveDraft();
+}
+
+function layoutReplicaPayload() {
+  if (layoutMode !== 'same' || !layoutTokens) return { mode: layoutMode || 'new' };
+  return {
+    mode: 'same',
+    tokens: layoutTokens,
+    sourceImage: layoutSourceImg,
+    changeNotes: document.getElementById('layoutChangeNotes')?.value.trim() || '',
+    // Filled in by the admin panel after review — kept here so one record holds
+    // the whole story of the replica rather than it living in two places.
+    approved: false,
+    approvedAt: '',
+    confidence: null
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE SWATCH PICKER
 // ══════════════════════════════════════════════════════════════════════════════
 function renderTemplateSwatches() {
@@ -2533,9 +2995,21 @@ function renderTemplateSwatches() {
   const shown = TMPL_INFO.filter(t => isSeaman ? t.seamanOnly : !t.seamanOnly);
 
   // A stale pick from the other list would silently survive the switch
-  if (cur && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
+  if (cur && cur !== 'replica' && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
 
-  let html = `
+  // Once a design has been lifted off their own CV it belongs at the front of
+  // the grid — it is the thing they already said they wanted.
+  let html = '';
+  if (layoutMode === 'same' && layoutTokens) {
+    html += `
+    <div class="tsw tsw-replica ${cur === 'replica' ? 'sel' : ''}" data-t="replica" onclick="pickTemplate('replica')">
+      <div class="tsw-chip">★</div>
+      <div class="tsw-label">My Own Design</div>
+      <div class="tsw-desc">Rebuilt from your CV</div>
+    </div>`;
+  }
+
+  html += `
     <div class="tsw ${cur === '' ? 'sel' : ''}" data-t="" onclick="pickTemplate('')">
       <div class="tsw-chip" style="background:repeating-linear-gradient(45deg,#e5e7eb,#e5e7eb 5px,#f7f8fc 5px,#f7f8fc 10px);color:#6b7280;">?</div>
       <div class="tsw-label">No Preference</div>
@@ -2557,7 +3031,8 @@ function pickTemplate(num) {
   // Keep the hidden <select> valid so .value assignment always sticks
   sel.innerHTML = `<option value="${num}"></option>`;
   sel.value = num;
-  if (num) previewSelectedTmpl = parseInt(num);
+  // 'replica' has no numbered preview page — leave the last real one showing.
+  if (num && num !== 'replica') previewSelectedTmpl = parseInt(num);
   document.querySelectorAll('#tmplSwatchGrid .tsw').forEach(el => {
     el.classList.toggle('sel', el.dataset.t === String(num));
   });
@@ -2726,6 +3201,14 @@ function saveDraft() {
       const eduSel = document.querySelector('input[name="eduLevel"]:checked');
       d.eduLevel = eduSel ? eduSel.value : 'highschool';
 
+      // Tokens are a few hundred bytes and worth keeping across a refresh.
+      // The source image is not — it would blow the localStorage quota on its own.
+      d.layoutReplica = {
+        mode: layoutMode,
+        tokens: layoutTokens,
+        changeNotes: document.getElementById('layoutChangeNotes')?.value || ''
+      };
+
       // Repeating groups — store raw values in DOM order
       const grab = sel => [...document.querySelectorAll(sel)].map(entry => ({
         inputs: [...entry.querySelectorAll('input')].map(i => i.value),
@@ -2802,6 +3285,22 @@ function restoreDraft() {
   }
 
   // Template needs the <select> rebuilt before assigning
+  // Design tokens survive a refresh; the source image does not — it is far too
+  // large for localStorage and can be re-read by scanning again.
+  if (d.layoutReplica) {
+    layoutMode   = d.layoutReplica.mode   || '';
+    layoutTokens = d.layoutReplica.tokens || null;
+    if (layoutMode === 'same' && layoutTokens) {
+      document.getElementById('layoutChoice')?.classList.add('show');
+      document.getElementById('lcSame')?.classList.add('sel');
+      document.getElementById('lcChanges')?.classList.add('show');
+      const n = document.getElementById('layoutChangeNotes');
+      if (n) n.value = d.layoutReplica.changeNotes || '';
+      document.getElementById('lcPhoto')?.classList.add('show');
+      lcSetSlot(layoutTokens.header.photo);
+      lcSyncPhoto();
+    }
+  }
   if (d.fields.templatePref) pickTemplate(d.fields.templatePref);
 
   DRAFT_SIMPLE_IDS.forEach(id => {
@@ -3864,6 +4363,9 @@ async function scanExistingCV(input) {
       status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
       pages.push(await prepScanImage(files[i]));
     }
+    // The design-extraction pass reuses these instead of re-compressing, and the
+    // first page doubles as the "original" the admin compares the replica against.
+    window.__scanPages = pages;
 
     // Thumbnails so the customer can see the pages went in, and in what order.
     if (preview) {
@@ -4094,6 +4596,10 @@ Rules:
       : `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up — taking you to the form to review…`) + cappedTxt;
 
     // Only travel to the form if we're not already on it.
+    // The data is in. Now ask whether they want the look of it too — asking
+    // before the scan finished would have been a question about nothing.
+    offerLayoutChoice(card);
+
     setTimeout(() => {
       if (!fromForm) showFormPage();
       showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV — please check each one`);
@@ -4542,6 +5048,8 @@ function previewPhoto(input) {
     // Remove required indicator once photo uploaded
     const area = document.getElementById('photoUploadArea');
     if(area) area.style.borderColor = 'var(--success)';
+    // Mirror into the replica panel if that is where they started.
+    if (typeof lcSyncPhoto === 'function') lcSyncPhoto();
   };
   reader.readAsDataURL(file);
 }
@@ -4681,6 +5189,7 @@ function collectFormData() {
     hobbies: document.getElementById('hobbies').value.trim(),
     awards: document.getElementById('awards').value.trim(),
     templatePref: document.getElementById('templatePref').value,
+    layoutReplica: layoutReplicaPayload(),
     specialInstructions: document.getElementById('specialInstructions').value.trim(),
     coverLetter: coverLetterSelected ? {
       requested: true,
@@ -4921,6 +5430,23 @@ async function submitForm() {
     // Strip photos from older entries if payload is too large (keep newest photo intact)
     const LIMIT = 88000;
     let payload = JSON.stringify({ submissions });
+
+    // First of all, drop layout reference thumbnails from older orders. They are
+    // only there so the admin can eyeball the replica next to the original; once
+    // an order is approved and delivered the comparison is history. Shedding
+    // these before touching anyone's photo — and long before deleting whole
+    // submissions at the bottom of this cascade — costs nothing that matters.
+    if (payload.length > LIMIT) {
+      for (let i = 0; i < submissions.length - 1; i++) {
+        if (submissions[i].layoutReplica?.sourceImage) {
+          submissions[i].layoutReplica.sourceImage = '';
+          submissions[i].layoutReplica.sourceImageDropped = true;
+        }
+        payload = JSON.stringify({ submissions });
+        if (payload.length <= LIMIT) break;
+      }
+    }
+
     if (payload.length > LIMIT) {
       // First try: strip photos from all but the newest submission
       for (let i = 0; i < submissions.length - 1; i++) {
@@ -4931,6 +5457,17 @@ async function submitForm() {
         if (payload.length <= LIMIT) break;
       }
     }
+    // Then this order's own reference thumbnail — still cheaper than losing the
+    // photo the customer uploaded for their CV.
+    if (payload.length > LIMIT) {
+      const last = submissions[submissions.length - 1];
+      if (last.layoutReplica?.sourceImage) {
+        last.layoutReplica.sourceImage = '';
+        last.layoutReplica.sourceImageDropped = true;
+        payload = JSON.stringify({ submissions });
+      }
+    }
+
     // Second try: if still too large, also strip newest photo
     if (payload.length > LIMIT && submissions.length > 0) {
       const last = submissions[submissions.length - 1];
@@ -5045,7 +5582,7 @@ async function notifyAdminNewOrder(data) {
             ${row('Work History', workList)}
             ${row('Skills', (data.skills || []).join(', '))}
             ${row('Languages', (data.languages || []).join(', '))}
-            ${row('Template', data.templatePref ? 'Template ' + data.templatePref : 'No preference')}
+            ${row('Template', data.templatePref === 'replica' ? 'Your own design (rebuilt from your CV)' : data.templatePref ? 'Template ' + data.templatePref : 'No preference')}
             ${row('Photo Attached', p.photo ? 'Yes ✓' : 'No ✗')}
             ${row('Special Instructions', data.specialInstructions)}
             ${row('About / Notes', data.aboutMe)}
@@ -5082,7 +5619,7 @@ async function notifyAdminNewOrder(data) {
       `Email: ${p.email}\n` +
       `Phone: ${p.phone}\n` +
       `Total: ${peso(total)}${hasCL ? ' (includes Cover Letter)' : ' (CV only)'}\n` +
-      `Template: ${data.templatePref ? 'Template ' + data.templatePref : 'No preference'}\n` +
+      `Template: ${data.templatePref === 'replica' ? 'Your own design (rebuilt from your CV)' : data.templatePref ? 'Template ' + data.templatePref : 'No preference'}\n` +
       `Photo: ${p.photo ? 'Yes' : 'No'}\n` +
       `Submitted: ${when}\n\n` +
       `Open the admin dashboard to process this order.`;
