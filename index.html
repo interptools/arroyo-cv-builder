@@ -393,62 +393,115 @@
 
   /* EDUCATION TYPE SELECTOR */
   /* ── KEEP-MY-DESIGN (layout replica) ─────────────────────────────────── */
-  .layout-choice { display:none; width:100%; margin-top:14px; background:rgba(255,255,255,.06);
-    border:1.5px solid rgba(201,168,76,.35); border-radius:14px; padding:16px 18px; }
-  .layout-choice.show { display:block; }
-  .layout-choice h4 { font-family:'DM Serif Display',serif; color:#e8c97a; font-size:16px; margin-bottom:4px; }
-  .layout-choice p.lc-sub { color:rgba(255,255,255,.7); font-size:12px; line-height:1.55; margin-bottom:12px; }
-  .lc-btns { display:flex; gap:10px; flex-wrap:wrap; }
-  .lc-btn { flex:1; min-width:150px; text-align:left; background:rgba(255,255,255,.08);
-    border:1.5px solid rgba(255,255,255,.2); border-radius:10px; padding:12px 14px; cursor:pointer;
-    color:#fff; font-family:inherit; transition:border-color .15s, background .15s; }
-  .lc-btn:hover { border-color:rgba(201,168,76,.6); background:rgba(255,255,255,.13); }
-  .lc-btn.sel { border-color:#c9a84c; background:rgba(201,168,76,.18); }
-  .lc-btn strong { display:block; font-size:13.5px; font-weight:700; margin-bottom:3px; }
-  .lc-btn span { display:block; font-size:11.5px; color:rgba(255,255,255,.62); line-height:1.45; }
-  .lc-changes { display:none; margin-top:14px; }
-  .lc-changes.show { display:block; }
-  .lc-changes label { display:block; font-size:12px; font-weight:700; color:#e8c97a; margin-bottom:5px; }
-  .lc-changes textarea { width:100%; min-height:88px; border-radius:9px; padding:10px 12px;
-    border:1.5px solid rgba(255,255,255,.22); background:rgba(0,0,0,.22); color:#fff;
-    font-family:inherit; font-size:12.5px; line-height:1.5; resize:vertical; }
-  .lc-changes textarea::placeholder { color:rgba(255,255,255,.35); }
-  .lc-changes small { display:block; margin-top:6px; font-size:11px; color:rgba(255,255,255,.5); line-height:1.5; }
-  .lc-photo { display:none; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.14); }
-  .lc-photo.show { display:block; }
-  .lc-photo > label { display:block; font-size:12px; font-weight:700; color:#e8c97a; margin-bottom:5px; }
-  .lc-photo-row { display:flex; gap:12px; align-items:flex-start; }
-  .lc-photo-drop { flex:1; border:1.5px dashed rgba(255,255,255,.3); border-radius:10px; padding:14px;
-    text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
-  .lc-photo-drop:hover { border-color:#c9a84c; background:rgba(255,255,255,.06); }
-  .lc-photo-drop.filled { border-color:rgba(22,163,74,.6); border-style:solid; }
-  .lc-photo-drop .pd-icon { font-size:26px; margin-bottom:4px; }
-  .lc-photo-drop strong { display:block; font-size:12.5px; color:#fff; margin-bottom:2px; }
-  .lc-photo-drop span { font-size:11px; color:rgba(255,255,255,.55); }
-  .lc-photo-prev { width:78px; height:96px; object-fit:cover; border-radius:8px;
-    border:2px solid rgba(201,168,76,.55); display:none; flex-shrink:0; background:rgba(0,0,0,.2); }
-  .lc-attire { margin-top:10px; background:rgba(0,0,0,.22); border:1px solid rgba(201,168,76,.28);
-    border-radius:9px; padding:10px 12px; display:flex; gap:9px; align-items:flex-start; }
-  .lc-attire .la-i { font-size:17px; flex-shrink:0; }
-  .lc-attire b { display:block; font-size:11.5px; color:#e8c97a; margin-bottom:3px; }
-  .lc-attire p { font-size:11.5px; color:rgba(255,255,255,.65); line-height:1.55; margin:0; }
-  .lc-slot { margin-top:10px; }
-  .lc-slot label { display:block; font-size:11px; font-weight:700; color:rgba(255,255,255,.6);
-    text-transform:uppercase; letter-spacing:.4px; margin-bottom:5px; }
-  .lc-slot-btns { display:flex; gap:7px; flex-wrap:wrap; }
-  .lc-slot-btn { background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.2);
-    color:#fff; border-radius:8px; padding:6px 13px; font-size:11.5px; font-weight:600;
-    cursor:pointer; font-family:inherit; }
-  .lc-slot-btn.sel { border-color:#c9a84c; background:rgba(201,168,76,.2); color:#e8c97a; }
+  /* This panel is moved between two very different parents: the light start
+     screen and the dark navy .scan-card inside the form. Styling it for either
+     one leaves it invisible in the other, so it carries its own light surface
+     and every colour below is set against that, not against the page. */
+  .layout-choice {
+    display:none; width:100%; margin-top:14px; background:var(--white);
+    border:1.5px solid var(--gold); border-radius:14px; padding:18px 20px;
+    box-shadow:0 4px 18px rgba(26,39,68,.08); text-align:left;
+  }
+  .layout-choice.show { display:block; animation:slideDown .25s ease; }
+  .layout-choice h4 {
+    font-family:'DM Serif Display',serif; color:var(--navy);
+    font-size:17px; margin:0 0 5px; text-align:left;
+  }
+  .layout-choice p.lc-sub { color:var(--gray); font-size:12.5px; line-height:1.6; margin:0 0 14px; }
 
-  .lc-state { margin-top:12px; font-size:12px; line-height:1.55; padding:10px 12px; border-radius:9px; display:none; }
+  .lc-btns { display:flex; gap:10px; flex-wrap:wrap; }
+  .lc-btn {
+    flex:1; min-width:170px; text-align:left; background:var(--off-white);
+    border:1.5px solid var(--gray-light); border-radius:10px; padding:13px 15px;
+    cursor:pointer; color:var(--text); font-family:inherit;
+    transition:border-color .15s, background .15s, box-shadow .15s;
+  }
+  .lc-btn:hover { border-color:var(--gold); background:var(--white); box-shadow:0 2px 10px rgba(26,39,68,.07); }
+  .lc-btn.sel { border-color:var(--navy); background:rgba(26,39,68,.05); box-shadow:0 0 0 1.5px var(--navy) inset; }
+  .lc-btn strong { display:block; font-size:13.5px; font-weight:700; color:var(--navy); margin-bottom:3px; }
+  .lc-btn span { display:block; font-size:11.5px; color:var(--gray); line-height:1.45; }
+
+  .lc-state { margin-top:13px; font-size:12.5px; line-height:1.6; padding:11px 13px; border-radius:9px; display:none; }
   .lc-state.show { display:block; }
-  .lc-state.busy { background:rgba(255,255,255,.1); color:rgba(255,255,255,.8); }
-  .lc-state.ok   { background:rgba(22,163,74,.16); color:#86efac; border:1px solid rgba(22,163,74,.3); }
-  .lc-state.bad  { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); }
-  .lc-tokens { margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; }
-  .lc-swatch { width:26px; height:26px; border-radius:6px; border:1.5px solid rgba(255,255,255,.3); }
-  /* the extra swatch that appears in the template grid once a design is captured */
+  .lc-state.busy { background:var(--off-white); color:var(--gray); border:1px solid var(--gray-light); }
+  .lc-state.ok   { background:rgba(16,185,129,.1);  color:#065f46; border:1px solid rgba(16,185,129,.35); }
+  .lc-state.bad  { background:rgba(239,68,68,.08);  color:#991b1b; border:1px solid rgba(239,68,68,.3); }
+  .lc-state button { font-family:inherit !important; }
+
+  .lc-tokens { margin-top:11px; display:flex; gap:6px; flex-wrap:wrap; }
+  .lc-swatch { width:28px; height:28px; border-radius:6px; border:1.5px solid var(--gray-light); }
+
+  /* Formal attire photo */
+  .lc-photo { display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--gray-light); }
+  .lc-photo.show { display:block; }
+  .lc-photo > label { display:block; font-size:12.5px; font-weight:700; color:var(--navy); margin-bottom:7px; }
+  .lc-photo-row { display:flex; gap:12px; align-items:flex-start; }
+  .lc-photo-drop {
+    flex:1; border:1.5px dashed var(--gray-light); border-radius:10px; padding:16px 12px;
+    text-align:center; cursor:pointer; background:var(--off-white);
+    transition:border-color .15s, background .15s;
+  }
+  .lc-photo-drop:hover { border-color:var(--navy); background:var(--white); }
+  .lc-photo-drop.filled { border-color:var(--success); border-style:solid; background:rgba(16,185,129,.05); }
+  .lc-photo-drop .pd-icon { font-size:26px; margin-bottom:5px; }
+  .lc-photo-drop strong { display:block; font-size:12.5px; color:var(--navy); margin-bottom:2px; }
+  .lc-photo-drop span { font-size:11.5px; color:var(--gray); }
+  .lc-photo-prev {
+    width:80px; height:98px; object-fit:cover; border-radius:8px;
+    border:2px solid var(--gold); display:none; flex-shrink:0; background:var(--off-white);
+  }
+  .lc-attire {
+    margin-top:11px; background:linear-gradient(135deg,rgba(26,39,68,.06),rgba(26,39,68,.03));
+    border:1.5px solid rgba(26,39,68,.15); border-radius:9px;
+    padding:11px 13px; display:flex; gap:10px; align-items:flex-start;
+  }
+  .lc-attire .la-i { font-size:18px; flex-shrink:0; }
+  .lc-attire b { display:block; font-size:12px; color:var(--navy); margin-bottom:3px; }
+  .lc-attire p { font-size:12px; color:var(--gray); line-height:1.6; margin:0; }
+  .lc-attire strong { color:var(--navy); }
+
+  .lc-slot { margin-top:12px; }
+  .lc-slot label {
+    display:block; font-size:11px; font-weight:700; color:var(--gray);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;
+  }
+  .lc-slot-btns { display:flex; gap:7px; flex-wrap:wrap; }
+  .lc-slot-btn {
+    background:var(--off-white); border:1.5px solid var(--gray-light); color:var(--text);
+    border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600;
+    cursor:pointer; font-family:inherit; transition:border-color .15s, background .15s;
+  }
+  .lc-slot-btn:hover { border-color:var(--gold); }
+  .lc-slot-btn.sel { border-color:var(--navy); background:var(--navy); color:var(--white); }
+
+  /* Changes */
+  .lc-changes { display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--gray-light); }
+  .lc-changes.show { display:block; }
+  .lc-changes label { display:block; font-size:12.5px; font-weight:700; color:var(--navy); margin-bottom:6px; }
+  .lc-changes textarea {
+    width:100%; min-height:92px; border-radius:9px; padding:11px 13px;
+    border:1.5px solid var(--gray-light); background:var(--white); color:var(--text);
+    font-family:inherit; font-size:12.5px; line-height:1.55; resize:vertical;
+  }
+  .lc-changes textarea:focus { outline:none; border-color:var(--navy); }
+  .lc-changes textarea::placeholder { color:#9ca3af; }
+  .lc-changes small { display:block; margin-top:7px; font-size:11.5px; color:var(--gray); line-height:1.55; }
+
+  /* Continue */
+  .lc-continue { display:none; margin-top:16px; }
+  .lc-continue.show { display:block; }
+  .lc-continue button {
+    display:block; width:100%; background:var(--navy); color:var(--white);
+    border:none; border-radius:10px; padding:14px; font-size:14.5px; font-weight:700;
+    cursor:pointer; font-family:inherit; transition:background .15s;
+  }
+  .lc-continue button:hover { background:var(--navy-light); }
+  .lc-continue small {
+    display:block; text-align:center; margin-top:8px; font-size:11.5px;
+    color:var(--gray); line-height:1.55;
+  }
+
+  /* The extra swatch that appears in the template grid once a design is captured */
   .tsw.tsw-replica .tsw-chip { background:linear-gradient(135deg,#c9a84c,#e8c97a); color:#1a2744; }
 
   /* CV Scanner */
@@ -2904,12 +2957,12 @@ Rules:
     lcSay('bad',
       "❌ We couldn't read the design clearly. " +
       "A flat, well-lit, straight-on photo of the whole page works best — angles and shadows confuse it. " +
-      '<br><button type="button" onclick="extractDesignTokens()" style="margin-top:8px;padding:6px 14px;' +
-      'background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;' +
-      'font-size:12px;cursor:pointer;font-family:inherit;">🔄 Try again</button> ' +
-      '<button type="button" onclick="chooseLayout(\'new\')" style="margin-top:8px;padding:6px 14px;' +
-      'background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;' +
-      'font-size:12px;cursor:pointer;font-family:inherit;">🎨 Use a template instead</button>');
+      '<br><button type="button" onclick="extractDesignTokens()" style=' + '"' +
+      'background:var(--navy);color:var(--white);border:none;border-radius:7px;' +
+      'padding:7px 15px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:9px;' + '">🔄 Try again</button> ' +
+      '<button type="button" onclick="chooseLayout(\'new\')" style=' + '"' +
+      'background:var(--off-white);color:var(--navy);border:1.5px solid var(--gray-light);border-radius:7px;' +
+      'padding:7px 15px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:9px;' + '">🎨 Use a template instead</button>');
     document.getElementById('lcContinue')?.classList.add('show');
   }
 }
