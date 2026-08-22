@@ -597,11 +597,31 @@
 
   .edu-selector {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
     margin-bottom: 0;
   }
+  @media (max-width: 980px) { .edu-selector { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 760px) { .edu-selector { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ── Europe track ───────────────────────────────────────────────────────── */
+  /* CEFR rows are label+level pairs; the level select is narrow and fixed so a
+     long language name never squeezes the grade out of alignment. */
+  .cefr-row { display: grid; grid-template-columns: 1fr 210px 34px; gap: 8px;
+              align-items: end; margin-bottom: 8px; }
+  @media (max-width: 560px) { .cefr-row { grid-template-columns: 1fr 1fr 34px; } }
+  .cefr-x { height: 38px; border: 1.5px solid #e5e7eb; background: #fff; border-radius: 8px;
+            color: #9ca3af; font-size: 15px; cursor: pointer; line-height: 1; }
+  .cefr-x:hover { border-color: #ef4444; color: #ef4444; }
+  .eu-note { margin-top: 14px; background: rgba(26,39,68,.04); border: 1.5px solid var(--navy);
+             border-radius: 10px; padding: 13px 15px; }
+  .eu-note-t { font-size: 12.5px; font-weight: 800; color: var(--navy); margin-bottom: 4px; }
+  .eu-note-b { font-size: 12px; color: #4b5563; line-height: 1.65; }
+  .eu-warn { margin-top: 10px; background: #fff7ed; border: 1.5px solid #fdba74;
+             border-radius: 10px; padding: 11px 14px; font-size: 12px; color: #7c2d12; line-height: 1.6; }
+  .eu-check { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; font-size: 12.5px;
+              color: #374151; line-height: 1.5; cursor: pointer; }
+  .eu-check input { margin-top: 2px; flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--navy); }
   @media (max-width: 380px) { .edu-selector { grid-template-columns: 1fr; } }
   .edu-option {
     border: 2px solid var(--gray-light);
@@ -1020,12 +1040,29 @@
             <div class="edu-label">Seafarer</div>
             <div class="edu-sub">Seaman CV</div>
           </label>
+          <label class="edu-option" id="eduOpt5">
+            <input type="radio" name="eduLevel" value="europe" onchange="handleEduChange()">
+            <div class="edu-icon">🇪🇺</div>
+            <div class="edu-label">Europe</div>
+            <div class="edu-sub">EU / UK CV</div>
+          </label>
         </div>
         <div id="seamanIntro" class="hidden" style="margin-top:14px;background:rgba(26,39,68,.04);border:1.5px solid var(--navy);border-radius:10px;padding:13px 15px;">
           <div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:4px;">⚓ Seafarer format selected</div>
           <div style="font-size:12px;color:#4b5563;line-height:1.65;">
             Your CV will use the standard maritime layout that manning agencies expect — travel documents,
             STCW certificates, and a sea service record in table form. Extra sections have been added below.
+          </div>
+        </div>
+        <div id="europeIntro" class="hidden eu-note">
+          <div class="eu-note-t">🇪🇺 Europe format selected</div>
+          <div class="eu-note-b">
+            Your CV will use the clean, single-column layout that European employers and applicant
+            tracking systems expect — <strong>no photo</strong>, no age, no civil status. European
+            recruiters in most countries are required to screen without those details, and including
+            them can get a CV filtered out before a human ever sees it. Instead we lead with a
+            professional summary, key skills, and achievement-focused work history. Extra sections
+            have been added below for your right to work and language levels.
           </div>
         </div>
       </div>
@@ -1042,9 +1079,9 @@
       </div>
       <div class="card-body">
         <!-- PHOTO UPLOAD -->
-        <div class="field-row full" style="margin-bottom:20px;">
+        <div class="field-row full" style="margin-bottom:20px;" id="photoFieldRow">
           <div class="field">
-            <label>Profile Photo <span class="req">*</span></label>
+            <label>Profile Photo <span class="req" id="photoReqStar">*</span></label>
             <div class="photo-upload-area" onclick="document.getElementById('photoInput').click()" id="photoUploadArea">
               <div class="pu-icon">📷</div>
               <strong>Click to upload your photo</strong>
@@ -1059,6 +1096,23 @@
                 <div style="font-size:12px;color:var(--gray);line-height:1.6;">Please wear <strong style="color:var(--navy);">Casual or Formal attire</strong> in your photo. Avoid selfies, group photos, or photos with busy backgrounds. A plain or simple background is preferred for a professional look. 📸</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div class="field-row full hidden" style="margin-bottom:20px;" id="europeNoPhotoRow">
+          <div class="eu-note" style="margin-top:0;">
+            <div class="eu-note-t">📷 Photo is optional — and it depends on the country</div>
+            <div class="eu-note-b">
+              <strong>Usually leave it off:</strong> UK, Ireland, Netherlands and the Nordics. Employers
+              there screen without photos and some systems reject CVs that include one.<br>
+              <strong>Still common:</strong> Germany, Austria, Poland, Spain and Italy — a photo on a
+              German <em>Lebenslauf</em> is traditional and many employers still expect it.<br>
+              If you are unsure, leaving it off is the safer choice.
+            </div>
+            <label class="eu-check" style="margin-top:8px;border-top:1px solid rgba(26,39,68,.12);padding-top:10px;">
+              <input type="checkbox" id="eu-wantPhoto" onchange="onEuPhotoToggle()">
+              <span><strong>Include a photo on my CV</strong> — tick this to upload one</span>
+            </label>
           </div>
         </div>
 
@@ -1346,6 +1400,196 @@
       <div class="card-body">
         <div id="seaEntries"></div>
         <button class="add-btn" onclick="addSeaEntry()">＋ Add Vessel</button>
+      </div>
+    </div>
+
+
+    <!-- ═══ EUROPE: RIGHT TO WORK & TARGET MARKET ═══════════════════════════ -->
+    <div class="card hidden europe-only" id="europeCard">
+      <div class="card-header">
+        <div class="card-icon">🇪🇺</div>
+        <div>
+          <h2>Europe Application Details</h2>
+          <p>All optional — fill in what you know, leave the rest blank and we'll follow up</p>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <div class="field-row">
+          <div class="field">
+            <label>Target Country</label>
+            <select id="eu-country" onchange="onEuCountryChange()">
+              <option value="">Select country…</option>
+              <optgroup label="Common destinations">
+                <option>Germany</option><option>Netherlands</option><option>Ireland</option>
+                <option>United Kingdom</option><option>Poland</option><option>Czech Republic</option>
+                <option>Spain</option><option>Italy</option><option>France</option>
+              </optgroup>
+              <optgroup label="Nordics">
+                <option>Norway</option><option>Sweden</option><option>Denmark</option><option>Finland</option>
+              </optgroup>
+              <optgroup label="Other">
+                <option>Austria</option><option>Belgium</option><option>Switzerland</option>
+                <option>Portugal</option><option>Croatia</option><option>Hungary</option>
+                <option>Romania</option><option>Slovakia</option><option>Slovenia</option>
+                <option>Lithuania</option><option>Latvia</option><option>Estonia</option>
+                <option>Greece</option><option>Malta</option><option>Luxembourg</option><option>Iceland</option>
+                <option>Multiple / Not decided yet</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field">
+            <label>Target City / Region</label>
+            <input type="text" id="eu-city" placeholder="e.g. Berlin, Randstad, Dublin">
+          </div>
+        </div>
+
+        <div id="eu-countryTip" class="eu-note hidden" style="margin-top:0;margin-bottom:16px;">
+          <div class="eu-note-t" id="eu-countryTipT"></div>
+          <div class="eu-note-b" id="eu-countryTipB"></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Right to Work Status</label>
+            <select id="eu-permit" onchange="onEuPermitChange()">
+              <option value="">Select status…</option>
+              <option>EU / EEA or Swiss citizen</option>
+              <option>UK or Irish citizen / settled status</option>
+              <option>EU Blue Card holder</option>
+              <option>National work permit or work visa holder</option>
+              <option>Family / spouse residence permit</option>
+              <option>Student or working-holiday permit</option>
+              <option>Permanent residence (long-term EU resident)</option>
+              <option>No permit yet — will need employer sponsorship</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Permit / Visa Valid Until</label>
+            <input type="date" id="eu-permitExpiry">
+            <span class="field-hint">Leave blank if you are a citizen or have no permit yet</span>
+          </div>
+        </div>
+
+        <div id="eu-sponsorNote" class="eu-warn hidden">
+          <strong>Heads up on sponsorship.</strong> Needing a visa is not a dealbreaker — but the CV has to
+          say so plainly and early, or recruiters assume you already have the right to work and withdraw
+          when they find out. We will write a short, confident line near the top instead of leaving it
+          to be discovered. If your field is on the target country's shortage-occupation list, say so in
+          the notes below — it changes how the employer reads the cost of hiring you.
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Notice Period / Earliest Start</label>
+            <select id="eu-notice">
+              <option value="">Select…</option>
+              <option>Immediately available</option>
+              <option>2 weeks' notice</option>
+              <option>1 month's notice</option>
+              <option>2 months' notice</option>
+              <option>3 months' notice</option>
+              <option>Negotiable</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Willing to Relocate</label>
+            <select id="eu-relocate">
+              <option value="">Select…</option>
+              <option>Yes — at own cost</option>
+              <option>Yes — with relocation support</option>
+              <option>Yes — already in Europe</option>
+              <option>Open to remote / hybrid only</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Driving Licence</label>
+            <input type="text" id="eu-licence" placeholder="e.g. Category B (car), valid EU/PH licence">
+            <span class="field-hint">Standard on European CVs — leave blank if not relevant</span>
+          </div>
+          <div class="field">
+            <label>Current Location</label>
+            <input type="text" id="eu-currentLoc" placeholder="e.g. Manila, Philippines">
+            <span class="field-hint">Where you are based right now</span>
+          </div>
+        </div>
+
+        <div class="field-row full">
+          <div class="field">
+            <label>Diploma / Qualification Recognition</label>
+            <input type="text" id="eu-recognition" placeholder="e.g. anabin-listed, ENIC-NARIC statement obtained, not yet assessed">
+            <span class="field-hint">Germany and the Nordics often ask whether your degree has been formally recognised</span>
+          </div>
+        </div>
+
+        <div class="field-row full">
+          <div class="field">
+            <label>Professional Memberships / Registrations</label>
+            <input type="text" id="eu-memberships" placeholder="e.g. PRC licence, NMC registration, CIMA, IEEE">
+          </div>
+        </div>
+
+        <div class="field-row full">
+          <div class="field">
+            <label>Notes for the Writer</label>
+            <textarea id="eu-notes" rows="3" placeholder="Anything specific — shortage occupation, a job advert you are targeting, a company name, salary expectation to include or leave out…"></textarea>
+          </div>
+        </div>
+
+        <div style="margin-top:6px;padding-top:16px;border-top:1.5px solid #eef0f5;">
+          <label style="font-size:12px;font-weight:600;color:var(--navy);display:block;margin-bottom:2px;">
+            Personal Details to Include
+          </label>
+          <span class="field-hint" style="display:block;margin-bottom:8px;">
+            All of these are left off by default. European anti-discrimination practice means most
+            employers prefer them omitted, and some ATS filters flag CVs that include them. Only tick a
+            box if a specific employer has asked for it.
+          </span>
+          <label class="eu-check"><input type="checkbox" id="eu-showDob">
+            <span>Include date of birth</span></label>
+          <label class="eu-check"><input type="checkbox" id="eu-showNationality">
+            <span>Include nationality <em style="color:#6b7280;">— worth ticking if it proves your right to work</em></span></label>
+          <label class="eu-check"><input type="checkbox" id="eu-showCivil">
+            <span>Include civil status</span></label>
+          <label class="eu-check"><input type="checkbox" id="eu-showGender">
+            <span>Include gender</span></label>
+          <label class="eu-check"><input type="checkbox" id="eu-gdpr" checked>
+            <span>Add the GDPR data-processing consent line at the foot of the CV
+              <em style="color:#6b7280;">— expected in Poland, Germany and much of Central Europe</em></span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ EUROPE: LANGUAGES (CEFR) ════════════════════════════════════════ -->
+    <div class="card hidden europe-only" id="europeLangCard">
+      <div class="card-header">
+        <div class="card-icon">🗣️</div>
+        <div>
+          <h2>Language Levels</h2>
+          <p>European employers expect CEFR grades, not "fluent" or "conversational"</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="eu-note" style="margin-top:0;margin-bottom:14px;">
+          <div class="eu-note-t">Quick guide to CEFR</div>
+          <div class="eu-note-b">
+            <strong>A1/A2</strong> — basic phrases and everyday exchanges ·
+            <strong>B1</strong> — can handle most work situations with effort ·
+            <strong>B2</strong> — comfortable in meetings and technical discussion; the usual minimum
+            asked for in job adverts · <strong>C1</strong> — fluent and precise, including nuance ·
+            <strong>C2</strong> — equivalent to an educated native speaker.
+            Filipino applicants are usually safe putting English at C1 or C2.
+          </div>
+        </div>
+        <div id="euLangEntries"></div>
+        <button class="add-btn" onclick="addEuLangEntry()">＋ Add Language</button>
+        <span class="field-hint" style="margin-top:8px;display:block;">
+          List your strongest language first. If you hold a certificate (Goethe, TELC, NT2, IELTS,
+          TOEFL), put it in the certificate field — it carries far more weight than a self-assessment.
+        </span>
       </div>
     </div>
 
@@ -2178,7 +2422,7 @@
   <div style="background:#1a2744;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
     <div>
       <h3 style="color:white;font-size:16px;font-weight:700;">👁 Template Preview</h3>
-      <p style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px;">Browse all 15 templates — click one to select it</p>
+      <p style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:2px;">Browse the templates for your format — click one to select it</p>
     </div>
     <button onclick="closeTemplatePreview()" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;">✕ Close</button>
   </div>
@@ -2525,12 +2769,18 @@ function renderTemplateSwatches() {
   const grid = document.getElementById('tmplSwatchGrid');
   if (!grid) return;
   const cur = document.getElementById('templatePref').value;
-  const isSeaman = document.querySelector('input[name="eduLevel"]:checked')?.value === 'seaman';
+  const lvl = document.querySelector('input[name="eduLevel"]:checked')?.value;
+  const isSeaman = lvl === 'seaman';
+  const isEurope = lvl === 'europe';
 
-  // The maritime layout only makes sense with sea service data, and the ordinary
-  // designs can't show documents or vessel history — so each side sees only what
-  // it can actually use.
-  const shown = TMPL_INFO.filter(t => isSeaman ? t.seamanOnly : !t.seamanOnly);
+  // Each format can only render the data it collects: the maritime layouts need
+  // sea service, the Europe layouts are built photo-less around CEFR levels and
+  // right-to-work, and neither can stand in for the ordinary designs. So each
+  // track sees only what it can actually use.
+  const shown = TMPL_INFO.filter(t =>
+    isSeaman ? !!t.seamanOnly
+  : isEurope ? !!t.europeOnly
+  : !t.seamanOnly && !t.europeOnly);
 
   // A stale pick from the other list would silently survive the switch
   if (cur && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
@@ -2708,7 +2958,13 @@ const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nation
   'rl-justcause','rl-reason','rl-tone','rl-notes',
   // Seafarer scalars — harmless on other formats, the elements simply won't exist
   'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
-  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok'];
+  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok',
+  // Europe scalars — same deal, absent on other formats
+  'eu-country','eu-city','eu-permit','eu-permitExpiry','eu-notice','eu-relocate',
+  'eu-licence','eu-currentLoc','eu-recognition','eu-memberships','eu-notes'];
+
+// Europe disclosure toggles are checkboxes, so they need .checked not .value
+const DRAFT_CHECK_IDS = ['eu-showDob','eu-showNationality','eu-showCivil','eu-showGender','eu-gdpr','eu-wantPhoto'];
 
 let draftTimer = null;
 
@@ -2739,6 +2995,18 @@ function saveDraft() {
       d.sea  = grab('#seaEntries .exp-entry');
       d.vax  = grab('#vaxEntries .exp-entry');
       d.ojt  = grab('#ojtEntries .exp-entry');
+
+      // CEFR rows pair a text input with a <select>, which grab() ignores
+      d.euLang = [...document.querySelectorAll('#euLangEntries .cefr-row')].map(r => ({
+        lang: r.querySelector('.cefr-lang')?.value || '',
+        level: r.querySelector('.cefr-level')?.value || '',
+        cert: r.querySelector('.cefr-cert')?.value || ''
+      }));
+      d.checks = {};
+      DRAFT_CHECK_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) d.checks[id] = el.checked;
+      });
 
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch (e) { /* quota or private mode */ }
@@ -2845,6 +3113,22 @@ function restoreDraft() {
   if (d.ojtSelected && !ojtSelected) toggleOjt(true);
   restoreGroup(d.ojt,  '#ojtEntries .exp-entry',  addOjtEntry);
 
+  // Europe: CEFR rows and the disclosure toggles
+  if (d.euLang && d.euLang.length) {
+    document.getElementById('euLangEntries').innerHTML = '';
+    euLangCount = 0;
+    d.euLang.forEach(row => addEuLangEntry(row.lang, row.level, row.cert));
+  }
+  if (d.checks) {
+    DRAFT_CHECK_IDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && d.checks[id] !== undefined) el.checked = d.checks[id];
+    });
+  }
+  onEuPermitChange();
+  onEuCountryChange();
+  onEuPhotoToggle();
+
   // Cover letter panel
   if (d.coverLetterSelected && !coverLetterSelected) toggleCoverLetter();
   // Restore after the fields are repopulated, so initRlAddon's prefill doesn't
@@ -2858,7 +3142,10 @@ function restoreDraft() {
   attachWorkCounters();
   initCharCounters();
   document.getElementById('draftBanner')?.remove();
-  showNotif('✅ Your answers were restored. Please re-upload your photo.');
+  const euRestore = document.querySelector('input[name="eduLevel"]:checked')?.value === 'europe';
+  showNotif(euRestore
+    ? '✅ Your answers were restored.'
+    : '✅ Your answers were restored. Please re-upload your photo.');
 }
 
 function discardDraft() {
@@ -4116,18 +4403,139 @@ Rules:
 }
 // ─────────────────────────────────────────────────────────────
 
+// ══════════════════════════════════════════════════════════════════════════════
+// EUROPE TRACK
+// ══════════════════════════════════════════════════════════════════════════════
+let euLangCount = 0;
+
+const CEFR_LEVELS = ['A1 — Beginner','A2 — Elementary','B1 — Intermediate',
+                     'B2 — Upper Intermediate','C1 — Advanced','C2 — Mastery / Native'];
+
+function addEuLangEntry(lang, level, cert) {
+  euLangCount++;
+  const n = euLangCount;
+  const row = document.createElement('div');
+  row.className = 'cefr-row';
+  row.id = `eulang-${n}`;
+  row.innerHTML = `
+    <div class="field" style="margin:0;">
+      ${n === 1 ? '<label>Language</label>' : ''}
+      <input type="text" class="cefr-lang" placeholder="e.g. German" oninput="saveDraft()">
+    </div>
+    <div class="field" style="margin:0;">
+      ${n === 1 ? '<label>CEFR Level</label>' : ''}
+      <select class="cefr-level" onchange="saveDraft()">
+        <option value="">Select level…</option>
+        ${CEFR_LEVELS.map(l => `<option>${l}</option>`).join('')}
+      </select>
+    </div>
+    <button class="cefr-x" title="Remove" onclick="removeEuLang('eulang-${n}')">✕</button>
+    <div class="field" style="grid-column:1 / -1;margin:0 0 4px;">
+      <input type="text" class="cefr-cert" placeholder="Certificate, if any — e.g. Goethe B1, IELTS 7.0, NT2 Programma II" oninput="saveDraft()">
+    </div>`;
+  document.getElementById('euLangEntries').appendChild(row);
+  if (lang)  row.querySelector('.cefr-lang').value  = lang;
+  if (level) row.querySelector('.cefr-level').value = level;
+  if (cert)  row.querySelector('.cefr-cert').value  = cert;
+}
+
+function removeEuLang(id) {
+  // Always leave one row standing, or the section looks broken
+  if (document.querySelectorAll('#euLangEntries .cefr-row').length <= 1) return;
+  document.getElementById(id)?.remove();
+  saveDraft();
+}
+
+// Switching to Europe mid-form should not silently carry a photo through to
+// submission — the customer would never see it again to remove it.
+function clearPhotoForEurope() {
+  photoBase64 = '';
+  const prev = document.getElementById('photoPreview');
+  if (prev) { prev.src = ''; prev.style.display = 'none'; }
+  const input = document.getElementById('photoInput');
+  if (input) input.value = '';
+  // previewPhoto() greens the border on success; undo that, not a class
+  const area = document.getElementById('photoUploadArea');
+  if (area) area.style.borderColor = '';
+}
+
+// Ticking reveals the upload; unticking discards whatever was uploaded, so an
+// unwanted photo can't ride along invisibly to the finished CV.
+function onEuPhotoToggle() {
+  const want = !!document.getElementById('eu-wantPhoto')?.checked;
+  document.getElementById('photoFieldRow')?.classList.toggle('hidden', !want);
+  if (!want) clearPhotoForEurope();
+  saveDraft();
+}
+
+function onEuPermitChange() {
+  const v = document.getElementById('eu-permit')?.value || '';
+  const needsSponsor = v.startsWith('No permit yet');
+  document.getElementById('eu-sponsorNote')?.classList.toggle('hidden', !needsSponsor);
+  saveDraft();
+}
+
+// Country-specific conventions differ enough that a generic European CV gets
+// things wrong. These are the differences that actually change the document.
+const EU_COUNTRY_TIPS = {
+  'Germany': ['Germany — Lebenslauf conventions',
+    'German employers still expect a tightly structured, reverse-chronological CV and pay close attention to whether your qualification is recognised (anabin / ZAB). Two pages is normal and acceptable. Photos were traditional but the AGG anti-discrimination law has made them optional — we leave it off. A short GDPR consent line at the foot is standard.'],
+  'Netherlands': ['Netherlands — short and direct',
+    'Dutch CVs are brief, plain and factual — two pages maximum, no photo, no flourish. A one-line personal profile at the top is expected. English-language CVs are widely accepted, and stating your Dutch level honestly (even A2) is better than omitting it.'],
+  'Ireland': ['Ireland — two pages, no photo',
+    'Irish CVs are two pages, without a photo, date of birth or civil status. Referees are usually listed as "available on request". Since Ireland is English-speaking, your English level matters less than your right-to-work status — we will state that clearly up top.'],
+  'United Kingdom': ['United Kingdom — strictly no personal details',
+    'UK CVs carry no photo, no age, no nationality and no civil status; including them can have a CV rejected on compliance grounds. Two pages, reverse-chronological, achievement-led bullets. If you need sponsorship, say so plainly — many UK employers hold a licence and it is a normal conversation.'],
+  'Norway': ['Norway — plain and evidence-led',
+    'Norwegian employers want a short, plain CV backed by documented qualifications and references they can actually call. Authorisation matters a great deal in the regulated trades and healthcare — list any licence or registration explicitly.'],
+  'Poland': ['Poland — GDPR clause expected',
+    'Polish CVs conventionally carry an explicit data-processing consent clause at the foot, and many recruiters will not process a CV without it. We include it by default. Photos are still common in Poland but are not required, and we leave them off.']
+};
+
+function onEuCountryChange() {
+  const c   = document.getElementById('eu-country')?.value || '';
+  const box = document.getElementById('eu-countryTip');
+  if (!box) return;
+  const tip = EU_COUNTRY_TIPS[c];
+  if (!tip) { box.classList.add('hidden'); saveDraft(); return; }
+  document.getElementById('eu-countryTipT').textContent = tip[0];
+  document.getElementById('eu-countryTipB').textContent = tip[1];
+  box.classList.remove('hidden');
+  saveDraft();
+}
+
 function handleEduChange() {
   const val = document.querySelector('input[name="eduLevel"]:checked').value;
   document.querySelectorAll('.edu-option').forEach(el => el.classList.remove('selected'));
   document.querySelector(`input[name="eduLevel"]:checked`).closest('.edu-option').classList.add('selected');
 
   const isSeaman = val === 'seaman';
+  const isEurope = val === 'europe';
 
   // Seafarers record sea service instead of ordinary work history, so the
   // Work Experience card steps aside rather than sitting there half-relevant.
+  // Europe keeps it — it is the centre of the CV there.
   const workCard = document.getElementById('workCard');
   if (val === 'fresh' || isSeaman) workCard.classList.add('hidden');
   else workCard.classList.remove('hidden');
+
+  // European CVs carry no photograph, so the upload is removed outright rather
+  // than left optional — an optional photo field is an invitation to add one,
+  // and adding one is what gets the CV filtered out.
+  document.getElementById('europeNoPhotoRow')?.classList.toggle('hidden', !isEurope);
+  // On Europe the upload is hidden until the customer opts in; elsewhere it is
+  // always shown and still required.
+  const wantsPhoto = !!document.getElementById('eu-wantPhoto')?.checked;
+  document.getElementById('photoFieldRow')?.classList.toggle('hidden', isEurope && !wantsPhoto);
+  document.getElementById('photoReqStar')?.classList.toggle('hidden', isEurope);
+  if (isEurope && !wantsPhoto) clearPhotoForEurope();
+
+  document.querySelectorAll('.europe-only').forEach(el => el.classList.toggle('hidden', !isEurope));
+  document.getElementById('europeIntro')?.classList.toggle('hidden', !isEurope);
+  if (isEurope && !document.querySelector('#euLangEntries .cefr-row')) {
+    addEuLangEntry('English', 'C1 — Advanced', '');
+    addEuLangEntry('Filipino / Tagalog', 'C2 — Mastery / Native', '');
+  }
 
   // OJT replaces work history for fresh grads, so open it for them automatically.
   // Seafarers record sea service instead, so the card steps aside there.
@@ -4612,6 +5020,35 @@ function collectFormData() {
     };
   }
 
+  // Europe block
+  let europe = null;
+  if (eduLevel === 'europe') {
+    const ev = id => document.getElementById(id)?.value.trim() || '';
+    const ec = id => !!document.getElementById(id)?.checked;
+    const euLangs = [];
+    document.querySelectorAll('#euLangEntries .cefr-row').forEach(r => {
+      const lang  = r.querySelector('.cefr-lang')?.value.trim() || '';
+      const level = r.querySelector('.cefr-level')?.value || '';
+      const cert  = r.querySelector('.cefr-cert')?.value.trim() || '';
+      if (lang) euLangs.push({ lang, level, cert });
+    });
+    europe = {
+      country: ev('eu-country'), city: ev('eu-city'),
+      permit: ev('eu-permit'), permitExpiry: ev('eu-permitExpiry'),
+      notice: ev('eu-notice'), relocate: ev('eu-relocate'),
+      licence: ev('eu-licence'), currentLocation: ev('eu-currentLoc'),
+      recognition: ev('eu-recognition'), memberships: ev('eu-memberships'),
+      notes: ev('eu-notes'),
+      cefrLanguages: euLangs,
+      // What the customer agreed to show. The renderer honours these strictly —
+      // omission is the safe default in Europe, so nothing appears unless ticked.
+      wantPhoto: ec('eu-wantPhoto'),
+      show: { dob: ec('eu-showDob'), nationality: ec('eu-showNationality'),
+              civil: ec('eu-showCivil'), gender: ec('eu-showGender') },
+      gdprLine: ec('eu-gdpr')
+    };
+  }
+
   // References
   const refData = [];
   document.querySelectorAll('#refEntries .exp-entry').forEach(entry => {
@@ -4675,6 +5112,7 @@ function collectFormData() {
                bundleSaving: cvBundleSaving(),
                itemsSum: cvItemsSum() },
     seaman,
+    europe,
     skills,
     languages,
     references: refData,
@@ -4713,7 +5151,11 @@ function collectFormData() {
 
 // ─── VALIDATE ─────────────────────────────────────────────────────────────────
 function validate(data) {
-  if (!data.personal.photo) return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
+  // European CVs carry no photograph, so there is nothing to require.
+  if (data.eduLevel !== 'europe' && !data.personal.photo)
+    return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
+  // Nothing on the Europe card is required. Anything left blank is simply left
+  // off the CV, and the writer follows up if it matters.
   if (!data.personal.firstName) return 'Please enter your first name.';
   if (!data.personal.lastName) return 'Please enter your last name.';
   if (data.eduLevel === 'seaman' && !data.seaman?.rank) return 'Please select the rank you are applying for.';
@@ -5136,6 +5578,44 @@ const SAMPLE = {
   eduLevel: 'college'
 };
 
+// Sample overlays so each format previews with content that actually belongs to
+// it. SAMPLE on its own is a college graduate, so a Europe or seafarer preview
+// built from it renders half-empty and sells the layout badly.
+const SAMPLE_EUROPE = {
+  country:'Germany', city:'Berlin',
+  permit:'EU Blue Card holder', permitExpiry:'2028-06-30',
+  notice:"1 month's notice", relocate:'Yes — with relocation support',
+  licence:'Category B (car)', currentLocation:'Cebu City, Philippines',
+  recognition:'anabin-listed (H+)', memberships:'Chartered Institute of Marketing',
+  cefrLanguages:[
+    {lang:'English', level:'C1 — Advanced', cert:'IELTS 7.5'},
+    {lang:'German',  level:'B1 — Intermediate', cert:'Goethe-Zertifikat B1'},
+    {lang:'Filipino / Tagalog', level:'C2 — Mastery / Native', cert:''}
+  ],
+  show:{dob:false, nationality:true, civil:false, gender:false},
+  gdprLine:true
+};
+
+const SAMPLE_SEAMAN = {
+  rank:'Able Seaman (AB)', lastRank:'Ordinary Seaman',
+  height:'170 cm', weight:'65 kg', bmi:'22.5', eyes:'Black', hair:'Black',
+  blood:'O+', shoe:'9', coverall:'Medium', religion:'Roman Catholic',
+  birthPlace:'Cebu City', govIds:'SSS 12-3456789', nok:'Maria dela Cruz · Spouse · 09XX-XXX-XXXX',
+  documents:[
+    {type:'Passport', number:'P1234567A', dateIssued:'2021-02-10', dateExpiry:'2031-02-09', placeIssued:'Manila'},
+    {type:"Seaman's Book", number:'SB-889012', dateIssued:'2021-03-15', dateExpiry:'2031-03-14', placeIssued:'Cebu'}
+  ],
+  certificates:[
+    {name:'Basic Training (STCW)', number:'BT-99881', issuedBy:'MARINA', dateIssued:'2021-04-01', validUntil:'2026-04-01'},
+    {name:'Survival Craft & Rescue Boats', number:'SCRB-4412', issuedBy:'MARINA', dateIssued:'2021-04-20', validUntil:'2026-04-20'}
+  ],
+  vaccinations:[{name:'Yellow Fever', placeIssued:'Manila', dateGiven:'2022-05-05', validUntil:'2032-05-05'}],
+  seaService:[
+    {vessel:'MV Pacific Star', rank:'Ordinary Seaman', vesselType:'Bulk Carrier', company:'ABC Shipping',
+     grt:'35,000', kw:'8,000', tradeArea:'Worldwide', signOn:'2022-06-01', signOff:'2023-02-15'}
+  ]
+};
+
 const TMPL_INFO = [
   {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
   {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316'},
@@ -5154,6 +5634,8 @@ const TMPL_INFO = [
   {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac'},
   {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
   {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
+  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true},
+  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true},
 ];
 
 let previewSelectedTmpl = 1;
@@ -5166,9 +5648,21 @@ function openTemplatePreview(){
   const dropVal = parseInt(document.getElementById('templatePref').value);
   if (dropVal && dropVal !== previewSelectedTmpl) previewSelectedTmpl = dropVal;
 
+  // Only offer layouts this applicant's format can actually render. Listing all
+  // of them let a college applicant pick a Europe or seafarer template, which
+  // then had no photo, no sea service and no CEFR data to work with.
+  const lvl = document.querySelector('input[name="eduLevel"]:checked')?.value;
+  const shownTmpl = TMPL_INFO.filter(t =>
+    lvl === 'seaman' ? !!t.seamanOnly
+  : lvl === 'europe' ? !!t.europeOnly
+  : !t.seamanOnly && !t.europeOnly);
+  // A preference carried over from another format can't render here
+  if (!shownTmpl.some(t => t.num === previewSelectedTmpl))
+    previewSelectedTmpl = shownTmpl[0] ? shownTmpl[0].num : 1;
+
   // Build sidebar buttons
   const btns = document.getElementById('tmplBtns');
-  btns.innerHTML = TMPL_INFO.map(t => `
+  btns.innerHTML = shownTmpl.map(t => `
     <div onclick="previewTmpl(${t.num},this)" class="tmpl-btn-prev" style="border:2px solid ${previewSelectedTmpl===t.num?'#c8a84b':'rgba(255,255,255,0.08)'};background:${previewSelectedTmpl===t.num?'rgba(200,168,75,0.1)':'rgba(255,255,255,0.02)'};border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:8px;">
       <div style="width:28px;height:28px;border-radius:6px;background:${t.bg||'#243358'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:${t.color||'#c8a84b'};flex-shrink:0;${t.border?'border:'+t.border:''}">${t.num}</div>
       <div><div style="font-size:11px;font-weight:700;color:white;">${t.name}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px;">${t.desc}</div></div>
@@ -5222,7 +5716,13 @@ function selectAndClose(){
 window.addEventListener('resize', ()=>{ if(document.getElementById('tmplPreviewOverlay').style.display!=='none') scalePreviewFrame(); });
 
 function buildSampleCV(tmpl){
-  return buildCVHtml(SAMPLE, tmpl, 'preview');
+  let s = SAMPLE;
+  if (tmpl === 18 || tmpl === 19)
+    s = {...SAMPLE, eduLevel:'europe', europe: SAMPLE_EUROPE,
+         personal:{...SAMPLE.personal, photo:''}};
+  else if (tmpl === 16 || tmpl === 17)
+    s = {...SAMPLE, eduLevel:'seaman', seaman: SAMPLE_SEAMAN};
+  return buildCVHtml(s, tmpl, 'preview');
 }
 
 // ── BUILD CV HTML ─────────────────────────────────────────────────────────────
@@ -5474,13 +5974,200 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===15) return T15(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===16) return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===18) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
+  if(tmpl===19) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,true);
   // A seafarer record has no ordinary work history to show, so even a stale or
   // absent template preference lands on the maritime layout.
   if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(s.eduLevel==='europe') return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 18 / 19 — EUROPE · ATS CLASSIC
+// ──────────────────────────────────────────────────────────────────────────────
+// Kept byte-identical to the copy in admin.html. This file carries its own
+// duplicate of the template engine for the customer-facing preview, so any
+// template added to one must be added to the other or the preview silently
+// falls through to Template 1.
+// ══════════════════════════════════════════════════════════════════════════════
+function T18(p,s,edu,work,refs,isFresh,pb,pc,accent){
+const E=s.europe||{};
+const SH=E.show||{};
+// Self-contained on purpose: index.html carries its own copy of the template
+// engine and has no prettyDOBShort(), so this function must not depend on
+// helpers that exist in only one of the two files.
+const fmtD=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
+  return String(t.getDate()).padStart(2,'0')+'-'
+    +['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]
+    +'-'+t.getFullYear(); };
+const AC=accent?'#1d4ed8':'#000';
+// Opt-in only. European practice varies by country, so the photo appears solely
+// when the customer explicitly asked for one and actually uploaded it.
+const showPhoto=!!(E.wantPhoto&&p.photo);
+const skills=s.skills||[];
+
+// Responsibilities arrive either newline-separated (typed work history) or
+// already joined with <br> (OJT rows), so both separators are honoured. A
+// single long paragraph is broken on sentence ends, because European CVs are
+// read as achievement bullets and a wall of prose gets skimmed past.
+const blist=t=>{
+  let a=String(t==null?'':t).split(/<br\s*\/?>|\r?\n/i)
+        .map(x=>x.replace(/^[\s\-–—*•·]+/,'').trim()).filter(Boolean);
+  if(a.length===1&&a[0].length>140){
+    const parts=a[0].split(/(?<=[.;])\s+/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1) a=parts;
+  }
+  return a;
+};
+
+const contact=[p.address,p.phone,p.email,p.linkedin,p.social].filter(Boolean);
+
+// Only the details the customer explicitly ticked may appear here. Default is
+// nothing at all.
+const personal=[
+  SH.dob&&(p.dobShort||p.dob)?['Date of Birth',p.dobShort||fmtD(p.dob)]:null,
+  SH.nationality&&p.nationality?['Nationality',p.nationality]:null,
+  SH.civil&&p.civilStatus?['Civil Status',p.civilStatus]:null,
+  SH.gender&&p.gender?['Gender',p.gender]:null
+].filter(Boolean);
+
+const cefr=(E.cefrLanguages||[]).filter(l=>l.lang);
+// Fall back to the plain tag list if the customer never graded anything
+const plainLangs=(s.languages||[]);
+
+const permitLine=[E.permit,E.permitExpiry?('valid until '+fmtD(E.permitExpiry)):'']
+                  .filter(Boolean).join(', ');
+const extras=[
+  permitLine?['Right to Work',permitLine]:null,
+  E.notice?['Availability',E.notice]:null,
+  E.relocate?['Relocation',E.relocate]:null,
+  E.licence?['Driving Licence',E.licence]:null,
+  E.recognition?['Qualification Recognition',E.recognition]:null,
+  E.memberships?['Professional Memberships',E.memberships]:null,
+  s.hobbies?['Interests',s.hobbies]:null
+].filter(Boolean);
+
+const sec=(title,body)=>body?`<div class="sec"><div class="sh">${title}</div>${body}</div>`:'';
+
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+/* Arial/Helvetica deliberately: it is the safest face for ATS text extraction,
+   and European recruiters read it as neutral rather than plain. */
+body{font-family:Arial,Helvetica,'Liberation Sans',sans-serif;background:#e8e8e8;color:#000;}
+.page{width:100%;min-height:100vh;background:#fff;padding:34px 46px 30px;display:flex;flex-direction:column;}
+.hdr{border-top:1.5px solid ${AC};border-bottom:1.5px solid ${AC};padding:12px 0 9px;
+     display:flex;align-items:center;gap:16px;}
+.hdr-text{flex:1;text-align:center;min-width:0;}
+/* Photo sits right, Lebenslauf-style. An equal-width spacer on the left keeps
+   the name optically centred rather than shunted off-axis. */
+.hdr-photo{width:88px;height:110px;flex-shrink:0;overflow:hidden;background:#f2f2f2;border:1px solid #ccc;}
+.hdr-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.hdr-spacer{width:88px;flex-shrink:0;}
+.hdr h1{font-size:27px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;line-height:1.15;color:${accent?'#0f172a':'#000'};}
+.hdr .ttl{font-size:14.5px;font-weight:400;letter-spacing:1.4px;text-transform:uppercase;margin-top:5px;color:${accent?'#1d4ed8':'#111'};}
+.contact{text-align:center;font-size:10.5px;padding:7px 0 8px;border-bottom:2.5px solid ${AC};line-height:1.6;color:#111;}
+.contact span+span::before{content:' | ';color:#666;}
+.sec{margin-top:13px;}
+.sh{font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+    border-bottom:1px solid ${accent?'#93b4f5':'#000'};padding-bottom:2px;margin-bottom:7px;color:${AC};}
+.para{font-size:10.7px;line-height:1.52;text-align:justify;color:#111;}
+/* Three columns of short skill bullets, exactly as the reference layout. The
+   column rule keeps a two-line skill from straddling a break. */
+.skills{column-count:3;column-gap:22px;padding-left:2px;}
+@media print{.skills{column-count:3;}}
+.skills li{font-size:10.5px;line-height:1.5;margin:0 0 2px 14px;break-inside:avoid;}
+.job{margin-bottom:9px;break-inside:avoid;}
+.job:last-child{margin-bottom:2px;}
+.jrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;}
+.jpos{font-size:11.3px;font-weight:700;color:#000;}
+.jdate{font-size:10.5px;font-weight:400;color:#111;white-space:nowrap;flex-shrink:0;}
+.jco{font-size:10.6px;color:#111;margin-top:1px;}
+.jloc{font-size:10.3px;color:#333;margin-top:0px;}
+.jul{margin:3px 0 0 16px;}
+.jul li{font-size:10.5px;line-height:1.5;margin-bottom:1.5px;padding-left:1px;}
+.kv{font-size:10.6px;line-height:1.55;margin-bottom:2px;}
+.kv b{font-weight:700;margin-right:5px;}
+/* One language per line, each with its grade and certificate. Deliberately not
+   a CSS grid: print engines that don't support grid collapse it into an
+   unreadable run-on, and a European recruiter scanning for "B2" must not have
+   to hunt for it. */
+.lang div{font-size:10.6px;line-height:1.6;margin-bottom:1px;}
+.lang b{font-weight:700;margin-right:5px;}
+/* Two columns via inline-block rather than grid, for the same reason. */
+.refs{font-size:0;}
+.ref{display:inline-block;width:48%;vertical-align:top;margin:0 2% 6px 0;
+     font-size:10.4px;line-height:1.45;break-inside:avoid;}
+.ref b{font-weight:700;}
+.gdpr{margin-top:auto;padding-top:12px;font-size:8.2px;color:#555;line-height:1.45;
+      border-top:1px solid #ddd;text-align:justify;font-style:italic;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+
+  <div class="hdr">
+    ${showPhoto?`<div class="hdr-spacer"></div>`:''}
+    <div class="hdr-text">
+      <h1>${fullName(p)}</h1>
+      ${p.jobTitle?`<div class="ttl">${p.jobTitle}</div>`:''}
+    </div>
+    ${showPhoto?`<div class="hdr-photo"><img src="${p.photo}" alt=""></div>`:''}
+  </div>
+  ${contact.length?`<div class="contact">${contact.map(c=>`<span>${c}</span>`).join('')}</div>`:''}
+
+  ${sec('Professional Summary', s.profileSummary||s.aboutMe
+      ? `<p class="para">${s.profileSummary||s.aboutMe}</p>` : '')}
+
+  ${sec('Key Skills', skills.length
+      ? `<ul class="skills">${skills.map(k=>`<li>${k}</li>`).join('')}</ul>` : '')}
+
+  ${sec('Work Experience', work.length ? work.map(w=>{
+      const b=blist(w.responsibilities);
+      return `<div class="job">
+        <div class="jrow">
+          <div class="jpos">${w.position||''}</div>
+          <div class="jdate">${[w.dateStart,w.dateEnd].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${w.company?`<div class="jco">${w.company}</div>`:''}
+        ${w.location?`<div class="jloc">${w.location}</div>`:''}
+        ${b.length?`<ul class="jul">${b.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+      </div>`;}).join('') : '')}
+
+  ${sec('Education', edu.length ? edu.map(e=>`
+      <div class="job">
+        <div class="jrow">
+          <div class="jpos">${e.degree||e.school||''}</div>
+          <div class="jdate">${[e.yearStart,e.yearGrad].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${e.degree&&e.school?`<div class="jco">${e.school}</div>`:''}
+        ${e.honors?`<div class="jloc">${e.honors}</div>`:''}
+      </div>`).join('') : '')}
+
+  ${sec('Languages', cefr.length
+      ? `<div class="lang">${cefr.map(l=>
+          `<div><b>${l.lang}</b>${[l.level,l.cert].filter(Boolean).join(' · ')}</div>`).join('')}</div>`
+      : (plainLangs.length?`<p class="para">${plainLangs.join(' · ')}</p>`:''))}
+
+  ${sec('Certifications & Awards', s.awards?`<p class="para">${s.awards}</p>`:'')}
+
+  ${sec('Additional Information', extras.length
+      ? extras.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('Personal Details', personal.length
+      ? personal.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('References', refs.length
+      ? `<div class="refs">${refs.map(r=>`<div class="ref"><b>${r.name}</b><br>${
+          [r.position,r.company].filter(Boolean).join(', ')}${r.contact?'<br>'+r.contact:''}</div>`).join('')}</div>`
+      : `<p class="para">Available upon request.</p>`)}
+
+  ${E.gdprLine?`<div class="gdpr">I hereby give consent for my personal data included in this application to be processed for the purposes of the recruitment process, in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (GDPR).</div>`:''}
+
+</div></div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 1 — Dark Sidebar · Cyan Accents

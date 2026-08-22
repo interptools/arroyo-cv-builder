@@ -197,6 +197,8 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .empty-state .es-icon{font-size:48px;margin-bottom:12px;}
 .hidden{display:none!important;}
 .sea-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#0b2545;color:#ffd166;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
+.eu-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#003399;color:#ffcc00;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
+.eu-flag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;}
 .cl-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#1a2744;color:#e2c97e;border:1px solid #c8a84b;margin-left:6px;vertical-align:middle;}
 .stat-card.revenue .sc-value{color:#10b981;}
 .filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--gray-light);background:white;color:var(--gray);transition:all .2s;}
@@ -411,6 +413,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="Delivered" onclick="setFilter('Delivered',this)">✅ Delivered <span class="fcount" id="fc_Delivered">0</span></button>
         <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
         <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
+        <button class="filter-btn" data-filter="europe" onclick="setFilter('europe',this)">🇪🇺 Europe <span class="fcount" id="fc_europe">0</span></button>
         <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
         <button class="filter-btn" data-filter="clOnly" onclick="setFilter('clOnly',this)">📝 CL Only <span class="fcount" id="fc_clOnly">0</span></button>
         <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
@@ -707,71 +710,13 @@ tr:hover td{background:rgba(247,248,252,.8);}
     </div>
   </div>
   <div class="to-body">
-    <div class="to-sidebar">
-      <div class="to-tmpl-btn active" onclick="selectTemplate(1,this)">
-        <div class="to-tmpl-swatch" style="background:#1a1a2e;color:#00d4ff;">1</div>
-        <div><div class="to-tmpl-name">Template 1</div><div class="to-tmpl-desc">Dark · Cyan</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(2,this)">
-        <div class="to-tmpl-swatch" style="background:#1a1a1a;color:#f97316;">2</div>
-        <div><div class="to-tmpl-name">Template 2</div><div class="to-tmpl-desc">Black · Orange</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(3,this)">
-        <div class="to-tmpl-swatch" style="background:#4a4a4a;color:#8b1a4a;">3</div>
-        <div><div class="to-tmpl-name">Template 3</div><div class="to-tmpl-desc">Gray · Maroon</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(4,this)">
-        <div class="to-tmpl-swatch" style="background:#1565c0;color:white;">4</div>
-        <div><div class="to-tmpl-name">Template 4</div><div class="to-tmpl-desc">Blue · Pro</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(5,this)">
-        <div class="to-tmpl-swatch" style="background:#1976d2;color:white;">5</div>
-        <div><div class="to-tmpl-name">Template 5</div><div class="to-tmpl-desc">Modern Blue</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(6,this)">
-        <div class="to-tmpl-swatch" style="background:#1a2744;color:#f5a623;">6</div>
-        <div><div class="to-tmpl-name">Template 6</div><div class="to-tmpl-desc">Navy · Gold</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(7,this)">
-        <div class="to-tmpl-swatch" style="background:#2c3e50;color:white;">7</div>
-        <div><div class="to-tmpl-name">Template 7</div><div class="to-tmpl-desc">Classic · Clean</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(8,this)">
-        <div class="to-tmpl-swatch" style="background:#1a2744;color:#c8a84b;">8</div>
-        <div><div class="to-tmpl-name">Template 8</div><div class="to-tmpl-desc">Fresh Grad · Grid</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(9,this)">
-        <div class="to-tmpl-swatch" style="background:#ffffff;color:#222;border:1.5px solid #ddd;">9</div>
-        <div><div class="to-tmpl-name">Template 9</div><div class="to-tmpl-desc">Minimalist · White</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(10,this)">
-        <div class="to-tmpl-swatch" style="background:#111;color:#c8a84b;border:1.5px solid #c8a84b;">10</div>
-        <div><div class="to-tmpl-name">Template 10</div><div class="to-tmpl-desc">Elegant · Black Gold</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(11,this)">
-        <div class="to-tmpl-swatch" style="background:linear-gradient(135deg,#f472b6,#a78bfa);color:white;">11</div>
-        <div><div class="to-tmpl-name">Template 11</div><div class="to-tmpl-desc">Bold · Colorful</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(12,this)">
-        <div class="to-tmpl-swatch" style="background:#fde8d8;color:#c2410c;">12</div>
-        <div><div class="to-tmpl-name">Template 12</div><div class="to-tmpl-desc">Pastel · Peach</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(13,this)">
-        <div class="to-tmpl-swatch" style="background:#d1fae5;color:#065f46;">13</div>
-        <div><div class="to-tmpl-name">Template 13</div><div class="to-tmpl-desc">Green · Nature</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(14,this)">
-        <div class="to-tmpl-swatch" style="background:#e0f2fe;color:#0369a1;">14</div>
-        <div><div class="to-tmpl-name">Template 14</div><div class="to-tmpl-desc">Pastel · Sky Blue</div></div>
-      </div>
-      <div class="to-tmpl-btn" onclick="selectTemplate(15,this)">
-        <div class="to-tmpl-swatch" style="background:#1a4731;color:#86efac;">15</div>
-        <div><div class="to-tmpl-name">Template 15</div><div class="to-tmpl-desc">Forest · Emerald</div></div>
-      </div>
-    </div>
+    <div class="to-sidebar" id="tmplSidebar"></div>
     <div class="to-preview">
       <div class="to-preview-wrap" id="previewWrap">
-        <iframe id="previewFrame" scrolling="no" style="overflow:hidden;"></iframe>
+        <!-- allow-scripts WITHOUT allow-same-origin: the CV's own fit script still
+             runs, but the frame gets an opaque origin, so anything injected into a
+             submission cannot read parent.JSONBIN_API_KEY or parent.submissions. -->
+        <iframe id="previewFrame" scrolling="no" sandbox="allow-scripts" style="overflow:hidden;"></iframe>
       </div>
     </div>
   </div>
@@ -1575,6 +1520,7 @@ function renderSubmissions(){
     f==='all' ? true
     : f==='coverLetter' ? (!!s.coverLetter?.requested || s.serviceType==='coverLetter')
     : f==='seaman' ? s.eduLevel==='seaman'
+    : f==='europe' ? s.eduLevel==='europe'
     : f==='resignation' ? (s.serviceType==='resignation' || !!s.resignationLetter?.requested)
     : f==='clOnly' ? s.serviceType==='coverLetter'
     : f==='unpaid' ? !isPaid(s)
@@ -1584,7 +1530,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','resignation','clOnly','unpaid','paid'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','unpaid','paid'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -1656,7 +1602,7 @@ function renderSubmissions(){
       <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
+        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}</div>
         ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
         <div class="sub-mail">${p.email||'No email on file'}</div>
       </td>
@@ -1708,7 +1654,7 @@ function exportCSV(){
   if(!submissions.length){ showNotif('No submissions to export yet.', true); return; }
 
   const PKG_LABELS = {cvcl:'CV + Cover Letter', cvrl:'CV + Resignation', cvclrl:'All three'};
-  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
+  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'};
 
   // Escape a value for CSV: wrap in quotes, double any internal quotes
   const esc = v => {
@@ -1732,7 +1678,13 @@ function exportCSV(){
     'Sea: Rank Applied','Sea: Last Rank','Sea: Height','Sea: Weight','Sea: BMI',
     'Sea: Eyes','Sea: Hair','Sea: Blood Type','Sea: Shoe Size','Sea: Coverall',
     'Sea: Religion','Sea: Place of Birth','Sea: Gov IDs','Sea: Next of Kin',
-    'Sea: Travel Documents','Sea: Certificates','Sea: Sea Service'];
+    'Sea: Travel Documents','Sea: Certificates','Sea: Sea Service',
+    // Europe block — blank on every other kind of order, same as the seafarer
+    // columns above, so one export still covers the whole queue.
+    'EU: Target Country','EU: Target City','EU: Right to Work','EU: Permit Expiry',
+    'EU: Availability','EU: Relocation','EU: Driving Licence','EU: Currently Based',
+    'EU: Qualification Recognition','EU: Memberships','EU: CEFR Languages',
+    'EU: Details Shown','EU: GDPR Line','EU: Notes'];
 
   const rows = submissions.map((s, i) => {
     const p = s.personal || {};
@@ -1767,6 +1719,7 @@ function exportCSV(){
     // Seafarer sub-tables flattened one-per-cell, same ' | ' convention as the
     // education and work columns above so the whole sheet reads consistently.
     const m = s.seaman || {};
+    const eu = s.europe || {};
     const docStr = (m.documents||[]).filter(x=>x.type||x.number)
       .map(x=>`${x.type||''}: ${x.number||''}${x.dateIssued?' issued '+x.dateIssued:''}${x.dateExpiry?' expires '+x.dateExpiry:''}${x.placeIssued?' @ '+x.placeIssued:''}`)
       .join(' | ');
@@ -1815,7 +1768,15 @@ function exportCSV(){
       m.rank||'', m.lastRank||'', m.height||'', m.weight||'', m.bmi||'',
       m.eyes||'', m.hair||'', m.blood||'', m.shoe||'', m.coverall||'',
       m.religion||'', m.birthPlace||'', m.govIds||'', m.nok||'',
-      docStr, certStr, seaStr
+      docStr, certStr, seaStr,
+      eu.country||'', eu.city||'', eu.permit||'', eu.permitExpiry||'',
+      eu.notice||'', eu.relocate||'', eu.licence||'', eu.currentLocation||'',
+      eu.recognition||'', eu.memberships||'',
+      (eu.cefrLanguages||[]).filter(l=>l.lang)
+        .map(l=>[l.lang,l.level,l.cert].filter(Boolean).join(' ')).join(' | '),
+      Object.entries({dob:'DOB',nationality:'Nationality',civil:'Civil Status',gender:'Gender'})
+        .filter(([k])=>eu.show&&eu.show[k]).map(([,v])=>v).join(', ') || 'None',
+      eu.gdprLine?'YES':'No', eu.notes||''
     ].map(esc).join(',');
   });
 
@@ -2422,7 +2383,7 @@ function viewSubmission(idx){
   currentSubmission=idx;
   const s=submissions[idx]; const p=s.personal;
   const si=idx; // declare early so all inline onclick handlers have the correct index
-  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'};
+  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'};
   let html='';
   const hasCL=s.coverLetter?.requested;
   const isResign=s.serviceType==='resignation';
@@ -2661,6 +2622,60 @@ function viewSubmission(idx){
         ? tbl(['Vessel','Rank','Type','GRT','KW/HP','Company','Sign On','Sign Off','Trade Area'],
             sea.map(v=>`<tr>${cell('<strong>'+(v.vessel||'')+'</strong>')}${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.kw)}${cell(v.company)}${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.tradeArea)}</tr>`).join(''))
         : `<p style="font-size:12.5px;color:var(--gray);font-style:italic;">No sea service — first-time applicant.</p>`}</div>`;
+  }
+
+  // ── Europe panel ───────────────────────────────────────────────────────────
+  // Right to work is the first thing to check on these orders, and the
+  // disclosure toggles decide what may legally appear on the finished CV — so
+  // both are surfaced before anything else.
+  if(s.eduLevel==='europe' && s.europe){
+    const e=s.europe;
+    const dd=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
+      return String(t.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+'-'+t.getFullYear(); };
+
+    // An expired permit invalidates the whole application, so it gets shouted at
+    let permitTxt = e.permit || '';
+    if(e.permitExpiry){
+      const days=(new Date(e.permitExpiry)-Date.now())/864e5;
+      const st = days<0 ? 'background:#fee2e2;color:#b91c1c;font-weight:800;padding:1px 6px;border-radius:4px;'
+               : days<90 ? 'background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px;' : '';
+      permitTxt += ` <span style="${st}">valid to ${dd(e.permitExpiry)}${days<0?' — EXPIRED':''}</span>`;
+    }
+    if(/^No permit yet/.test(e.permit||''))
+      permitTxt += ' <span style="background:#ffedd5;color:#9a3412;font-weight:800;padding:1px 6px;border-radius:4px;">NEEDS SPONSORSHIP</span>';
+
+    html+=grp('🇪🇺 Target Market & Right to Work',[
+      ['Target Country', e.country ? `<span class="eu-flag">${e.country}</span>` : ''],
+      ['Target City / Region', e.city],
+      ['Right to Work', permitTxt],
+      ['Currently Based', e.currentLocation],
+      ['Notice Period', e.notice],
+      ['Relocation', e.relocate],
+      ['Driving Licence', e.licence],
+      ['Qualification Recognition', e.recognition],
+      ['Memberships', e.memberships],
+      ['Notes for Writer', e.notes]
+    ].filter(r=>r[1]));
+
+    const cef=(e.cefrLanguages||[]).filter(l=>l.lang);
+    if(cef.length) html+=`<div class="info-group"><h4>🗣️ Language Levels (CEFR)</h4>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+      <thead><tr>${['Language','CEFR Level','Certificate'].map(h=>`<th style="background:var(--off-white);border:1px solid var(--gray-light);padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);">${h}</th>`).join('')}</tr></thead>
+      <tbody>${cef.map(l=>`<tr>
+        <td style="border:1px solid var(--gray-light);padding:5px 8px;"><strong>${l.lang}</strong></td>
+        <td style="border:1px solid var(--gray-light);padding:5px 8px;">${l.level||'<em style="color:#9ca3af;">not stated</em>'}</td>
+        <td style="border:1px solid var(--gray-light);padding:5px 8px;">${l.cert||''}</td></tr>`).join('')}</tbody></table></div></div>`;
+
+    const sh=e.show||{};
+    const on =Object.entries({dob:'Date of birth',nationality:'Nationality',civil:'Civil status',gender:'Gender'})
+                .filter(([k])=>sh[k]).map(([,v])=>v);
+    html+=`<div class="info-group"><h4>🔒 Disclosure Choices</h4>
+      <div style="font-size:12.5px;line-height:1.7;color:var(--gray);">
+        ${on.length
+          ? `Customer asked to include: <strong style="color:#111;">${on.join(', ')}</strong>. Everything else stays off.`
+          : `No personal details requested — <strong style="color:#111;">no photo, age, nationality, civil status or gender</strong> on this CV.`}
+        <br>GDPR consent line: <strong style="color:#111;">${e.gdprLine?'include at foot of CV':'omit'}</strong>.
+      </div></div>`;
   }
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
@@ -2930,8 +2945,12 @@ function openTemplateOverlay(idx){
   currentSubmission=idx;
   document.getElementById('templateOverlay').classList.add('open');
   const s=submissions[idx];
-  if(s.templatePref) selectTemplate(parseInt(s.templatePref));
-  else selectTemplate(1);
+  const shown=renderTemplateButtons(s)||[];
+  const pref=parseInt(s.templatePref);
+  // A stored preference from another format cannot render this order, so fall
+  // back to the first layout this format actually supports.
+  const valid=shown.some(t=>t.num===pref);
+  selectTemplate(valid ? pref : ((shown[0]&&shown[0].num) || 1));
   setTimeout(scalePreview, 100);
 }
 function closeTemplateOverlay(){
@@ -2979,11 +2998,56 @@ function scalePreview(){
 
 window.addEventListener('resize', scalePreview);
 
+// The sidebar used to be hardcoded markup for templates 1-15, which meant the
+// seafarer layouts (16-17) and Europe layouts (18-19) could never be picked by
+// hand — an order that arrived on one of them rendered correctly but the admin
+// had no way back to it after clicking anything else. Generated from a list now,
+// and filtered by format so each order only offers layouts that can render it.
+const ADMIN_TMPL = [
+  {num:1,  desc:'Dark \u00b7 Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
+  {num:2,  desc:'Black \u00b7 Orange',       bg:'#1a1a1a', color:'#f97316'},
+  {num:3,  desc:'Gray \u00b7 Maroon',        bg:'#4a4a4a', color:'#8b1a4a'},
+  {num:4,  desc:'Blue \u00b7 Pro',           bg:'#1565c0', color:'white'},
+  {num:5,  desc:'Modern Blue',          bg:'#1976d2', color:'white'},
+  {num:6,  desc:'Navy \u00b7 Gold',          bg:'#1a2744', color:'#f5a623'},
+  {num:7,  desc:'Classic \u00b7 Clean',      bg:'#2c3e50', color:'white'},
+  {num:8,  desc:'Fresh Grad \u00b7 Grid',    bg:'#1a2744', color:'#c8a84b'},
+  {num:9,  desc:'Minimalist \u00b7 White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd'},
+  {num:10, desc:'Elegant \u00b7 Black Gold', bg:'#111',    color:'#c8a84b'},
+  {num:11, desc:'Bold \u00b7 Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white'},
+  {num:12, desc:'Pastel \u00b7 Peach',       bg:'#fde8dc', color:'#c2410c'},
+  {num:13, desc:'Green \u00b7 Nature',       bg:'#14532d', color:'#86efac'},
+  {num:14, desc:'Pastel \u00b7 Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
+  {num:15, desc:'Forest \u00b7 Emerald',     bg:'#1a4731', color:'#86efac'},
+  {num:16, desc:'\u2693 Seafarer \u00b7 Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
+  {num:17, desc:'\u2693 Seafarer \u00b7 Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
+  {num:18, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 ATS Classic', bg:'#ffffff', color:'#111',    border:'1.5px solid #111', europeOnly:true},
+  {num:19, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 Accent Rule', bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true}
+];
+
+function renderTemplateButtons(sub){
+  const bar=document.getElementById('tmplSidebar');
+  if(!bar) return [];
+  const lvl=sub&&sub.eduLevel;
+  const shown=ADMIN_TMPL.filter(t =>
+    lvl==='seaman' ? !!t.seamanOnly
+  : lvl==='europe' ? !!t.europeOnly
+  : !t.seamanOnly && !t.europeOnly);
+  bar.innerHTML = shown.map(t=>`
+    <div class="to-tmpl-btn" data-tmpl="${t.num}" onclick="selectTemplate(${t.num},this)">
+      <div class="to-tmpl-swatch" style="background:${t.bg};color:${t.color};${t.border?'border:'+t.border+';':''}">${t.num}</div>
+      <div><div class="to-tmpl-name">Template ${t.num}</div><div class="to-tmpl-desc">${t.desc}</div></div>
+    </div>`).join('');
+  return shown;
+}
+
 function selectTemplate(num, el){
   selectedTemplate=num;
   document.querySelectorAll('.to-tmpl-btn').forEach(b=>b.classList.remove('active'));
+  // Match on template number, not list position: the sidebar is filtered per
+  // format, so index 0 is template 16 on a seafarer order and 18 on a Europe one.
   if(el) el.classList.add('active');
-  else { const btns=document.querySelectorAll('.to-tmpl-btn'); if(btns[num-1]) btns[num-1].classList.add('active'); }
+  else { const b=document.querySelector('.to-tmpl-btn[data-tmpl="'+num+'"]'); if(b) b.classList.add('active'); }
   updatePreview();
 }
 
@@ -3021,7 +3085,7 @@ async function generateCV(){
   let aiProfile='';
   try{
     const p=s.personal;
-    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel;
+    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel;
     const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | '):'No work experience (fresh graduate)';
     const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
     const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
@@ -3067,7 +3131,28 @@ function openCVPrintWindow(sub){
 function buildCVHtml(s,tmpl,mode){
   // Shallow copy so the display formatting below never overwrites the ISO date
   // stored on the submission record.
-  const p={...s.personal, dob: prettyDOB(s.personal?.dob), dobShort: prettyDOBShort(s.personal?.dob)};
+  const _esc0=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const _rawP=s.personal||{};
+  const p={};
+  // Escape every personal field except the photo, which is a base64 data URL
+  // used inside src="" and must pass through untouched.
+  Object.keys(_rawP).forEach(k=>{ p[k] = k==='photo' ? _rawP[k] : _esc0(_rawP[k]); });
+  p.photo=_rawP.photo;
+  p.dob=prettyDOB(_rawP.dob); p.dobShort=prettyDOBShort(_rawP.dob);
+  // Free-text fields the customer typed, escaped for the same reason
+  // Seafarer and Europe records are nested objects and arrays of rows, so they
+  // need a recursive walk — escaping only the top level would leave every
+  // vessel name, certificate and CEFR entry injectable.
+  const _escDeep=v=>Array.isArray(v)?v.map(_escDeep)
+    :(v&&typeof v==='object')?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,_escDeep(x)]))
+    :(typeof v==='string')?_esc0(v):v;
+  s={...s,
+     skills:(s.skills||[]).map(_esc0),
+     languages:(s.languages||[]).map(_esc0),
+     aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
+     awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
+     seaman:s.seaman?_escDeep(s.seaman):s.seaman,
+     europe:s.europe?_escDeep(s.europe):s.europe};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -3076,17 +3161,18 @@ function buildCVHtml(s,tmpl,mode){
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;">`
     :`<div style="width:100%;height:100%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,.6);">👤</div>`;
 
-  const edu=(s.education||[]).filter(e=>e.school);
+  // Escape before injecting: these strings go into template HTML as-is, and a
+  // company name containing < would otherwise break the rendered CV.
+  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const lines=t=>esc(t).split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join('<br>');
+  const edu=(s.education||[]).filter(e=>e.school).map(e=>({
+    school: esc(e.school), degree: esc(e.degree),
+    yearStart: esc(e.yearStart), yearGrad: esc(e.yearGrad), honors: esc(e.honors)
+  }));
   // Experience list = paid work + OJT, mapped into one shape so all 13 templates
   // render it with no per-template changes. OJT is flagged in the position line,
   // which is how Philippine fresh-grad CVs conventionally present it.
   const paidWork=(!isFresh&&s.workExperience?.length)?s.workExperience.filter(w=>w.company):[];
-  // Escape before injecting: these strings go into template HTML as-is, and a
-  // company name containing < would otherwise break the rendered CV.
-  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  // Tasks are entered one per line; .i-desc has no white-space rule, so without
-  // converting newlines they'd collapse into a single run-on paragraph.
-  const lines=t=>esc(t).split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join('<br>');
   const ojtWork=(s.ojt||[]).filter(o=>o.company||o.role).map(o=>({
     company: esc(o.company) + (o.department?' ('+esc(o.department)+')':''),
     position: esc(o.role||'On-the-Job Training') + ' (OJT)',
@@ -3096,8 +3182,25 @@ function buildCVHtml(s,tmpl,mode){
     responsibilities: [lines(o.tasks), o.tools?('<em>Tools used: '+esc(o.tools)+'</em>'):'']
                         .filter(Boolean).join('<br>')
   }));
-  const work=[...paidWork,...ojtWork];
-  const refs=(s.references||[]).filter(r=>r.name);
+  // Everything a customer typed is escaped here, once, before it reaches any
+  // template. Without this a company name containing a < breaks the layout —
+  // and, because the preview iframe runs same-origin, a <script> typed into
+  // the public form would execute inside the admin panel with access to the
+  // API key and every other submission. ojtWork is deliberately excluded: it
+  // was already escaped above and carries intentional <br> and <em> markup.
+  const escWork=paidWork.map(w=>({
+    company: esc(w.company), position: esc(w.position),
+    dateStart: esc(w.dateStart), dateEnd: esc(w.dateEnd),
+    location: esc(w.location),
+    // Tasks are entered one per line; converting here means templates render
+    // them as separate lines rather than one run-on paragraph.
+    responsibilities: lines(w.responsibilities)
+  }));
+  const work=[...escWork,...ojtWork];
+  const refs=(s.references||[]).filter(r=>r.name).map(r=>({
+    name: esc(r.name), position: esc(r.position),
+    company: esc(r.company), contact: esc(r.contact)
+  }));
 
   const printBar=mode==='print'
     ?`<div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;">
@@ -3314,12 +3417,203 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===15) return T15(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===16) return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(tmpl===18) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
+  if(tmpl===19) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,true);
   // Seafarer records have no ordinary work history, so they land on the
   // maritime layout even without an explicit template preference.
   if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  // Europe orders must never fall through to a photo-bearing layout: the whole
+  // point of the format is that the photograph and personal details are absent.
+  if(s.eduLevel==='europe') return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
 
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 18 / 19 — EUROPE · ATS CLASSIC
+// ──────────────────────────────────────────────────────────────────────────────
+// One column, one typeface, ruled section headings, no colour blocks and no
+// photograph. That plainness is the feature: European applicant tracking
+// systems parse this reliably, and the layout carries no signal a recruiter is
+// obliged to ignore. `accent` switches the rules and headings to blue for
+// customers who want a little warmth (T19) without changing the structure.
+// ══════════════════════════════════════════════════════════════════════════════
+function T18(p,s,edu,work,refs,isFresh,pb,pc,accent){
+const E=s.europe||{};
+const SH=E.show||{};
+// Self-contained on purpose: index.html carries its own copy of the template
+// engine and has no prettyDOBShort(), so this function must not depend on
+// helpers that exist in only one of the two files.
+const fmtD=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
+  return String(t.getDate()).padStart(2,'0')+'-'
+    +['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]
+    +'-'+t.getFullYear(); };
+const AC=accent?'#1d4ed8':'#000';
+// Opt-in only. European practice varies by country, so the photo appears solely
+// when the customer explicitly asked for one and actually uploaded it.
+const showPhoto=!!(E.wantPhoto&&p.photo);
+const skills=s.skills||[];
+
+// Responsibilities arrive either newline-separated (typed work history) or
+// already joined with <br> (OJT rows), so both separators are honoured. A
+// single long paragraph is broken on sentence ends, because European CVs are
+// read as achievement bullets and a wall of prose gets skimmed past.
+const blist=t=>{
+  let a=String(t==null?'':t).split(/<br\s*\/?>|\r?\n/i)
+        .map(x=>x.replace(/^[\s\-–—*•·]+/,'').trim()).filter(Boolean);
+  if(a.length===1&&a[0].length>140){
+    const parts=a[0].split(/(?<=[.;])\s+/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1) a=parts;
+  }
+  return a;
+};
+
+const contact=[p.address,p.phone,p.email,p.linkedin,p.social].filter(Boolean);
+
+// Only the details the customer explicitly ticked may appear here. Default is
+// nothing at all.
+const personal=[
+  SH.dob&&(p.dobShort||p.dob)?['Date of Birth',p.dobShort||fmtD(p.dob)]:null,
+  SH.nationality&&p.nationality?['Nationality',p.nationality]:null,
+  SH.civil&&p.civilStatus?['Civil Status',p.civilStatus]:null,
+  SH.gender&&p.gender?['Gender',p.gender]:null
+].filter(Boolean);
+
+const cefr=(E.cefrLanguages||[]).filter(l=>l.lang);
+// Fall back to the plain tag list if the customer never graded anything
+const plainLangs=(s.languages||[]);
+
+const permitLine=[E.permit,E.permitExpiry?('valid until '+fmtD(E.permitExpiry)):'']
+                  .filter(Boolean).join(', ');
+const extras=[
+  permitLine?['Right to Work',permitLine]:null,
+  E.notice?['Availability',E.notice]:null,
+  E.relocate?['Relocation',E.relocate]:null,
+  E.licence?['Driving Licence',E.licence]:null,
+  E.recognition?['Qualification Recognition',E.recognition]:null,
+  E.memberships?['Professional Memberships',E.memberships]:null,
+  s.hobbies?['Interests',s.hobbies]:null
+].filter(Boolean);
+
+const sec=(title,body)=>body?`<div class="sec"><div class="sh">${title}</div>${body}</div>`:'';
+
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+/* Arial/Helvetica deliberately: it is the safest face for ATS text extraction,
+   and European recruiters read it as neutral rather than plain. */
+body{font-family:Arial,Helvetica,'Liberation Sans',sans-serif;background:#e8e8e8;color:#000;}
+.page{width:100%;min-height:100vh;background:#fff;padding:34px 46px 30px;display:flex;flex-direction:column;}
+.hdr{border-top:1.5px solid ${AC};border-bottom:1.5px solid ${AC};padding:12px 0 9px;
+     display:flex;align-items:center;gap:16px;}
+.hdr-text{flex:1;text-align:center;min-width:0;}
+/* Photo sits right, Lebenslauf-style. An equal-width spacer on the left keeps
+   the name optically centred rather than shunted off-axis. */
+.hdr-photo{width:88px;height:110px;flex-shrink:0;overflow:hidden;background:#f2f2f2;border:1px solid #ccc;}
+.hdr-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.hdr-spacer{width:88px;flex-shrink:0;}
+.hdr h1{font-size:27px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;line-height:1.15;color:${accent?'#0f172a':'#000'};}
+.hdr .ttl{font-size:14.5px;font-weight:400;letter-spacing:1.4px;text-transform:uppercase;margin-top:5px;color:${accent?'#1d4ed8':'#111'};}
+.contact{text-align:center;font-size:10.5px;padding:7px 0 8px;border-bottom:2.5px solid ${AC};line-height:1.6;color:#111;}
+.contact span+span::before{content:' | ';color:#666;}
+.sec{margin-top:13px;}
+.sh{font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+    border-bottom:1px solid ${accent?'#93b4f5':'#000'};padding-bottom:2px;margin-bottom:7px;color:${AC};}
+.para{font-size:10.7px;line-height:1.52;text-align:justify;color:#111;}
+/* Three columns of short skill bullets, exactly as the reference layout. The
+   column rule keeps a two-line skill from straddling a break. */
+.skills{column-count:3;column-gap:22px;padding-left:2px;}
+@media print{.skills{column-count:3;}}
+.skills li{font-size:10.5px;line-height:1.5;margin:0 0 2px 14px;break-inside:avoid;}
+.job{margin-bottom:9px;break-inside:avoid;}
+.job:last-child{margin-bottom:2px;}
+.jrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;}
+.jpos{font-size:11.3px;font-weight:700;color:#000;}
+.jdate{font-size:10.5px;font-weight:400;color:#111;white-space:nowrap;flex-shrink:0;}
+.jco{font-size:10.6px;color:#111;margin-top:1px;}
+.jloc{font-size:10.3px;color:#333;margin-top:0px;}
+.jul{margin:3px 0 0 16px;}
+.jul li{font-size:10.5px;line-height:1.5;margin-bottom:1.5px;padding-left:1px;}
+.kv{font-size:10.6px;line-height:1.55;margin-bottom:2px;}
+.kv b{font-weight:700;margin-right:5px;}
+/* One language per line, each with its grade and certificate. Deliberately not
+   a CSS grid: print engines that don't support grid collapse it into an
+   unreadable run-on, and a European recruiter scanning for "B2" must not have
+   to hunt for it. */
+.lang div{font-size:10.6px;line-height:1.6;margin-bottom:1px;}
+.lang b{font-weight:700;margin-right:5px;}
+/* Two columns via inline-block rather than grid, for the same reason. */
+.refs{font-size:0;}
+.ref{display:inline-block;width:48%;vertical-align:top;margin:0 2% 6px 0;
+     font-size:10.4px;line-height:1.45;break-inside:avoid;}
+.ref b{font-weight:700;}
+.gdpr{margin-top:auto;padding-top:12px;font-size:8.2px;color:#555;line-height:1.45;
+      border-top:1px solid #ddd;text-align:justify;font-style:italic;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+
+  <div class="hdr">
+    ${showPhoto?`<div class="hdr-spacer"></div>`:''}
+    <div class="hdr-text">
+      <h1>${fullName(p)}</h1>
+      ${p.jobTitle?`<div class="ttl">${p.jobTitle}</div>`:''}
+    </div>
+    ${showPhoto?`<div class="hdr-photo"><img src="${p.photo}" alt=""></div>`:''}
+  </div>
+  ${contact.length?`<div class="contact">${contact.map(c=>`<span>${c}</span>`).join('')}</div>`:''}
+
+  ${sec('Professional Summary', s.profileSummary||s.aboutMe
+      ? `<p class="para">${s.profileSummary||s.aboutMe}</p>` : '')}
+
+  ${sec('Key Skills', skills.length
+      ? `<ul class="skills">${skills.map(k=>`<li>${k}</li>`).join('')}</ul>` : '')}
+
+  ${sec('Work Experience', work.length ? work.map(w=>{
+      const b=blist(w.responsibilities);
+      return `<div class="job">
+        <div class="jrow">
+          <div class="jpos">${w.position||''}</div>
+          <div class="jdate">${[w.dateStart,w.dateEnd].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${w.company?`<div class="jco">${w.company}</div>`:''}
+        ${w.location?`<div class="jloc">${w.location}</div>`:''}
+        ${b.length?`<ul class="jul">${b.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+      </div>`;}).join('') : '')}
+
+  ${sec('Education', edu.length ? edu.map(e=>`
+      <div class="job">
+        <div class="jrow">
+          <div class="jpos">${e.degree||e.school||''}</div>
+          <div class="jdate">${[e.yearStart,e.yearGrad].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${e.degree&&e.school?`<div class="jco">${e.school}</div>`:''}
+        ${e.honors?`<div class="jloc">${e.honors}</div>`:''}
+      </div>`).join('') : '')}
+
+  ${sec('Languages', cefr.length
+      ? `<div class="lang">${cefr.map(l=>
+          `<div><b>${l.lang}</b>${[l.level,l.cert].filter(Boolean).join(' · ')}</div>`).join('')}</div>`
+      : (plainLangs.length?`<p class="para">${plainLangs.join(' · ')}</p>`:''))}
+
+  ${sec('Certifications & Awards', s.awards?`<p class="para">${s.awards}</p>`:'')}
+
+  ${sec('Additional Information', extras.length
+      ? extras.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('Personal Details', personal.length
+      ? personal.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('References', refs.length
+      ? `<div class="refs">${refs.map(r=>`<div class="ref"><b>${r.name}</b><br>${
+          [r.position,r.company].filter(Boolean).join(', ')}${r.contact?'<br>'+r.contact:''}</div>`).join('')}</div>`
+      : `<p class="para">Available upon request.</p>`)}
+
+  ${E.gdprLine?`<div class="gdpr">I hereby give consent for my personal data included in this application to be processed for the purposes of the recruitment process, in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (GDPR).</div>`:''}
+
+</div></div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 1 — Dark Sidebar · Cyan Accents
@@ -4008,11 +4302,14 @@ async function generateProfileSummary(idx){
   spinner.style.display = 'inline-block';
   display.value = '⏳ Generating profile summary...';
 
-  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel;
+  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel;
   const workSum = experienceForAI(s);
   const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
 
-  const prompt = `Write a CV Profile Summary for a Filipino ${s.eduLevel==='seaman'?'SEAFARER applying to a manning agency':'job applicant'}. Write in FIRST PERSON only (I, my, I have — NEVER use the name). Exactly 3 sentences. Sound confident, professional, and motivated.${s.eduLevel==='seaman'?' Use maritime language: mention safety, seamanship, teamwork aboard, and readiness to join a vessel. Do NOT call the applicant a fresh graduate if sea service is listed below.':''} Output ONLY the 3 sentences — no labels, no headers, nothing else.
+  const euCtx = s.eduLevel==='europe'
+    ? ` The applicant is targeting ${s.europe?.country||'Europe'}. Write for a European employer: lead with years of experience and specialism, name concrete results, and keep it free of any reference to age, marital status, gender or nationality.${/^No permit yet/.test(s.europe?.permit||'')?' The applicant will require visa sponsorship — do not mention this in the summary.':''}`
+    : '';
+  const prompt = `Write a CV Profile Summary for a Filipino ${s.eduLevel==='seaman'?'SEAFARER applying to a manning agency':'job applicant'}.${euCtx} Write in FIRST PERSON only (I, my, I have — NEVER use the name). Exactly 3 sentences. Sound confident, professional, and motivated.${s.eduLevel==='seaman'?' Use maritime language: mention safety, seamanship, teamwork aboard, and readiness to join a vessel. Do NOT call the applicant a fresh graduate if sea service is listed below.':''} Output ONLY the 3 sentences — no labels, no headers, nothing else.
 
 Target Position: ${targetRoleForAI(s)}
 Education: ${eduLevel} — ${eduSum||'Not specified'}
@@ -4338,7 +4635,7 @@ async function generateCoverLetter(idx){
     creative:'creative, expressive, and memorable'
   };
   const toneDesc=toneMap[tone]||'professional and formal';
-  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer'}[s.eduLevel]||s.eduLevel||'Graduate';
+  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel||'Graduate';
   const workSum=experienceForAI(s);
   const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ')||'Not specified';
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
