@@ -5871,9 +5871,6 @@ function screenDone(){
      </div>
      ${rows}
 
-     ${pack.length > 1 ? `<button class="btn-ghost" style="width:100%;margin-top:2px"
-        onclick="downloadAll()">\u2b07 Download all ${pack.length} in one PDF</button>` : ''}
-
      ${more && !topUpDraft ? `<div style="margin-top:16px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px">
        <div style="font-size:12.5px;font-weight:800;color:var(--navy)">Want another look?</div>
        <div style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:3px">
@@ -6575,31 +6572,21 @@ function paintCV(html){
   });
 }
 
-function newPDF(){
-  const { jsPDF } = window.jspdf;
-  return new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
-}
-
-// Paints one template onto a page of an existing document. The canvas is
-// released before returning: at scale 2 each is 1588x2246, about 14 MB of raw
-// pixels, and holding several across a loop is enough to kill a cheap phone.
-async function addTemplatePage(pdf, tmpl, first){
+async function makePDF(tmpl, filename){
+  await ensurePdfLibs();
   const canvas = await paintCV(currentCVHtml('pdf', tmpl));
   try {
-    if(!first) pdf.addPage();
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
     // JPEG at 0.92 rather than PNG: a PNG of a full-colour CV runs to several
     // megabytes, which is a painful download on mobile data for no visible gain.
     pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+    pdf.save(filename);
   } finally {
+    // Released explicitly: at scale 2 this is 1588x2246, about 14 MB of raw
+    // pixels, and a cheap phone notices.
     canvas.width = 0; canvas.height = 0;
   }
-}
-
-async function makePDF(tmpl, filename){
-  await ensurePdfLibs();
-  const pdf = newPDF();
-  await addTemplatePage(pdf, tmpl, true);
-  pdf.save(filename);
 }
 
 // T18 and T19 are the ATS layouts. A rasterised PDF is invisible to a CV
@@ -6675,75 +6662,7 @@ async function downloadCV(tmpl){
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast('PDF could not be made here, so we saved the CV as a web file instead \u2014 '
-        + 'open it and press Print to get a PDF.', true);
-  }
-}
-
-// One file, one page per template. See the note above for why this is not a
-// loop of separate downloads.
-let allBusy = false;
-
-async function downloadAll(){
-  const pack = ownedPack().filter(ownsTemplate);
-  if(!pack.length) return;
-
-  // Same gate as the single-file button: unlock state, the 24-hour window and
-  // the identity check. Going straight to makePDF skipped all three.
-  if(!canOutput(pack[0])) return;
-
-  // A second tap while the first run is still painting would interleave two
-  // sets of iframes and produce a scrambled document.
-  if(allBusy){ toast('Still building \u2014 one moment.'); return; }
-  allBusy = true;
-
-  const d = collectData();
-  const base = [d.personal.firstName, d.personal.lastName]
-    .filter(Boolean).join('_').replace(/[^A-Za-z0-9_]/g, '') || 'CV';
-  const failed = [];
-
-  try {
-    await ensurePdfLibs();
-    const pdf = newPDF();
-    let added = 0;
-
-    for(let i = 0; i < pack.length; i++){
-      toast('Building page ' + (i + 1) + ' of ' + pack.length + '\u2026');
-      try {
-        await addTemplatePage(pdf, pack[i], added === 0);
-        added++;
-      } catch(e){
-        // One bad template must not lose the others, but it is reported rather
-        // than hidden.
-        console.warn('Template ' + pack[i] + ' failed to render:', e);
-        failed.push(pack[i]);
-      }
-    }
-
-    if(!added) throw new Error('No pages could be rendered.');
-
-    pdf.save(base + '_CV_' + added + (added === 1 ? 'template' : 'templates') + '.pdf');
-
-    if(failed.length){
-      toast('Saved ' + added + ' of ' + pack.length + ' templates. Template '
-          + failed.join(', ') + ' would not render \u2014 save '
-          + (failed.length > 1 ? 'those' : 'that one') + ' on its own.', true);
-    } else {
-      toast('Saved one PDF with ' + added + ' page' + (added > 1 ? 's' : '')
-          + ' \u2014 template' + (added > 1 ? 's ' : ' ') + pack.join(', ') + '.');
-    }
-
-    const ats = pack.filter(isATS);
-    if(ats.length){
-      setTimeout(() => toast('Template ' + ats.join(', ') + ' in that file is the ATS '
-          + 'layout. For job sites, print it separately so the text stays readable '
-          + 'by their scanners.', true), 4200);
-    }
-  } catch(e){
-    console.error('Download all failed:', e);
-    toast('The PDF could not be built here. Save each template one at a time with '
-        + 'the PDF button beside it, or use Print / Save as PDF.', true);
-  } finally {
-    allBusy = false;
+        + 'open it and press Print to save it as a PDF.', true);
   }
 }
 
