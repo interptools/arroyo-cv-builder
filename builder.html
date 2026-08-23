@@ -121,6 +121,96 @@ button{cursor:pointer;}
   scroll-margin-top:76px;
 }
 .card.hide{display:none;}
+
+/* Opening panel. People were reaching the form with no idea what the sequence
+   was, or that a payment sat between them and their file. */
+.how{
+  background:linear-gradient(135deg,var(--navy),var(--navy-2));
+  border-radius:16px;padding:22px 24px;margin-bottom:18px;color:#fff;
+  box-shadow:var(--shadow);
+}
+.how h2{
+  font-family:'Playfair Display',serif;font-size:19px;font-weight:700;
+  color:var(--gold-2);margin-bottom:5px;
+}
+.how .lede{font-size:13px;color:rgba(255,255,255,.68);line-height:1.6;margin-bottom:16px;}
+.how ol{list-style:none;counter-reset:h;margin:0;}
+.how li{
+  counter-increment:h;position:relative;padding-left:36px;margin-bottom:13px;
+  font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.92);
+}
+.how li:last-child{margin-bottom:0;}
+.how li::before{
+  content:counter(h);position:absolute;left:0;top:-1px;width:25px;height:25px;
+  border-radius:50%;background:rgba(200,168,75,.16);border:1.5px solid var(--gold);
+  color:var(--gold-2);font-family:'JetBrains Mono',monospace;font-size:12px;
+  font-weight:700;display:grid;place-items:center;
+}
+.how li b{color:#fff;font-weight:700;}
+.how li small{display:block;font-size:11.5px;color:rgba(255,255,255,.5);margin-top:2px;}
+.how .pay-strip{
+  display:flex;align-items:center;gap:13px;margin-top:17px;padding:12px 14px;
+  background:rgba(200,168,75,.10);border:1px solid rgba(200,168,75,.28);border-radius:11px;
+}
+.how .pay-strip img{
+  width:62px;height:62px;object-fit:contain;border-radius:8px;background:#fff;
+  padding:4px;flex-shrink:0;
+}
+.how .pay-strip .t{font-size:12px;color:rgba(255,255,255,.62);line-height:1.5;}
+.how .pay-strip .n{font-size:15px;font-weight:800;color:var(--gold-2);letter-spacing:.4px;}
+
+/* Closing payment card. The QR used to live only inside the unlock dialog,
+   which people had to know to open - so the one thing standing between them
+   and their CV was the one thing they could not see. */
+.pay-card{border:2px solid var(--gold);}
+.pay-card .card-h .num{font-size:19px;}
+.pay-box{
+  display:flex;gap:18px;align-items:center;flex-wrap:wrap;
+  background:var(--paper);border:1px solid var(--line);border-radius:13px;
+  padding:18px;margin-bottom:18px;
+}
+.pay-qr{text-align:center;flex-shrink:0;}
+.pay-qr img{
+  width:150px;height:150px;object-fit:contain;background:#fff;
+  border:1.5px solid var(--line);border-radius:11px;padding:7px;display:block;
+}
+.pay-qr span{display:block;font-size:11px;color:var(--muted);margin-top:7px;font-weight:600;}
+.pay-detail{flex:1;min-width:190px;}
+.pd-lbl{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;}
+.pd-num{
+  font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:700;
+  color:var(--navy);letter-spacing:.5px;margin:5px 0 2px;
+}
+.pd-name{font-size:12.5px;color:var(--muted);}
+.pd-copy{
+  background:var(--white);border:1.5px solid var(--line);border-radius:8px;
+  padding:7px 14px;font-size:12px;font-weight:700;color:var(--navy);margin-top:11px;
+}
+.pd-copy:hover{border-color:var(--gold);}
+.pd-amt{font-size:13.5px;color:var(--ink);margin-top:12px;}
+.pd-amt b{color:var(--navy);font-size:16px;}
+.pay-steps{counter-reset:p;list-style:none;margin:0 0 20px;}
+.pay-steps li{
+  counter-increment:p;position:relative;padding-left:32px;margin-bottom:11px;
+  font-size:13px;line-height:1.6;color:#374151;
+}
+.pay-steps li::before{
+  content:counter(p);position:absolute;left:0;top:0;width:22px;height:22px;
+  border-radius:50%;background:var(--navy);color:var(--gold-2);
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+  display:grid;place-items:center;
+}
+.pay-cta{
+  width:100%;padding:15px;background:var(--gold);color:var(--navy);border:none;
+  border-radius:11px;font-size:15px;font-weight:800;
+}
+.pay-cta:hover{background:var(--gold-2);}
+.pay-cta.done{background:var(--ok);color:#fff;}
+.pay-alt{
+  width:100%;padding:11px;background:none;border:none;color:var(--muted);
+  font-size:12.5px;font-weight:600;text-decoration:underline;margin-top:9px;
+}
+.pay-alt:hover{color:var(--navy);}
 .card-h{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;}
 .card-h .num{
   font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
@@ -181,6 +271,17 @@ textarea{resize:vertical;line-height:1.6;}
   background:none;border:none;color:var(--bad);font-size:11px;font-weight:700;
   letter-spacing:.4px;padding:2px 4px;
 }
+/* Sits under the duty box, where people stall. Quiet until hovered — it is an
+   offer, not the main action. */
+.duty-btn{
+  display:inline-flex;align-items:center;gap:7px;margin-top:8px;
+  background:none;border:1.5px dashed var(--gold);border-radius:8px;
+  padding:7px 13px;font-size:12px;font-weight:700;color:var(--navy);
+}
+.duty-btn:hover{background:rgba(200,168,75,.10);}
+.duty-btn[disabled]{opacity:.6;cursor:wait;border-style:solid;}
+.duty-btn .spin{border-color:rgba(26,39,68,.25);border-top-color:var(--navy);}
+
 .add-btn{
   width:100%;padding:11px;border:1.5px dashed var(--line);border-radius:10px;
   background:none;color:var(--muted);font-size:13px;font-weight:600;
@@ -312,12 +413,24 @@ textarea{resize:vertical;line-height:1.6;}
 .btn-go:hover{background:var(--navy-2);}
 
 /* Mobile preview trigger */
-.pv-fab{
-  display:none;position:fixed;bottom:18px;right:18px;z-index:70;
-  background:var(--navy);color:#fff;border:none;border-radius:26px;
-  padding:14px 22px;font-size:13.5px;font-weight:800;
-  box-shadow:0 8px 24px rgba(26,39,68,.35);
+/* Mobile action bar. The unlock button used to live only inside the preview
+   panel, which on a phone is a separate full-screen view — so the one control
+   that takes payment was hidden behind a button most people never pressed. */
+.mobile-bar{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:70;
+  background:var(--white);border-top:1px solid var(--line);
+  padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  gap:9px;box-shadow:0 -4px 20px rgba(26,39,68,.10);
 }
+.mobile-bar button{
+  padding:13px 10px;border-radius:10px;font-size:14px;font-weight:800;border:none;
+}
+.mobile-bar .mb-pv{
+  flex:0 0 auto;background:var(--paper);color:var(--navy);
+  border:1.5px solid var(--line);padding:13px 18px;
+}
+.mobile-bar .mb-go{flex:1;background:var(--gold);color:var(--navy);}
+.mobile-bar .mb-go.open{background:var(--navy);color:#fff;}
 
 /* ─── MODAL ───────────────────────────────────────────────────────────── */
 .ov{
@@ -413,17 +526,37 @@ textarea{resize:vertical;line-height:1.6;}
 }
 @media(max-width:940px){
   .shell{flex-direction:column;}
-  .form-col{width:100%;padding:18px 15px 100px;}
+  .form-col{width:100%;padding:18px 15px 150px;}
   .pv-col{
     position:fixed;inset:0;top:0;width:100%;height:100vh;z-index:90;
     border-left:none;display:none;
   }
   .pv-col.open{display:flex;}
-  .pv-fab{display:block;}
+  .mobile-bar{display:flex;}
   .grid,.grid.g3{grid-template-columns:1fr;}
   .card{padding:18px 16px;border-radius:13px;}
+  .pay-box{flex-direction:column;text-align:center;}
+  .pay-detail{text-align:center;}
+
+  /* Two tidy rows instead of five squeezed items. */
+  .topbar{flex-wrap:wrap;gap:8px 10px;padding:10px 12px;}
+  .brand{flex:1;min-width:0;}
+  .brand-mark{width:30px;height:30px;font-size:14px;}
+  .brand-txt h1{font-size:15px;}
+  .brand-txt span{font-size:8.5px;letter-spacing:1.6px;}
+  .topbar-spacer{display:none;}
+  .lockpill{order:3;flex:1 0 100%;justify-content:center;font-size:11px;padding:5px 10px;}
+  .tb-btn{font-size:11.5px;padding:6px 11px;white-space:nowrap;}
+  #tbPrint{display:none;}          /* the action bar carries this on mobile */
+  .pv-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom));}
+}
+
+@media(max-width:400px){
+  .brand-txt span{display:none;}
+  .tb-btn{font-size:11px;padding:6px 9px;}
 }
 </style>
+
 </head>
 <body>
 
@@ -447,21 +580,41 @@ textarea{resize:vertical;line-height:1.6;}
   <!-- ─── LEFT RAIL ────────────────────────────────────────────────────── -->
   <nav class="rail" id="rail">
     <div class="rail-h">Your CV, in order</div>
-    <a href="#s-format"  data-sec="s-format"><span class="rn">01</span>Format<span class="tick">✓</span></a>
+    <a href="#s-format" data-sec="s-format"><span class="rn">01</span>Format<span class="tick">✓</span></a>
     <a href="#s-personal" data-sec="s-personal"><span class="rn">02</span>Personal details<span class="tick">✓</span></a>
-    <a href="#s-summary" data-sec="s-summary"><span class="rn">03</span>Profile summary<span class="tick">✓</span></a>
-    <a href="#s-edu"     data-sec="s-edu"><span class="rn">04</span>Education<span class="tick">✓</span></a>
-    <a href="#s-work"    data-sec="s-work"><span class="rn">05</span>Work experience<span class="tick">✓</span></a>
-    <a href="#s-ojt"     data-sec="s-ojt"><span class="rn">06</span>OJT / Practicum<span class="tick">✓</span></a>
-    <a href="#s-seaman"  data-sec="s-seaman"><span class="rn">07</span>Seafarer records<span class="tick">✓</span></a>
-    <a href="#s-europe"  data-sec="s-europe"><span class="rn">08</span>Europe details<span class="tick">✓</span></a>
-    <a href="#s-skills"  data-sec="s-skills"><span class="rn">09</span>Skills &amp; languages<span class="tick">✓</span></a>
-    <a href="#s-extra"   data-sec="s-extra"><span class="rn">10</span>Awards &amp; interests<span class="tick">✓</span></a>
-    <a href="#s-refs"    data-sec="s-refs"><span class="rn">11</span>References<span class="tick">✓</span></a>
+    <a href="#s-edu" data-sec="s-edu"><span class="rn">03</span>Education<span class="tick">✓</span></a>
+    <a href="#s-work" data-sec="s-work"><span class="rn">04</span>Work experience<span class="tick">✓</span></a>
+    <a href="#s-ojt" data-sec="s-ojt"><span class="rn">05</span>OJT / Practicum<span class="tick">✓</span></a>
+    <a href="#s-seaman" data-sec="s-seaman"><span class="rn">06</span>Seafarer records<span class="tick">✓</span></a>
+    <a href="#s-europe" data-sec="s-europe"><span class="rn">07</span>Europe details<span class="tick">✓</span></a>
+    <a href="#s-skills" data-sec="s-skills"><span class="rn">08</span>Skills &amp; languages<span class="tick">✓</span></a>
+    <a href="#s-extra" data-sec="s-extra"><span class="rn">09</span>Awards &amp; interests<span class="tick">✓</span></a>
+    <a href="#s-refs" data-sec="s-refs"><span class="rn">10</span>References<span class="tick">✓</span></a>
+    <a href="#s-summary" data-sec="s-summary"><span class="rn">11</span>Profile summary<span class="tick">✓</span></a>
   </nav>
 
   <!-- ─── FORM COLUMN ──────────────────────────────────────────────────── -->
   <main class="form-col">
+
+    <div class="how">
+      <h2>Your CV in five steps</h2>
+      <p class="lede">Everything happens on this page. It takes about ten minutes.</p>
+      <ol>
+        <li><b>Fill in the form below.</b><small>Only name, phone, email, address, one school and a photo are required.</small></li>
+        <li><b>Let AI write your profile summary</b>, or type your own.<small>Step 03. You get three versions to choose from.</small></li>
+        <li><b>Pick a design and check the preview.</b><small>Tap <b>Preview</b> at the bottom of the screen to see your CV.</small></li>
+        <li><b>Pay ₱25 by GCash and send us the reference number.</b><small>Tap <b>Unlock — ₱25</b>, and we will show you where to send it.</small></li>
+        <li><b>We approve it, then Save and Print open here.</b><small>Usually within a few hours during the day. You can close the page and come back.</small></li>
+      </ol>
+      <div class="pay-strip">
+        <img id="howQR" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Crect width='240' height='240' rx='12' fill='%23f7f8fc' stroke='%23e5e7eb' stroke-width='2'/%3E%3Ctext x='120' y='104' text-anchor='middle' font-family='Arial' font-size='38'%3E%F0%9F%92%B3%3C/text%3E%3Ctext x='120' y='142' text-anchor='middle' font-family='Arial' font-size='13' fill='%236b7280'%3ELoading QR code%E2%80%A6%3C/text%3E%3Ctext x='120' y='164' text-anchor='middle' font-family='Arial' font-size='11' fill='%239ca3af'%3EOr send to the number shown%3C/text%3E%3C/svg%3E" alt="GCash QR code">
+        <div>
+          <div class="t">GCash · Reymar Arroyo</div>
+          <div class="n">09063964052</div>
+          <div class="t">Scan or send to this number when you reach step 4.</div>
+        </div>
+      </div>
+    </div>
 
     <!-- 01 FORMAT -->
     <section class="card" id="s-format">
@@ -515,40 +668,9 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
     </section>
 
-    <!-- 03 SUMMARY -->
-    <section class="card" id="s-summary">
-      <div class="card-h"><span class="num">03</span><h2>Profile summary</h2></div>
-      <p class="card-sub">This is the short paragraph an employer reads first. Tell us about yourself in your own words, then let AI turn it into three polished versions.</p>
-
-      <div style="margin-bottom:15px">
-        <label>In your own words — what should employers know? <span class="opt">— feeds the AI</span></label>
-        <textarea id="aboutMe" rows="3" maxlength="600" placeholder="e.g. 3 years BPO experience, shifting to admin work. Fast learner, works well under pressure, speaks English and Bisaya."></textarea>
-        <div class="hint">Plain sentences are fine. The more you give, the better the result.</div>
-      </div>
-
-      <div class="ai-panel">
-        <h3>✨ Write it for me</h3>
-        <p>Uses your job title, work history, education and skills. Pick a tone, get three versions, keep the one you like.</p>
-        <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
-          <select id="aiTone" style="max-width:170px">
-            <option value="professional">Professional</option>
-            <option value="warm">Warm &amp; personable</option>
-            <option value="confident">Confident &amp; direct</option>
-            <option value="entry">Entry-level friendly</option>
-          </select>
-          <button class="ai-btn" id="aiBtn" onclick="generateSummary()">✨ Generate 3 versions</button>
-        </div>
-        <div class="ai-opts" id="aiOpts"></div>
-      </div>
-
-      <label>Profile summary on your CV</label>
-      <textarea id="profileSummary" rows="5" placeholder="Write it yourself, or generate above and click a version to use it."></textarea>
-      <div class="hint">You can edit freely after choosing an AI version.</div>
-    </section>
-
     <!-- 04 EDUCATION -->
     <section class="card" id="s-edu">
-      <div class="card-h"><span class="num">04</span><h2>Education</h2></div>
+      <div class="card-h"><span class="num">03</span><h2>Education</h2></div>
       <p class="card-sub">Most recent school first. At least one is required.</p>
       <div id="eduList"></div>
       <button class="add-btn" onclick="addEdu()">+ Add another school</button>
@@ -556,7 +678,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 05 WORK -->
     <section class="card" id="s-work">
-      <div class="card-h"><span class="num">05</span><h2>Work experience</h2></div>
+      <div class="card-h"><span class="num">04</span><h2>Work experience</h2></div>
       <p class="card-sub">Most recent job first. Put each duty on its own line — they become bullet points.</p>
       <div id="workList"></div>
       <button class="add-btn" onclick="addWork()">+ Add another job</button>
@@ -564,7 +686,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 06 OJT -->
     <section class="card hide" id="s-ojt">
-      <div class="card-h"><span class="num">06</span><h2>OJT / Practicum</h2></div>
+      <div class="card-h"><span class="num">05</span><h2>OJT / Practicum</h2></div>
       <p class="card-sub">Your training placement counts as experience. List what you actually did.</p>
       <div id="ojtList"></div>
       <button class="add-btn" onclick="addOjt()">+ Add another OJT</button>
@@ -572,7 +694,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 07 SEAFARER -->
     <section class="card hide" id="s-seaman">
-      <div class="card-h"><span class="num">07</span><h2>Seafarer records</h2></div>
+      <div class="card-h"><span class="num">06</span><h2>Seafarer records</h2></div>
       <p class="card-sub">Leave anything blank that does not apply — blank rows are dropped from the CV.</p>
 
       <div class="grid g3">
@@ -623,7 +745,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 08 EUROPE -->
     <section class="card hide" id="s-europe">
-      <div class="card-h"><span class="num">08</span><h2>Europe details</h2></div>
+      <div class="card-h"><span class="num">07</span><h2>Europe details</h2></div>
       <p class="card-sub">European CVs leave out personal data by default. Nothing below appears unless you tick it.</p>
 
       <div class="grid">
@@ -658,7 +780,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 09 SKILLS -->
     <section class="card" id="s-skills">
-      <div class="card-h"><span class="num">09</span><h2>Skills &amp; languages</h2></div>
+      <div class="card-h"><span class="num">08</span><h2>Skills &amp; languages</h2></div>
       <p class="card-sub">Press Enter after each one. Tap a suggestion to add it instantly.</p>
 
       <label>Skills</label>
@@ -674,7 +796,7 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 10 EXTRA -->
     <section class="card" id="s-extra">
-      <div class="card-h"><span class="num">10</span><h2>Awards &amp; interests</h2></div>
+      <div class="card-h"><span class="num">09</span><h2>Awards &amp; interests</h2></div>
       <p class="card-sub">Optional, but they fill out a short CV nicely.</p>
       <div class="grid">
         <div class="full"><label>Awards, honours, recognition</label>
@@ -686,10 +808,76 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 11 REFS -->
     <section class="card" id="s-refs">
-      <div class="card-h"><span class="num">11</span><h2>References</h2></div>
+      <div class="card-h"><span class="num">10</span><h2>References</h2></div>
       <p class="card-sub">Ask permission first. Leave empty and the CV will say "Available upon request".</p>
       <div id="refList"></div>
       <button class="add-btn" onclick="addRef()">+ Add reference</button>
+    </section>
+
+    <!-- 03 SUMMARY -->
+    <section class="card" id="s-summary">
+      <div class="card-h"><span class="num">11</span><h2>Profile summary</h2></div>
+      <p class="card-sub">Last step, on purpose. Now that your work history is filled in, the AI has something real to write from.</p>
+
+      <div style="margin-bottom:15px">
+        <label>In your own words — what should employers know? <span class="opt">— feeds the AI</span></label>
+        <textarea id="aboutMe" rows="3" maxlength="600" placeholder="e.g. 3 years BPO experience, shifting to admin work. Fast learner, works well under pressure, speaks English and Bisaya."></textarea>
+        <div class="hint">Plain sentences are fine. The more you give, the better the result.</div>
+      </div>
+
+      <div class="ai-panel">
+        <h3>✨ Write it for me</h3>
+        <p>Uses your job title, work history, education and skills. Pick a tone, get three versions, keep the one you like.</p>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center">
+          <select id="aiTone" style="max-width:170px">
+            <option value="professional">Professional</option>
+            <option value="warm">Warm &amp; personable</option>
+            <option value="confident">Confident &amp; direct</option>
+            <option value="entry">Entry-level friendly</option>
+          </select>
+          <button class="ai-btn" id="aiBtn" onclick="generateSummary()">✨ Generate 3 versions</button>
+        </div>
+        <div class="ai-opts" id="aiOpts"></div>
+      </div>
+
+      <label>Profile summary on your CV</label>
+      <textarea id="profileSummary" rows="5" placeholder="Write it yourself, or generate above and click a version to use it."></textarea>
+      <div class="hint">You can edit freely after choosing an AI version.</div>
+    </section>
+
+    <!-- PAY -->
+    <section class="card pay-card" id="s-pay">
+      <div class="card-h"><span class="num">₱</span><h2>Get your CV</h2></div>
+      <p class="card-sub">Preview is free. To save or print, send ₱<span class="how-price-n">25</span> by GCash and give us the reference number — we approve it and the buttons unlock right here.</p>
+
+      <div class="pay-box">
+        <div class="pay-qr">
+          <img id="payQR" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Crect width='240' height='240' rx='12' fill='%23f7f8fc' stroke='%23e5e7eb' stroke-width='2'/%3E%3Ctext x='120' y='104' text-anchor='middle' font-family='Arial' font-size='38'%3E%F0%9F%92%B3%3C/text%3E%3Ctext x='120' y='142' text-anchor='middle' font-family='Arial' font-size='13' fill='%236b7280'%3ELoading QR code%E2%80%A6%3C/text%3E%3Ctext x='120' y='164' text-anchor='middle' font-family='Arial' font-size='11' fill='%239ca3af'%3EOr send to the number shown%3C/text%3E%3C/svg%3E" alt="GCash QR code">
+          <span>Scan with GCash</span>
+        </div>
+        <div class="pay-detail">
+          <div class="pd-lbl">Or send to this number</div>
+          <div class="pd-num" id="payNum">09063964052</div>
+          <div class="pd-name">Reymar Arroyo · GCash</div>
+          <button type="button" class="pd-copy" onclick="copyGcash()">Copy number</button>
+          <div class="pd-amt">Amount: <b>₱<span class="how-price-n">25</span></b></div>
+        </div>
+      </div>
+
+      <ol class="pay-steps">
+        <li>Press <b>Unlock</b> below. We save your CV and give you a reference number.</li>
+        <li>Send <b>₱<span class="how-price-n">25</span></b> to the GCash number above.</li>
+        <li>Press <b>I have paid</b> and type in your GCash reference number.</li>
+        <li>We check it and approve — usually within a few hours during the day.</li>
+        <li><b>Save</b> and <b>Print</b> open right here. You can close the page and come back.</li>
+      </ol>
+
+      <button type="button" class="pay-cta" id="payCta" onclick="openUnlock('request')">
+        Unlock Save &amp; Print — ₱<span class="how-price-n">25</span>
+      </button>
+      <button type="button" class="pay-alt" onclick="openUnlock('check')">
+        I already paid — check my payment
+      </button>
     </section>
 
     <div style="font-size:11.5px;color:var(--muted);line-height:1.65;padding:0 4px">
@@ -728,7 +916,10 @@ textarea{resize:vertical;line-height:1.6;}
   </aside>
 </div>
 
-<button class="pv-fab" onclick="togglePreview()">👁 Preview</button>
+<div class="mobile-bar" id="mobileBar">
+  <button class="mb-pv" onclick="togglePreview()">👁 Preview</button>
+  <button class="mb-go" id="mbAction" onclick="openUnlock('request')">🔓 Unlock — ₱25</button>
+</div>
 
 <!-- ─── UNLOCK MODAL ───────────────────────────────────────────────────── -->
 <div class="ov" id="unlockOv">
@@ -2837,6 +3028,10 @@ function rowHTML(title, fields){
       ${f[2] === 'textarea'
         ? `<textarea rows="3" placeholder="${f[1]}" oninput="queuePreview()"></textarea>`
         : `<input type="${f[2] || 'text'}" placeholder="${f[1]}" oninput="queuePreview()">`}
+      ${f[4] === 'ai' ? `
+      <button type="button" class="duty-btn" onclick="suggestDuties(this)">
+        \u2728 Not sure what to write? Suggest duties
+      </button>` : ''}
     </div>`).join('');
   return `<div class="entry">
     <div class="entry-h"><span>${title}</span>
@@ -2881,7 +3076,7 @@ const addWork = () => addRow('workList','Job',[
   ['Position','Customer Service Representative'],
   ['Start (Month Year)','Jan 2022'],['End (or "Present")','Present'],
   ['Location','Cebu City'],
-  ['What you did — one duty per line','Handled 60+ customer calls daily\nResolved billing disputes\nMet 95% CSAT target','textarea',true]]);
+  ['What you did — one duty per line','Handled 60+ customer calls daily\nResolved billing disputes\nMet 95% CSAT target','textarea',true,'ai']]);
 
 const addOjt  = () => addRow('ojtList','OJT',[
   ['Company / Office <span class="req">*</span>','Cebu City Hall'],
@@ -2889,7 +3084,7 @@ const addOjt  = () => addRow('ojtList','OJT',[
   ['Your role','IT Support Trainee'],
   ['Start','Feb 2024'],['End','May 2024'],
   ['Location','Cebu City'],['Total hours','486 hours'],
-  ['Tasks — one per line','Assisted with hardware troubleshooting\nEncoded records into the database','textarea',true],
+  ['Tasks — one per line','Assisted with hardware troubleshooting\nEncoded records into the database','textarea',true,'ai'],
   ['Tools / software used','Windows 10, MS Excel','text',true]]);
 
 const addDoc  = () => addRow('docList','Document',[
@@ -3278,12 +3473,212 @@ function togglePreview(){
 }
 
 /* ─── AI PROFILE SUMMARY ────────────────────────────────────────────────── */
+// Four providers, tried in order. The builder used to call the Gemini proxy
+// alone, so any hiccup there produced "Could not reach the writer" — while the
+// admin page, which walks this same chain, carried on working fine.
+function ssFetch(url, opts, ms){
+  const ctrl = new AbortController();
+  const kill = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(kill));
+}
+
+// Every provider, tried in order, with the reason each one failed recorded.
+// A silent "the writers are busy" told nobody anything — now the console names
+// the provider and the cause, which is the difference between "my network
+// blocks it" and "that proxy needs a new model ID".
+const AI_PROVIDERS = [
+  { name: 'Groq',              run: () => callGroq() },
+  { name: 'Pollinations chat', run: p => callPollinationsChat(p) },
+  { name: 'Pollinations POST', run: p => callPollinationsPost(p) },
+  { name: 'Pollinations GET',  run: p => callPollinationsGet(p) },
+  { name: 'Gemini',            run: p => callGemini(p) }
+];
+
+async function callGroq(prompt){
+  const r = await ssFetch('https://groq-proxy.areymar36.workers.dev', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  }, 15000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  return (d?.text || d?.response || d?.choices?.[0]?.message?.content || '').trim();
+}
+
+// OpenAI-shaped endpoint. Different code path from the plain POST below, so a
+// change at their end rarely takes out both at once.
+async function callPollinationsChat(prompt){
+  const r = await ssFetch('https://text.pollinations.ai/openai', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: prompt }] })
+  }, 16000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const t = await r.text();
+  try { return (JSON.parse(t)?.choices?.[0]?.message?.content || '').trim(); }
+  catch(e){ return t.trim(); }
+}
+
+async function callPollinationsPost(prompt){
+  const r = await ssFetch('https://text.pollinations.ai/', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], model: 'openai', private: true })
+  }, 16000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return (await r.text()).trim();
+}
+
+async function callPollinationsGet(prompt){
+  const r = await ssFetch('https://text.pollinations.ai/'
+    + encodeURIComponent(prompt.slice(0, 600)) + '?model=openai', { method: 'GET' }, 15000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  return (await r.text()).trim();
+}
+
+async function callGemini(prompt){
+  const r = await ssFetch('https://gemini-proxy.areymar36.workers.dev', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }],
+                           generationConfig: { temperature: 0.8, maxOutputTokens: 900 } })
+  }, 16000);
+  if(!r.ok) throw new Error('HTTP ' + r.status);
+  const d = await r.json();
+  if(d?.error) throw new Error(d.error.message || 'API error');
+  return (d?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+}
+
+// A reply that is HTML, an error page, or too short to be an answer is a
+// failure even when the request returned 200.
+function usableReply(t){
+  if(!t || t.length < 30) return false;
+  const low = t.toLowerCase();
+  return !low.startsWith('<!') && !low.startsWith('<html') && !low.startsWith('error');
+}
+
+async function aiGenerate(prompt, say){
+  const failures = [];
+
+  for(const p of AI_PROVIDERS){
+    say && say(failures.length ? 'Trying ' + p.name + '\u2026' : 'Writing\u2026');
+    try {
+      const t = await p.run(prompt);
+      if(usableReply(t)) return t;
+      failures.push(p.name + ': empty or unusable reply');
+    } catch(e){
+      failures.push(p.name + ': ' + (e.name === 'AbortError' ? 'timed out' : e.message));
+    }
+  }
+
+  // Surfaced deliberately. "Failed to fetch" from every provider almost always
+  // means the page is running from disk or the network is blocking outbound
+  // requests, not that five separate services are down at once.
+  console.warn('All AI providers failed:\n  ' + failures.join('\n  '));
+  window.__aiFailures = failures;
+  return '';
+}
+
+// Distinguishes "they are all down" from "this browser cannot reach anything",
+// because the advice is completely different.
+function aiErrorAdvice(){
+  const f = window.__aiFailures || [];
+  const allBlocked = f.length && f.every(x => /failed to fetch|networkerror|load failed/i.test(x));
+  return allBlocked
+    ? 'Your connection is blocking the writer. Open the page at '
+      + 'interptools.github.io (not from a downloaded file) and try again.'
+    : 'The writers are busy right now. Wait a minute and try again, or type it in yourself.';
+}
+
+// Per-role duty suggestions. The blank "what you did" box is where most people
+// stall: they know the job, but not how to phrase it for a CV. This reads the
+// company and position already typed into THIS entry and offers real bullets.
+async function suggestDuties(btn){
+  const entry = btn.closest('.entry');
+  const list  = entry.parentElement;
+  const isOjt = list.id === 'ojtList';
+  const f = entry.querySelectorAll('input, textarea, select');
+  const keys = isOjt ? ROW_KEYS.ojt : ROW_KEYS.work;
+  const get = k => (f[keys.indexOf(k)]?.value || '').trim();
+
+  const company  = get('company');
+  const position = isOjt ? (get('role') || 'On-the-Job Trainee') : get('position');
+  const box = entry.querySelector('textarea');
+
+  if(!position && !company){
+    toast('Type the position or company first, then I can suggest duties.', true);
+    (f[keys.indexOf(isOjt ? 'role' : 'position')] || f[0])?.focus();
+    return;
+  }
+
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  const say = m => { btn.innerHTML = '<span class="spin"></span> ' + m; };
+  say('Thinking\u2026');
+
+  const context = [
+    position && ('Job title: ' + position),
+    company && ('Employer: ' + company),
+    get('location') && ('Location: ' + get('location')),
+    isOjt && get('department') && ('Department: ' + get('department')),
+    isOjt && 'This was an on-the-job training placement, not a paid role.',
+    val('jobTitle') && ('The applicant is now applying for: ' + val('jobTitle'))
+  ].filter(Boolean).join('\n');
+
+  const prompt = `You write CV bullet points for Filipino job applicants.
+
+List FIVE duties someone in the role below would realistically have performed.
+
+Rules:
+- One duty per line, no numbering, no bullet characters, no blank lines
+- Start each line with a past-tense verb (Handled, Prepared, Resolved, Assisted, Maintained)
+- 6 to 14 words each
+- Describe ordinary duties of the role. Do NOT invent specific numbers, percentages,
+  award names, system names or client names \u2014 the applicant will add their own
+- Plain English an employer in the Philippines would recognise
+- Output ONLY the five lines. No heading, no explanation, no closing remark.
+
+ROLE:
+${context}`;
+
+  try {
+    const text = await aiGenerate(prompt, say);
+    if(!text) throw new Error('no suggestions came back');
+
+    // Models add a preamble and a sign-off however firmly you ask them not to.
+    // Dropping those matters twice over: a line like "Here are five duties:"
+    // is not a duty, and left in it displaces a real one from the top five.
+    const CHATTER = /^(here|below|sure|certainly|of course|hope|let me know|these|i hope)\b/i;
+    const lines = String(text).split(/\r?\n/)
+      .map(l => l.replace(/^\s*(?:[-*\u2022\u00b7]|\d+[.)])\s*/, '').trim())
+      .filter(l =>
+           l.length > 8 && l.length < 160
+        && !l.endsWith(':')            // headings
+        && !CHATTER.test(l)            // preamble and sign-offs
+        && /\s/.test(l))              // at least two words
+      .slice(0, 5);
+    if(!lines.length) throw new Error('nothing usable came back');
+
+    // Never overwrite what the customer already wrote \u2014 append what is new.
+    const existing = box.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    const seen = new Set(existing.map(s => s.toLowerCase()));
+    const added = lines.filter(l => !seen.has(l.toLowerCase()));
+    box.value = existing.concat(added).join('\n');
+
+    renderPreview(); saveDraft();
+    toast(existing.length
+      ? 'Added ' + added.length + ' more \u2014 edit or delete any you did not do.'
+      : 'Five suggestions added \u2014 edit or delete any you did not do.');
+
+  } catch(err){
+    console.error('Duty suggestions failed:', err);
+    toast(aiErrorAdvice(), true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
 async function generateSummary(){
   const d = collectData();
   const btn = $('aiBtn');
 
-  // Without something concrete the model invents a career, so the thinnest
-  // acceptable input is checked before spending a request.
   const hasSubstance = d.aboutMe || d.personal.jobTitle || d.workExperience.length
                     || d.ojt.length || d.education.length || skills.length;
   if(!hasSubstance){
@@ -3293,7 +3688,8 @@ async function generateSummary(){
   }
 
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Writing…';
+  const say = msg => { btn.innerHTML = '<span class="spin"></span> ' + msg; };
+  say('Writing\u2026');
   $('aiOpts').innerHTML = '';
 
   const facts = [
@@ -3302,8 +3698,8 @@ async function generateSummary(){
     d.education.length && ('Education: ' + d.education
       .map(e => [e.degree, e.school, e.yearGrad].filter(Boolean).join(', ')).join(' | ')),
     d.workExperience.length && ('Work history: ' + d.workExperience
-      .map(w => [w.position, w.company, [w.dateStart, w.dateEnd].filter(Boolean).join('–')]
-        .filter(Boolean).join(', ') + (w.responsibilities ? ' — ' + w.responsibilities.replace(/\n/g,'; ') : ''))
+      .map(w => [w.position, w.company, [w.dateStart, w.dateEnd].filter(Boolean).join('\u2013')]
+        .filter(Boolean).join(', ') + (w.responsibilities ? ' \u2014 ' + w.responsibilities.replace(/\n/g,'; ') : ''))
       .join(' | ')),
     d.ojt.length && ('OJT / practicum: ' + d.ojt
       .map(o => [o.role, o.company, o.hours].filter(Boolean).join(', ')).join(' | ')),
@@ -3329,7 +3725,7 @@ Write THREE different profile summaries for the person described below. Each mus
 - written in first person without using "I am a" as the opening of every version
 - ${TONES[$('aiTone').value] || TONES.professional} in tone
 - built ONLY from the facts given; never invent an employer, a number, a year, or a qualification
-- free of clichés like "team player", "hard-working individual", "detail-oriented professional"
+- free of clich\u00e9s like "team player", "hard-working individual", "detail-oriented professional"
 
 Make the three genuinely different from each other in angle, not just reworded.
 
@@ -3340,24 +3736,9 @@ Return ONLY a JSON object, no markdown fences and no explanation:
 {"options":["...","...","..."]}`;
 
   try {
-    const ctrl = new AbortController();
-    const kill = setTimeout(() => ctrl.abort(), 25000);
-    const res = await fetch(AI_PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 900 }
-      }),
-      signal: ctrl.signal
-    });
-    clearTimeout(kill);
-    if(!res.ok) throw new Error('status ' + res.status);
+    let text = await aiGenerate(prompt, say);
+    if(!text) throw new Error('every writer is busy');
 
-    const json = await res.json();
-    if(json.error) throw new Error(json.error.message || 'AI error');
-
-    let text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
     text = String(text).replace(/```json|```/g, '').trim();
 
     let options = [];
@@ -3365,27 +3746,26 @@ Return ONLY a JSON object, no markdown fences and no explanation:
     if(a >= 0 && b > a){
       try { options = JSON.parse(text.slice(a, b + 1)).options || []; } catch(e){}
     }
-    // Fallback: the model sometimes answers in plain paragraphs. Splitting on
-    // blank lines recovers usable options instead of showing nothing.
+    // Providers that ignore the JSON instruction still return usable prose.
     if(!options.length){
       options = text.split(/\n{2,}/).map(s => s.replace(/^\s*[\d\-*.]+\s*/, '').trim())
                     .filter(s => s.length > 60).slice(0, 3);
     }
-    if(!options.length) throw new Error('no usable text returned');
+    // One long paragraph is better than an error message.
+    if(!options.length && text.length > 60) options = [text.slice(0, 700)];
+    if(!options.length) throw new Error('nothing usable came back');
 
     const LABELS = ['Version A', 'Version B', 'Version C'];
     $('aiOpts').innerHTML = options.slice(0,3).map((o, i) =>
       `<button type="button" class="ai-opt" onclick="useSummary(${i})">
-         <span class="lbl">${LABELS[i] || 'Version'} — tap to use</span>${escHtml(o)}
+         <span class="lbl">${LABELS[i] || 'Version'} \u2014 tap to use</span>${escHtml(o)}
        </button>`).join('');
     window.__aiOptions = options;
-    toast('Three versions ready — tap the one you like.');
+    toast(options.length > 1 ? 'Ready \u2014 tap the version you like.' : 'Ready \u2014 tap it to use it.');
 
   } catch(err){
     console.error('AI summary failed:', err);
-    toast(err.name === 'AbortError'
-      ? 'The writer took too long. Try again in a moment.'
-      : 'Could not reach the writer. Check your connection and try again.', true);
+    toast(aiErrorAdvice(), true);
   } finally {
     btn.disabled = false;
     btn.innerHTML = '\u2728 Generate 3 versions';
@@ -3963,18 +4343,92 @@ function copyRef(){
 
 // The admin can replace the QR from the back office, so the stored one wins
 // and the committed file is only the fallback.
-async function loadQR(){
-  const img = $('gcashQR');
-  if(!img) return;
-  try {
-    const qr = USING_API ? (await api('/qr')).qr : (await readBin()).gcashQR;
-    if(qr && String(qr).startsWith('data:image')){
-      img.src = qr;
-      img.style.display = '';
-    }
-  } catch(e){ /* the committed file is already in place */ }
+// The repo carries both gcash-qr.png and gcash-qr.jpg. Whichever exists wins,
+// and a QR stored in the back office beats both.
+// The number is the fallback for the fallback: if both QR files are missing,
+// the customer can still copy the digits and pay.
+function copyGcash(){
+  const n = ($('payNum')?.textContent || GCASH_NUMBER).trim();
+  navigator.clipboard?.writeText(n)
+    .then(() => toast('GCash number copied: ' + n))
+    .catch(() => toast('Copy did not work \u2014 the number is ' + n, true));
 }
 
+// Borrowed from index.html, which has never shown a broken QR. The image
+// starts as an inline SVG placeholder that cannot 404, and a real QR is only
+// swapped in once something has been PROVED to load. My earlier version put
+// the filename straight in src and relied on onerror, which fired during page
+// parse — before the handler existed — and left a broken icon for good.
+const QR_FILES = ['gcash-qr.png', 'gcash-qr.jpg'];
+
+function qrTargets(){
+  return [$('gcashQR'), $('howQR'), $('payQR')].filter(Boolean);
+}
+
+function showQR(src){
+  qrTargets().forEach(img => {
+    img.src = src;
+    img.style.display = '';
+    const block = img.closest && img.closest('.pay-qr');
+    if(block) block.style.display = '';
+  });
+}
+
+// Resolves to the first URL that actually decodes, or '' if none do.
+function probeImages(urls){
+  return new Promise(resolve => {
+    let i = 0;
+    const next = () => {
+      if(i >= urls.length) return resolve('');
+      const url = urls[i++];
+      const probe = new Image();
+      let settled = false;
+      const done = fn => (...a) => { if(!settled){ settled = true; fn(...a); } };
+      probe.onload  = done(() => resolve(url));
+      probe.onerror = done(next);
+      // A stalled image request would hang this chain as surely as a stalled
+      // fetch, so each candidate gets five seconds and no more.
+      setTimeout(done(next), 5000);
+      probe.src = url;
+    };
+    next();
+  });
+}
+
+async function loadQR(){
+  if(!qrTargets().length) return;
+
+  // Local file FIRST. It sits next to this page, resolves in milliseconds, and
+  // needs no network. The previous order awaited the Worker before looking at
+  // the file, so a request that HUNG rather than failed left the placeholder
+  // on screen forever — which is exactly what happened.
+  const found = await probeImages(QR_FILES);
+  if(found) showQR(found);
+
+  // Then upgrade to whatever the back office has, if anything. Capped at six
+  // seconds: this is a cosmetic improvement on a QR already being displayed,
+  // and must never be able to block the page.
+  try {
+    const stored = await Promise.race([
+      (async () => USING_API ? (await api('/qr')).qr : (await readBin()).gcashQR)(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timed out')), 6000))
+    ]);
+    if(stored && String(stored).startsWith('data:image')){ showQR(stored); return; }
+  } catch(e){
+    console.info('Stored QR unavailable (' + e.message + '); using the committed file.');
+  }
+
+  if(found) return;
+
+  // Nothing anywhere. Hide the block rather than leave a caption above a
+  // placeholder that will never resolve; the number below still works.
+  console.info('No GCash QR image found. Showing the number only.');
+  qrTargets().forEach(img => {
+    const block = img.closest && img.closest('.pay-qr');
+    if(block) block.style.display = 'none';
+    else img.style.display = 'none';
+  });
+}
 
 // Second alert in the flow. The first says an order arrived; this one says a
 // customer claims to have paid and is now blocked on the admin. It leads with
@@ -4191,19 +4645,21 @@ async function sendCustomerReceipt(data, proof){
     });
     console.log('Customer receipt sent to', p.email);
   } catch(e){
-    // Not surfaced: the payment details are already stored, and the on-screen
-    // confirmation has already told them what happens next.
     console.warn('Customer receipt failed (payment still recorded):', e);
   }
 }
 
 /* ─── SCREEN 2b — submit proof of payment ───────────────────────────────────
    The GCash reference number is what actually settles a payment: it is unique,
-   the admin can match it against the GCash app, and unlike a screenshot it
-   costs almost nothing to store. Screenshots are deliberately NOT taken here —
-   every order shares one JSONBin document with a hard size ceiling, and a
-   second image per order would start evicting other people's CVs.
+   it can be matched against the GCash app, and unlike a screenshot it costs
+   almost nothing to store. Screenshots are deliberately NOT taken here — every
+   order shares one JSONBin document with a hard size ceiling, and a second
+   image per order would start evicting other people's CVs.
    ────────────────────────────────────────────────────────────────────────── */
+
+// Kept so pressing Back and returning does not wipe what was typed.
+let proofDraft = null;
+
 function screenProof(){
   const d = collectData();
   const today = new Date().toISOString().slice(0, 10);
@@ -4237,8 +4693,8 @@ function screenProof(){
                 placeholder="Juan dela Cruz">
        </div>
        <div class="full">
-         <label>GCash number you sent from <span class="opt">— last 4 digits are enough</span></label>
-         <input type="text" id="pfPhone" value="${escHtml(prev.senderPhone || '')}" placeholder="09XX XXX 4052">
+         <label>GCash number you sent from <span class="opt">— optional</span></label>
+         <input type="text" id="pfPhone" value="${escHtml(prev.senderPhone || '')}" placeholder="09XX XXX XXXX">
        </div>
        <div class="full">
          <label>Anything we should know <span class="opt">— optional</span></label>
@@ -4258,9 +4714,6 @@ function screenProof(){
      <button class="btn-lock" onclick="submitProof()">Submit for approval</button>`);
   setTimeout(() => $('pfRef')?.focus(), 60);
 }
-
-// Kept so pressing Back and returning does not wipe what was typed.
-let proofDraft = null;
 
 async function submitProof(){
   const box = $('pfStat');
@@ -4368,26 +4821,41 @@ function screenSubmitted(proof){
 /* ─── SCREEN 3 — check by reference ─────────────────────────────────────── */
 function screenCheck(){
   const saved = unlockRef || readSavedRef();
+  // Both fields are things the customer already gave us: the email is on the
+  // form, and the reference was saved when they sent the order. Making them
+  // retype either invites a typo that reads back as "no order matches".
+  const savedEmail = readSavedEmail() || val('email');
   paint('Check your payment',
     'Enter the reference number and the email address you used.',
     `<label>Reference number</label>
      <input type="text" id="refInput" value="${escHtml(saved)}" placeholder="ACV-XXXXX-XXX"
             style="font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:1px">
      <label style="margin-top:14px">Email on the order</label>
-     <input type="email" id="refEmail" placeholder="juan@email.com">
-     <div class="hint">We ask for both so nobody else can open your CV with a guessed reference.
-       Lost them? Message ${GCASH_NUMBER} with the name you used.</div>
+     <input type="email" id="refEmail" value="${escHtml(savedEmail)}" placeholder="juan@email.com">
+     <div class="hint">${savedEmail
+       ? 'Filled in from your form \u2014 change it if you used a different address. '
+       : 'The email address you put on the form. '}We ask for both so nobody else can
+       open your CV with a guessed reference. Lost them? Message ${GCASH_NUMBER} with the name you used.</div>
      <div class="stat" id="checkStat" style="margin-top:14px"></div>
      <button type="button" class="linkish" onclick="proofFromCheck()">
        Paid already but never sent us the reference? Submit it here
      </button>`,
     `<button class="btn-ghost" onclick="closeUnlock()">Close</button>
      <button class="btn-go" onclick="verifyRef()">Check payment</button>`);
-  setTimeout(() => $('refInput')?.focus(), 60);
+  // Land the cursor on whatever is still blank, so a customer with both
+  // prefilled can just press the button.
+  setTimeout(() => (!saved ? $('refInput') : !savedEmail ? $('refEmail') : null)?.focus(), 60);
 }
 
 function readSavedRef(){
   try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}').ref || ''; }
+  catch(e){ return ''; }
+}
+
+// Stored alongside the reference when the order was sent, so it survives a
+// browser restart even after the form has been cleared.
+function readSavedEmail(){
+  try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}').email || ''; }
   catch(e){ return ''; }
 }
 
@@ -4520,6 +4988,20 @@ function openTheLock(){
   $('pvFoot').innerHTML =
     `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download</button>
      <button class="btn-lock" onclick="doPrint()">\ud83d\udda8 Print / Save as PDF</button>`;
+  const mb = $('mbAction');
+  if(mb){
+    mb.className = 'mb-go open';
+    mb.innerHTML = '\ud83d\udda8 Print / Save as PDF';
+    mb.setAttribute('onclick', 'doPrint()');
+  }
+  const pc = $('payCta');
+  if(pc){
+    pc.className = 'pay-cta done';
+    pc.innerHTML = '\u2713 Paid \u2014 Print / Save as PDF';
+    pc.setAttribute('onclick', 'doPrint()');
+  }
+  const pa = document.querySelector('.pay-alt');
+  if(pa) pa.style.display = 'none';
   try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
     { ref: unlockRef, email: collectData().personal.email, paid: true })); } catch(e){}
   toast('Payment confirmed \u2014 Save and Print are open.');
@@ -4591,6 +5073,20 @@ function downloadCV(){
 }
 
 /* ─── PRICING ───────────────────────────────────────────────────────────── */
+// Every place the price appears, updated in one pass. openTheLock() rewrites
+// the footer, so each element is checked rather than assumed.
+function paintPrice(){
+  const p = peso(BASE_PRICE);
+  const b = $('btnUnlock');
+  if(b) b.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + p;
+  const mb = $('mbAction');
+  if(mb && !unlocked) mb.innerHTML = '\ud83d\udd13 Unlock \u2014 ' + p;
+  const seal = document.querySelector('.seal .l2');
+  if(seal) seal.textContent = p;
+  document.querySelectorAll('.how-price').forEach(e => e.textContent = p);
+  // Written without the peso sign: these sit inside markup that already has one.
+  document.querySelectorAll('.how-price-n').forEach(e => e.textContent = BASE_PRICE);
+}
 // The admin can change the CV price from the back office; a stale number here
 // would quote one figure and expect another at the counter.
 // Reads pricing.selfService only. pricing.base is the ASSISTED price, and
@@ -4615,11 +5111,7 @@ async function loadPricing(){
       ? p.sale.selfService : p.selfService;
     if(typeof live === 'number' && live >= 0 && !isNaN(live)){
       BASE_PRICE = live;
-      // openTheLock() rewrites the footer, so this button may already be gone.
-      const b = $('btnUnlock');
-      if(b) b.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + peso(BASE_PRICE);
-      const seal = document.querySelector('.seal .l2');
-      if(seal) seal.textContent = peso(BASE_PRICE);
+      paintPrice();
     }
   } catch(e){ /* the default of ₱50 stands */ }
 }
@@ -4654,6 +5146,7 @@ function init(){
   renderPreview();
   initSpy();
   loadPricing();
+  loadQR();
   restoreUnlock();
 
   // One listener for the whole form rather than an oninput on every field.
