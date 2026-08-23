@@ -294,6 +294,14 @@ textarea{resize:vertical;line-height:1.6;}
   font-size:10px;font-weight:700;text-align:center;padding:2px;
 }
 
+/* Deliberately plain and at the very bottom. This wipes ten minutes of typing,
+   so it should never sit next to anything people press often. */
+.clear-btn{
+  background:none;border:none;color:var(--muted);font-size:12.5px;font-weight:600;
+  text-decoration:underline;padding:6px 10px;
+}
+.clear-btn:hover{color:var(--bad);}
+
 .duty-btn{
   display:inline-flex;align-items:center;gap:7px;margin-top:8px;
   background:none;border:1.5px dashed var(--gold);border-radius:8px;
@@ -918,6 +926,12 @@ textarea{resize:vertical;line-height:1.6;}
         I already paid — check my payment
       </button>
     </section>
+
+    <div style="text-align:center;margin:4px 0 22px">
+      <button type="button" class="clear-btn" onclick="confirmClear()">
+        Clear the form and start over
+      </button>
+    </div>
 
     <div style="font-size:11.5px;color:var(--muted);line-height:1.65;padding:0 4px">
       Your details stay in this browser until you request unlock. At that point they are sent to Arroyo CV Builder so the payment can be matched to your CV.
@@ -3474,6 +3488,8 @@ function renderPreview(){
   $('pvFrame').srcdoc = html;
   scalePreview();
   updateRailTicks(data);
+  // Cheap, and this is the one place that runs after every edit.
+  if(typeof enforceIdentity === 'function') enforceIdentity();
 }
 
 function scalePreview(){
@@ -5285,8 +5301,13 @@ async function checkNow(){
 }
 
 /* ─── OPEN / RESTORE THE LOCK ───────────────────────────────────────────── */
+// The email the payment was actually approved against. Everything below hangs
+// off this: edits by the same person are free, a different person is a new order.
+let paidEmail = '';
+
 function openTheLock(){
   unlocked = true;
+  paidEmail = (collectData().personal.email || '').toLowerCase();
   $('pvSizer').classList.add('unlocked');
   $('tbPrint').disabled = false;
   $('lockPill').className = 'lockpill open';
@@ -5309,7 +5330,7 @@ function openTheLock(){
   const pa = document.querySelector('.pay-alt');
   if(pa) pa.style.display = 'none';
   try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
-    { ref: unlockRef, email: collectData().personal.email, paid: true })); } catch(e){}
+    { ref: unlockRef, email: paidEmail, paid: true })); } catch(e){}
   toast('Payment confirmed \u2014 Save and Print are open.');
 }
 
@@ -5333,6 +5354,9 @@ async function restoreUnlock(){
       : await lookupOrderByRef(saved.ref);
 
     if(!email && !order){ if(saved.paid) openTheLock(); return; }
+    // Restored before openTheLock() so the identity check has something to
+    // compare against on a page that was reloaded rather than freshly filled.
+    if(order?.paid && saved.email) paidEmail = String(saved.email).toLowerCase();
     if(order?.paid){ openTheLock(); return; }
     if(order && !order.paid && saved.paid){
       // The admin reversed it. Say so plainly rather than silently re-locking.
@@ -5345,6 +5369,65 @@ async function restoreUnlock(){
     // rather than punishing a paying customer for a network problem.
     if(saved.paid) openTheLock();
   }
+}
+
+/* ─── A SECOND CV IS A SECOND ORDER ─────────────────────────────────────────
+   Once unlocked, the page used to stay unlocked for whatever was typed next —
+   so a paid customer could produce a CV for a friend, and anyone borrowing the
+   phone in an internet cafe inherited a paid session.
+
+   The line is drawn at the EMAIL, because that is what the payment was verified
+   against and what appears on the CV itself. Fixing a typo, swapping template,
+   rewriting every duty: all free, as they should be. Putting a different
+   person's email in means a different person's CV, and that is a new order.
+   ────────────────────────────────────────────────────────────────────────── */
+function enforceIdentity(){
+  if(!unlocked || !paidEmail) return;
+
+  const now = (val('email') || '').toLowerCase();
+  if(!now || now === paidEmail) return;
+
+  // Captured first: closeTheLock() clears paidEmail, and the message needs it.
+  const was = paidEmail;
+  closeTheLock();
+  toast('Different email, so this counts as a new CV \u2014 ' + peso(BASE_PRICE)
+      + ' to unlock it. Put ' + was + ' back to reopen the one you paid for.', true);
+}
+
+// The mirror image of openTheLock(). A fresh reference is minted so the new
+// order cannot overwrite the paid one already sitting in the database.
+function closeTheLock(){
+  unlocked = false;
+  paidEmail = '';
+  unlockRef = '';
+  clearInterval(pollTimer);
+
+  $('pvSizer').classList.remove('unlocked');
+  $('tbPrint').disabled = true;
+  $('lockPill').className = 'lockpill';
+  $('lockPill').innerHTML = '\ud83d\udd12 Save &amp; Print locked';
+  $('pvFoot').innerHTML =
+    `<button class="btn-lock" id="btnUnlock" onclick="openUnlock('request')">`
+    + `\ud83d\udd13 Unlock Save &amp; Print \u2014 ` + peso(BASE_PRICE) + `</button>`;
+
+  const mb = $('mbAction');
+  if(mb){
+    mb.className = 'mb-go';
+    mb.innerHTML = '\ud83d\udd13 Unlock \u2014 ' + peso(BASE_PRICE);
+    mb.setAttribute('onclick', "openUnlock('request')");
+  }
+  const pc = $('payCta');
+  if(pc){
+    pc.className = 'pay-cta';
+    pc.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + peso(BASE_PRICE);
+    pc.setAttribute('onclick', "openUnlock('request')");
+  }
+  const pa = document.querySelector('.pay-alt');
+  if(pa) pa.style.display = '';
+
+  // The saved unlock refers to the previous order, which is still paid and
+  // still reachable by reference. It just is not this CV any more.
+  try { localStorage.removeItem(UNLOCK_KEY); } catch(e){}
 }
 
 /* ─── OUTPUT ────────────────────────────────────────────────────────────── */
@@ -5376,6 +5459,92 @@ function downloadCV(){
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast('Downloaded. Open it and print to PDF for a shareable file.');
+}
+
+/* ─── CLEAR THE FORM ────────────────────────────────────────────────────────
+   Wipes ten minutes of typing, so it asks first and says plainly what survives.
+   An order already sent is NOT deleted: it lives on the server, and the
+   reference in the confirmation email still opens it.
+   ────────────────────────────────────────────────────────────────────────── */
+function confirmClear(){
+  const d = collectData();
+  const typed = !!(d.personal.firstName || d.personal.lastName || d.education.some(e => e.school));
+
+  if(!typed){ doClear(true); return; }   // nothing to lose, no need to ask
+
+  $('unlockOv').classList.add('open');
+  paint('Clear the form?',
+    'Everything you have typed on this page will be removed.',
+    `<div class="stat err show">This cannot be undone. Your photo, work history,
+       schools, skills and summary will all be cleared.</div>
+
+     ${unlockRef ? `<div class="pay-row">
+       <div class="ic">\ud83d\udcbe</div>
+       <div><div class="v">${escHtml(unlockRef)}</div>
+            <div class="k">Already sent to us \u2014 this order is NOT deleted.
+              Keep the reference and you can reopen it any time.</div></div>
+     </div>` : ''}
+
+     ${unlocked ? `<div class="stat wait show">Save &amp; Print will lock again,
+       because the CV you paid for is being cleared. Press <strong>I already paid</strong>
+       with your reference to bring it back.</div>` : ''}`,
+    `<button class="btn-ghost" onclick="closeUnlock()">Keep my details</button>
+     <button class="btn-lock" style="background:var(--bad);color:#fff"
+             onclick="closeUnlock();doClear()">Clear everything</button>`);
+}
+
+function doClear(silent){
+  closeUnlock();          // nothing should be left open over a reset form
+
+  // Text fields, dropdowns and checkboxes across the whole form.
+  document.querySelectorAll('.form-col input, .form-col textarea, .form-col select')
+    .forEach(el => {
+      if(el.type === 'radio'){ el.checked = el.value === 'college'; }
+      else if(el.type === 'checkbox'){ el.checked = el.id === 'eu-gdpr'; }
+      else if(el.type !== 'file'){ el.value = ''; }
+    });
+
+  // Set explicitly rather than trusting the loop above: a radio's `type` is the
+  // only thing keeping the loop from blanking its value, and relying on that is
+  // fragile for a control that decides which half the form shows.
+  const std = document.querySelector('input[name="eduLevel"][value="college"]');
+  if(std) std.checked = true;
+  document.querySelectorAll('input[name="eduLevel"]').forEach(r => {
+    if(r !== std) r.checked = false;
+    if(!r.value) r.value = r.getAttribute('value') || '';
+  });
+
+  clearPhoto();
+  skills.length = 0; languages.length = 0;
+  drawTags('skill'); drawTags('lang');
+
+  // Repeating sections back to a single blank row each.
+  ['eduList','workList','ojtList','refList','docList','certList','vaxList','seaList','euLangList']
+    .forEach(id => { const l = $(id); if(l) l.innerHTML = ''; });
+  addEdu(); addWork(); addRef();
+
+  $('scanPages').innerHTML = '';
+  $('scanStat').className = 'stat';
+  $('aiOpts').innerHTML = '';
+  window.__aiOptions = null;
+  proofDraft = null;
+
+  selectedTmpl = 1;
+  tmplPickedByUser = false;
+
+  // A cleared form is a different CV, so an open lock must not carry over.
+  if(unlocked) closeTheLock();
+  unlockRef = '';
+
+  onFormat();
+  renderPreview();
+
+  // Last, so the rebuild above cannot re-save a draft on its way out. A debounced
+  // autosave may still write an empty one a moment later; that is harmless,
+  // since restoring an empty draft restores an empty form.
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e){}
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if(!silent) toast('Form cleared. Any order you already sent is still safe.');
 }
 
 /* ─── PRICING ───────────────────────────────────────────────────────────── */
