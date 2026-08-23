@@ -224,6 +224,16 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .approval-card.quiet{background:#f7f8fc;border:1px solid var(--gray-light);color:var(--gray);}
 .approval-card.quiet .ac-n{color:var(--gray-light);}
 .approval-card.quiet .ac-t{color:var(--text);}
+.tr-row{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border-radius:8px;margin-bottom:6px;font-size:12.5px;line-height:1.5;}
+.tr-row.pass{background:#f0fdf4;border:1px solid #86efac;color:#065f46;}
+.tr-row.fail{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;}
+.tr-row.run {background:#f7f8fc;border:1px solid var(--gray-light);color:var(--gray);}
+.tr-row .ic{flex-shrink:0;font-weight:800;}
+.tr-row .dt{display:block;font-size:11px;opacity:.8;margin-top:2px;}
+.tr-sum{border-radius:10px;padding:13px 15px;margin-top:10px;font-size:13px;font-weight:700;}
+.tr-sum.pass{background:#d1fae5;border:1.5px solid #6ee7b7;color:#065f46;}
+.tr-sum.fail{background:#fee2e2;border:1.5px solid #fca5a5;color:#991b1b;}
+.test-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#fef3c7;color:#92400e;border:1px solid #fbbf24;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 .eu-flag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;}
 .cl-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#1a2744;color:#e2c97e;border:1px solid #c8a84b;margin-left:6px;vertical-align:middle;}
 .stat-card.revenue .sc-value{color:#10b981;}
@@ -649,6 +659,39 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">
           A test uses one of your monthly allowance and appears in EmailJS → Email History like any other send.
           The subject is prefixed <strong>[TEST]</strong> so you can tell it apart. No customer record is touched.
+        </p>
+      </div>
+
+      <!-- SELF-SERVICE TEST RUN -->
+      <div class="health-card">
+        <h3>🧪 Self-Service Test Run</h3>
+        <p class="hc-sub">Walks a fake order through the whole self-service flow against your real
+          storage — creates it, attaches a GCash reference, approves it, then deletes it again.
+          The fastest way to know the customer's Save &amp; Print will actually unlock. Takes about
+          ten seconds and touches none of your real orders.</p>
+
+        <label style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--gray);margin-bottom:14px;cursor:pointer;">
+          <input type="checkbox" id="tr-email" style="width:15px;height:15px;cursor:pointer;">
+          Also send me the customer receipt, so I can see what they get (uses 1 email)
+        </label>
+
+        <div style="display:flex;gap:9px;flex-wrap:wrap;">
+          <button onclick="runSelfServiceTest()" id="trBtn"
+            style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;font-size:13px;font-weight:700;cursor:pointer;">
+            ▶ Run Test
+          </button>
+          <button onclick="purgeTestOrders()" id="trPurge"
+            style="padding:10px 18px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:12.5px;font-weight:700;cursor:pointer;">
+            🗑 Remove leftover test orders
+          </button>
+        </div>
+
+        <div id="trResults" style="margin-top:14px;"></div>
+
+        <p class="hc-sub" style="margin-top:12px;margin-bottom:0;">
+          Test orders are named <strong>TEST Customer</strong>, carry a <strong>🧪 TEST</strong> badge,
+          and are left out of your revenue figures. They delete themselves at the end of a run — the
+          button above is only needed if a run is interrupted halfway.
         </p>
       </div>
 
@@ -1450,8 +1493,11 @@ function renderDashboard(){
   // Collected is money actually received. Outstanding is what has been promised
   // but not yet paid — the old card summed every order regardless, which
   // flattered the figure and told you nothing actionable.
-  const paidOrders   = submissions.filter(isPaid);
-  const unpaidOrders = submissions.filter(s=>!isPaid(s));
+  // A test order is not revenue and is not owed. Excluding it here means a run
+  // interrupted halfway cannot quietly inflate your figures.
+  const real         = submissions.filter(s=>!isTestOrder(s));
+  const paidOrders   = real.filter(isPaid);
+  const unpaidOrders = real.filter(s=>!isPaid(s));
   const revenue      = paidOrders.reduce((t,s)=>t+paidAmount(s),0);
   const outstanding  = unpaidOrders.reduce((t,s)=>t+orderTotal(s),0)
                      + paidOrders.reduce((t,s)=>t+Math.max(0,orderTotal(s)-paidAmount(s)),0);
@@ -1672,7 +1718,7 @@ function renderSubmissions(){
       <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}</div>
+        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}</div>
         ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
         <div class="sub-mail">${p.email||'No email on file'}</div>
       </td>
@@ -2378,6 +2424,245 @@ async function purgeDelivered(){
 }
 
 // ── AI PROVIDER HEALTH CHECK ──────────────────────────────────────────────────
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SELF-SERVICE TEST RUN
+   ──────────────────────────────────────────────────────────────────────────
+   Drives a fake order through the real storage: create, attach a GCash
+   reference, approve, verify, delete. Every step re-reads the bin rather than
+   trusting the write, because a PUT that returns 200 and a record that is
+   actually there are two different claims.
+
+   The test order is marked isTest so it can never be mistaken for revenue, and
+   the cleanup runs in a finally block so an interruption still tidies up.
+   ══════════════════════════════════════════════════════════════════════════ */
+const TEST_ID_PREFIX = 'ACV-TEST-';
+
+function isTestOrder(s){
+  return !!s?.isTest || String(s?.id || '').startsWith(TEST_ID_PREFIX);
+}
+
+function trRow(box, state, label, detail){
+  const icon = state === 'pass' ? '\u2713' : state === 'fail' ? '\u2717' : '\u25cf';
+  const row = document.createElement('div');
+  row.className = 'tr-row ' + state;
+  row.innerHTML = `<span class="ic">${icon}</span><span>${label}
+    ${detail ? `<span class="dt">${detail}</span>` : ''}</span>`;
+  box.appendChild(row);
+  return row;
+}
+
+async function runSelfServiceTest(){
+  const btn = document.getElementById('trBtn');
+  const box = document.getElementById('trResults');
+  btn.disabled = true; btn.textContent = 'Running\u2026';
+  box.innerHTML = '';
+
+  const testId = TEST_ID_PREFIX + Date.now().toString(36).toUpperCase().slice(-5);
+  const testEmail = 'test@arroyocv.local';
+  const gcashRef = String(Date.now()).slice(-13);
+  let created = false, failed = 0;
+
+  // Every step reads the record back. Asserting on the local copy would prove
+  // nothing about what actually reached JSONBin.
+  const step = async (label, fn) => {
+    const row = trRow(box, 'run', label);
+    try {
+      const detail = await fn();
+      row.className = 'tr-row pass';
+      row.innerHTML = `<span class="ic">\u2713</span><span>${label}
+        ${detail ? `<span class="dt">${detail}</span>` : ''}</span>`;
+      return true;
+    } catch(e){
+      failed++;
+      row.className = 'tr-row fail';
+      row.innerHTML = `<span class="ic">\u2717</span><span>${label}
+        <span class="dt">${cdlgEsc(e.message)}</span></span>`;
+      return false;
+    }
+  };
+
+  const findTest = async () => {
+    const rec = await getFullRecord();
+    return (rec.submissions || []).find(s => s && s.id === testId);
+  };
+
+  try {
+    if(!await step('Storage is readable', async () => {
+      const rec = await getFullRecord();
+      const n = (rec.submissions || []).length;
+      return n + ' order' + (n === 1 ? '' : 's') + ' on file';
+    })) return;
+
+    if(!await step('Customer sends their CV', async () => {
+      const rec = await getFullRecord();
+      const list = rec.submissions || [];
+      list.push({
+        id: testId, isTest: true, source: 'self-service',
+        submittedAt: new Date().toISOString(), status: 'New',
+        payment: { paid: false }, quotedTotal: 25,
+        pricing: { base: 25 }, eduLevel: 'college',
+        personal: { firstName: 'TEST', lastName: 'Customer', jobTitle: 'Test Order',
+                    email: testEmail, phone: '00000000000', address: 'Test',
+                    nationality: '', dob: '', civilStatus: '', gender: '',
+                    social: '', linkedin: '', photo: '' },
+        profileSummary: 'Automated test order. Safe to delete.',
+        education: [{ school: 'Test School', degree: 'Test', yearGrad: '2024', yearStart: '2020', honors: '' }],
+        workExperience: [], ojt: [], skills: [], languages: [], references: [],
+        hobbies: '', awards: '', templatePref: '1', specialInstructions: '',
+        coverLetter: { requested: false }, resignationLetter: { requested: false }
+      });
+      await putRecord({ ...rec, submissions: list });
+      created = true;
+      if(!await findTest()) throw new Error('Write reported success but the order is not there');
+      return 'Reference ' + testId;
+    })) return;
+
+    await step('Order starts unpaid and locked', async () => {
+      const o = await findTest();
+      if(o.payment?.paid) throw new Error('New order came back already paid — the lock is broken');
+      return 'Save & Print would be locked for the customer';
+    });
+
+    await step('Customer submits a GCash reference', async () => {
+      const rec = await getFullRecord();
+      const list = rec.submissions || [];
+      const at = list.findIndex(s => s && s.id === testId);
+      if(at < 0) throw new Error('Order vanished between steps');
+      list[at] = { ...list[at], paymentProof: {
+        gcashRef, amount: 25, paidOn: new Date().toISOString().slice(0,10),
+        senderName: 'TEST Customer', senderPhone: '', note: 'Automated test',
+        submittedAt: new Date().toISOString(), status: 'pending'
+      }};
+      await putRecord({ ...rec, submissions: list });
+      const o = await findTest();
+      if(o.paymentProof?.gcashRef !== gcashRef) throw new Error('Reference did not save');
+      return 'GCash ref ' + gcashRef;
+    });
+
+    await step('Still unpaid \u2014 a customer cannot approve themselves', async () => {
+      const o = await findTest();
+      if(o.payment?.paid) throw new Error('Submitting a reference marked it paid. That must never happen.');
+      return 'Only this dashboard can approve';
+    });
+
+    await step('Shows up under "Needs approval"', async () => {
+      const rec = await getFullRecord();
+      const n = (rec.submissions || []).filter(s => s?.paymentProof && !s.payment?.paid).length;
+      const mine = (rec.submissions || []).find(s => s?.id === testId);
+      if(!mine?.paymentProof) throw new Error('Not flagged for approval');
+      return n + ' order' + (n === 1 ? '' : 's') + ' awaiting approval right now';
+    });
+
+    await step('You press Approve payment', async () => {
+      const rec = await getFullRecord();
+      const list = rec.submissions || [];
+      const at = list.findIndex(s => s && s.id === testId);
+      const pf = list[at].paymentProof;
+      list[at] = { ...list[at],
+        payment: { paid: true, amount: pf.amount, reference: pf.gcashRef,
+                   paidAt: new Date().toISOString(), method: 'GCash',
+                   approvedFrom: 'self-service proof' },
+        paymentProof: { ...pf, status: 'approved', approvedAt: new Date().toISOString() } };
+      await putRecord({ ...rec, submissions: list });
+      const o = await findTest();
+      if(!o.payment?.paid) throw new Error('Approval did not stick');
+      return 'Recorded ' + peso(o.payment.amount) + ' against ' + o.payment.reference;
+    });
+
+    await step("Customer's page would now unlock", async () => {
+      // Exactly the check builder.html makes when it polls.
+      const o = await findTest();
+      if(String(o.personal.email).toLowerCase() !== testEmail)
+        throw new Error('Email lookup would fail');
+      if(!o.payment?.paid) throw new Error('Would still be locked');
+      return 'Reference + email match, payment confirmed \u2014 seal lifts within 30s';
+    });
+
+    if(document.getElementById('tr-email')?.checked){
+      await step('Customer receipt email', async () => {
+        if(typeof emailjs === 'undefined') throw new Error('EmailJS did not load in this browser');
+        await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
+          to_email: ADMIN_EMAIL, to_name: 'Reymar Arroyo', customer_name: 'TEST Customer',
+          cc_email: '',
+          subject: '[TEST] We got your payment \u2014 ' + testId,
+          translation_note: 'This is a test of the customer receipt.\n\n'
+            + 'Reference: ' + testId + '\nGCash reference: ' + gcashRef
+            + '\nAmount: ' + peso(25) + '\n\nNo real order was created.',
+          html_body: '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
+            + '<div style="background:#1a2744;padding:20px 24px;">'
+            + '<h1 style="color:#e2c97e;margin:0;font-size:18px;">[TEST] We got your payment details</h1></div>'
+            + '<div style="background:#f7f8fc;padding:22px 24px;border:1px solid #e5e7eb;border-top:none;">'
+            + '<p style="font-size:14px;line-height:1.65;margin:0 0 16px;">This is what a customer receives '
+            + 'after submitting their GCash reference.</p>'
+            + '<div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:15px;">'
+            + '<div style="font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#6b7280;">Their reference number</div>'
+            + '<div style="font-family:monospace;font-size:20px;font-weight:800;color:#1a2744;margin-top:5px;">' + testId + '</div>'
+            + '</div><p style="font-size:12.5px;color:#6b7280;margin-top:16px;">GCash reference ' + gcashRef
+            + ' \u00b7 ' + peso(25) + ' \u00b7 no real order was created.</p></div></div>'
+        });
+        bumpMailCount();
+        return 'Sent to ' + ADMIN_EMAIL;
+      });
+    }
+
+  } finally {
+    // Runs even if a step threw, so an interrupted test never leaves a fake
+    // order sitting in the list.
+    if(created){
+      await step('Test order cleaned up', async () => {
+        const rec = await getFullRecord();
+        const list = (rec.submissions || []).filter(s => !isTestOrder(s));
+        await putRecord({ ...rec, submissions: list });
+        submissions = list;
+        renderSubmissions(); renderDashboard();
+        if(await findTest()) throw new Error('Could not delete the test order — use the purge button');
+        return 'Your real orders are untouched';
+      });
+    }
+
+    const sum = document.createElement('div');
+    sum.className = 'tr-sum ' + (failed ? 'fail' : 'pass');
+    sum.textContent = failed
+      ? failed + ' check' + (failed === 1 ? '' : 's') + ' failed \u2014 fix these before taking real orders.'
+      : '\u2713 Everything works. A customer can order, pay, and unlock their CV.';
+    document.getElementById('trResults').appendChild(sum);
+
+    btn.disabled = false; btn.textContent = '\u25b6 Run Test';
+    renderHealth();
+  }
+}
+
+// Manual sweep, for when a run is closed mid-flight.
+async function purgeTestOrders(){
+  const btn = document.getElementById('trPurge');
+  const box = document.getElementById('trResults');
+  btn.disabled = true;
+  try {
+    const rec = await getFullRecord();
+    const before = (rec.submissions || []).length;
+    const list = (rec.submissions || []).filter(s => !isTestOrder(s));
+    const removed = before - list.length;
+
+    if(!removed){
+      box.innerHTML = '';
+      trRow(box, 'pass', 'No leftover test orders', 'Nothing to clean up');
+      return;
+    }
+    await putRecord({ ...rec, submissions: list });
+    submissions = list;
+    renderSubmissions(); renderDashboard();
+    box.innerHTML = '';
+    trRow(box, 'pass', 'Removed ' + removed + ' test order' + (removed === 1 ? '' : 's'),
+          'Your real orders are untouched');
+  } catch(e){
+    box.innerHTML = '';
+    trRow(box, 'fail', 'Could not clean up', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function testAIProviders(){
   const btn = document.getElementById('aiTestBtn');
   const box = document.getElementById('aiResults');
