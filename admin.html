@@ -228,6 +228,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .tr-row.pass{background:#f0fdf4;border:1px solid #86efac;color:#065f46;}
 .tr-row.fail{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;}
 .tr-row.run {background:#f7f8fc;border:1px solid var(--gray-light);color:var(--gray);}
+.tr-row.skip{background:#fafbfc;border:1px dashed var(--gray-light);color:#9ca3af;}
 .tr-row .ic{flex-shrink:0;font-weight:800;}
 .tr-row .dt{display:block;font-size:11px;opacity:.8;margin-top:2px;}
 .tr-sum{border-radius:10px;padding:13px 15px;margin-top:10px;font-size:13px;font-weight:700;}
@@ -2443,13 +2444,34 @@ function isTestOrder(s){
 }
 
 function trRow(box, state, label, detail){
-  const icon = state === 'pass' ? '\u2713' : state === 'fail' ? '\u2717' : '\u25cf';
+  const icon = state === 'pass' ? '\u2713' : state === 'fail' ? '\u2717'
+             : state === 'skip' ? '\u2013' : '\u25cf';
   const row = document.createElement('div');
   row.className = 'tr-row ' + state;
   row.innerHTML = `<span class="ic">${icon}</span><span>${label}
     ${detail ? `<span class="dt">${detail}</span>` : ''}</span>`;
   box.appendChild(row);
   return row;
+}
+
+// JSONBin rate-limits bursts. The first version of this test fired seventeen
+// requests in about three seconds and got "Failed to fetch" halfway through —
+// so every call is now spaced out and retried before it is called a failure.
+const trPause = ms => new Promise(r => setTimeout(r, ms));
+
+async function trFetch(fn, label){
+  let last;
+  for(let i = 1; i <= 3; i++){
+    try { return await fn(); }
+    catch(e){
+      last = e;
+      // A rate-limit or a dropped connection is worth retrying; a rejected
+      // write because the bin is full is not going to fix itself.
+      if(/size limit|read-only|rejected the write/i.test(e.message)) throw e;
+      if(i < 3) await trPause(1200 * i);
+    }
+  }
+  throw new Error(last.message + ' (after 3 attempts)');
 }
 
 async function runSelfServiceTest(){
@@ -2461,11 +2483,11 @@ async function runSelfServiceTest(){
   const testId = TEST_ID_PREFIX + Date.now().toString(36).toUpperCase().slice(-5);
   const testEmail = 'test@arroyocv.local';
   const gcashRef = String(Date.now()).slice(-13);
-  let created = false, failed = 0;
+  let created = false, failed = 0, halted = false;
+  let rec = null;                       // the record in hand, re-read after each write
 
-  // Every step reads the record back. Asserting on the local copy would prove
-  // nothing about what actually reached JSONBin.
   const step = async (label, fn) => {
+    if(halted){ trRow(box, 'skip', label, 'Skipped \u2014 an earlier step failed'); return false; }
     const row = trRow(box, 'run', label);
     try {
       const detail = await fn();
@@ -2482,26 +2504,30 @@ async function runSelfServiceTest(){
     }
   };
 
-  const findTest = async () => {
-    const rec = await getFullRecord();
+  // One write followed by one read-back. The read both proves the write landed
+  // and becomes the base for the next step, which halves the request count.
+  const saveAndReload = async mutate => {
+    const list = (rec.submissions || []).slice();
+    mutate(list);
+    await trFetch(() => putRecord({ ...rec, submissions: list }));
+    await trPause(700);
+    rec = await trFetch(() => getFullRecord());
     return (rec.submissions || []).find(s => s && s.id === testId);
   };
 
   try {
     if(!await step('Storage is readable', async () => {
-      const rec = await getFullRecord();
+      rec = await trFetch(() => getFullRecord());
       const n = (rec.submissions || []).length;
       return n + ' order' + (n === 1 ? '' : 's') + ' on file';
-    })) return;
+    })){ halted = true; return; }
 
     if(!await step('Customer sends their CV', async () => {
-      const rec = await getFullRecord();
-      const list = rec.submissions || [];
-      list.push({
+      const o = await saveAndReload(list => list.push({
         id: testId, isTest: true, source: 'self-service',
         submittedAt: new Date().toISOString(), status: 'New',
-        payment: { paid: false }, quotedTotal: 25,
-        pricing: { base: 25 }, eduLevel: 'college',
+        payment: { paid: false }, quotedTotal: 25, pricing: { base: 25 },
+        eduLevel: 'college',
         personal: { firstName: 'TEST', lastName: 'Customer', jobTitle: 'Test Order',
                     email: testEmail, phone: '00000000000', address: 'Test',
                     nationality: '', dob: '', civilStatus: '', gender: '',
@@ -2511,70 +2537,56 @@ async function runSelfServiceTest(){
         workExperience: [], ojt: [], skills: [], languages: [], references: [],
         hobbies: '', awards: '', templatePref: '1', specialInstructions: '',
         coverLetter: { requested: false }, resignationLetter: { requested: false }
-      });
-      await putRecord({ ...rec, submissions: list });
+      }));
       created = true;
-      if(!await findTest()) throw new Error('Write reported success but the order is not there');
-      return 'Reference ' + testId;
-    })) return;
+      if(!o) throw new Error('The write reported success but the order is not there');
+      if(o.payment?.paid) throw new Error('A brand-new order came back already paid \u2014 the lock is broken');
+      return 'Reference ' + testId + ' \u00b7 unpaid, Save & Print locked';
+    })){ halted = true; return; }
 
-    await step('Order starts unpaid and locked', async () => {
-      const o = await findTest();
-      if(o.payment?.paid) throw new Error('New order came back already paid — the lock is broken');
-      return 'Save & Print would be locked for the customer';
-    });
+    if(!await step('Customer submits a GCash reference', async () => {
+      const o = await saveAndReload(list => {
+        const at = list.findIndex(s => s && s.id === testId);
+        if(at < 0) throw new Error('The order vanished between steps');
+        list[at] = { ...list[at], paymentProof: {
+          gcashRef, amount: 25, paidOn: new Date().toISOString().slice(0,10),
+          senderName: 'TEST Customer', senderPhone: '', note: 'Automated test',
+          submittedAt: new Date().toISOString(), status: 'pending' } };
+      });
+      if(o?.paymentProof?.gcashRef !== gcashRef) throw new Error('The reference did not save');
+      if(o.payment?.paid)
+        throw new Error('Submitting a reference marked it paid. That must never happen.');
+      return 'GCash ref ' + gcashRef + ' \u00b7 still unpaid, as it should be';
+    })){ halted = true; return; }
 
-    await step('Customer submits a GCash reference', async () => {
-      const rec = await getFullRecord();
-      const list = rec.submissions || [];
-      const at = list.findIndex(s => s && s.id === testId);
-      if(at < 0) throw new Error('Order vanished between steps');
-      list[at] = { ...list[at], paymentProof: {
-        gcashRef, amount: 25, paidOn: new Date().toISOString().slice(0,10),
-        senderName: 'TEST Customer', senderPhone: '', note: 'Automated test',
-        submittedAt: new Date().toISOString(), status: 'pending'
-      }};
-      await putRecord({ ...rec, submissions: list });
-      const o = await findTest();
-      if(o.paymentProof?.gcashRef !== gcashRef) throw new Error('Reference did not save');
-      return 'GCash ref ' + gcashRef;
-    });
-
-    await step('Still unpaid \u2014 a customer cannot approve themselves', async () => {
-      const o = await findTest();
-      if(o.payment?.paid) throw new Error('Submitting a reference marked it paid. That must never happen.');
-      return 'Only this dashboard can approve';
-    });
-
-    await step('Shows up under "Needs approval"', async () => {
-      const rec = await getFullRecord();
+    await step('Appears under "Needs approval"', async () => {
       const n = (rec.submissions || []).filter(s => s?.paymentProof && !s.payment?.paid).length;
       const mine = (rec.submissions || []).find(s => s?.id === testId);
       if(!mine?.paymentProof) throw new Error('Not flagged for approval');
       return n + ' order' + (n === 1 ? '' : 's') + ' awaiting approval right now';
     });
 
-    await step('You press Approve payment', async () => {
-      const rec = await getFullRecord();
-      const list = rec.submissions || [];
-      const at = list.findIndex(s => s && s.id === testId);
-      const pf = list[at].paymentProof;
-      list[at] = { ...list[at],
-        payment: { paid: true, amount: pf.amount, reference: pf.gcashRef,
-                   paidAt: new Date().toISOString(), method: 'GCash',
-                   approvedFrom: 'self-service proof' },
-        paymentProof: { ...pf, status: 'approved', approvedAt: new Date().toISOString() } };
-      await putRecord({ ...rec, submissions: list });
-      const o = await findTest();
-      if(!o.payment?.paid) throw new Error('Approval did not stick');
+    if(!await step('You press Approve payment', async () => {
+      const o = await saveAndReload(list => {
+        const at = list.findIndex(s => s && s.id === testId);
+        const pf = list[at].paymentProof;
+        list[at] = { ...list[at],
+          payment: { paid: true, amount: pf.amount, reference: pf.gcashRef,
+                     paidAt: new Date().toISOString(), method: 'GCash',
+                     approvedFrom: 'self-service proof' },
+          paymentProof: { ...pf, status: 'approved', approvedAt: new Date().toISOString() } };
+      });
+      if(!o?.payment?.paid) throw new Error('The approval did not stick');
       return 'Recorded ' + peso(o.payment.amount) + ' against ' + o.payment.reference;
-    });
+    })){ halted = true; return; }
 
+    // Reads the record already in hand, so this can only pass if the approval
+    // above genuinely landed in storage.
     await step("Customer's page would now unlock", async () => {
-      // Exactly the check builder.html makes when it polls.
-      const o = await findTest();
+      const o = (rec.submissions || []).find(s => s?.id === testId);
+      if(!o) throw new Error('Order not found');
       if(String(o.personal.email).toLowerCase() !== testEmail)
-        throw new Error('Email lookup would fail');
+        throw new Error('The email lookup would fail');
       if(!o.payment?.paid) throw new Error('Would still be locked');
       return 'Reference + email match, payment confirmed \u2014 seal lifts within 30s';
     });
@@ -2583,7 +2595,7 @@ async function runSelfServiceTest(){
       await step('Customer receipt email', async () => {
         if(typeof emailjs === 'undefined') throw new Error('EmailJS did not load in this browser');
         await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-          to_email: ADMIN_EMAIL, to_name: 'Reymar Arroyo', customer_name: 'TEST Customer',
+          to_email: ADMIN_CC, to_name: 'Reymar Arroyo', customer_name: 'TEST Customer',
           cc_email: '',
           subject: '[TEST] We got your payment \u2014 ' + testId,
           translation_note: 'This is a test of the customer receipt.\n\n'
@@ -2602,23 +2614,38 @@ async function runSelfServiceTest(){
             + ' \u00b7 ' + peso(25) + ' \u00b7 no real order was created.</p></div></div>'
         });
         bumpMailCount();
-        return 'Sent to ' + ADMIN_EMAIL;
+        return 'Sent to ' + ADMIN_CC;
       });
     }
 
   } finally {
-    // Runs even if a step threw, so an interrupted test never leaves a fake
-    // order sitting in the list.
+    // Runs even when a step threw, so an interrupted test never leaves a fake
+    // order behind. Retried harder than the rest: a leftover is worse than a
+    // slow finish.
     if(created){
-      await step('Test order cleaned up', async () => {
-        const rec = await getFullRecord();
-        const list = (rec.submissions || []).filter(s => !isTestOrder(s));
-        await putRecord({ ...rec, submissions: list });
-        submissions = list;
-        renderSubmissions(); renderDashboard();
-        if(await findTest()) throw new Error('Could not delete the test order — use the purge button');
-        return 'Your real orders are untouched';
-      });
+      const cleaned = await (async () => {
+        const row = trRow(box, 'run', 'Test order cleaned up');
+        try {
+          await trPause(700);
+          const fresh = await trFetch(() => getFullRecord());
+          const list = (fresh.submissions || []).filter(s => !isTestOrder(s));
+          await trFetch(() => putRecord({ ...fresh, submissions: list }));
+          submissions = list;
+          renderSubmissions(); renderDashboard();
+          row.className = 'tr-row pass';
+          row.innerHTML = '<span class="ic">\u2713</span><span>Test order cleaned up'
+            + '<span class="dt">Your real orders are untouched</span></span>';
+          return true;
+        } catch(e){
+          failed++;
+          row.className = 'tr-row fail';
+          row.innerHTML = '<span class="ic">\u2717</span><span>Test order cleaned up'
+            + '<span class="dt">' + cdlgEsc(e.message)
+            + ' \u2014 press "Remove leftover test orders" below</span></span>';
+          return false;
+        }
+      })();
+      if(!cleaned) console.warn('Test order', testId, 'still in storage');
     }
 
     const sum = document.createElement('div');
@@ -2626,20 +2653,20 @@ async function runSelfServiceTest(){
     sum.textContent = failed
       ? failed + ' check' + (failed === 1 ? '' : 's') + ' failed \u2014 fix these before taking real orders.'
       : '\u2713 Everything works. A customer can order, pay, and unlock their CV.';
-    document.getElementById('trResults').appendChild(sum);
+    box.appendChild(sum);
 
     btn.disabled = false; btn.textContent = '\u25b6 Run Test';
     renderHealth();
   }
 }
 
-// Manual sweep, for when a run is closed mid-flight.
+// Manual sweep, for when a run is closed or fails mid-flight.
 async function purgeTestOrders(){
   const btn = document.getElementById('trPurge');
   const box = document.getElementById('trResults');
   btn.disabled = true;
   try {
-    const rec = await getFullRecord();
+    const rec = await trFetch(() => getFullRecord());
     const before = (rec.submissions || []).length;
     const list = (rec.submissions || []).filter(s => !isTestOrder(s));
     const removed = before - list.length;
@@ -2649,7 +2676,7 @@ async function purgeTestOrders(){
       trRow(box, 'pass', 'No leftover test orders', 'Nothing to clean up');
       return;
     }
-    await putRecord({ ...rec, submissions: list });
+    await trFetch(() => putRecord({ ...rec, submissions: list }));
     submissions = list;
     renderSubmissions(); renderDashboard();
     box.innerHTML = '';
