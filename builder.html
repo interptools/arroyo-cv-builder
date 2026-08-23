@@ -65,6 +65,17 @@ button{cursor:pointer;}
   color:var(--gold-2);white-space:nowrap;
 }
 .lockpill.open{border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.15);color:#6ee7b7;}
+/* Sits beside the lock pill once an order is paid. Colour tracks urgency so a
+   glance is enough — nobody reads a number they are not worried about yet. */
+.ttlpill{
+  display:none;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+  padding:6px 11px;border-radius:20px;border:1px solid rgba(200,168,75,.45);
+  background:rgba(200,168,75,.14);color:#e2c97e;white-space:nowrap;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.3px;
+}
+.ttlpill.show{display:inline-flex;}
+.ttlpill.warn{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.16);color:#fcd34d;}
+.ttlpill.crit{border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.16);color:#fca5a5;}
 .tb-btn{
   background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.16);
   padding:7px 14px;border-radius:8px;font-size:12.5px;font-weight:600;
@@ -386,6 +397,54 @@ textarea{resize:vertical;line-height:1.6;}
   font-family:'JetBrains Mono',monospace;
 }
 .tsw.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,168,75,.25);}
+/* Once an order is paid the pack is fixed. Anything outside it is still
+   visible — the customer can see what they could add — but greyed and
+   badged, so "locked" reads as an offer rather than a dead button. */
+.tsw.owned::after{
+  content:'\2713';position:absolute;top:-5px;right:-5px;width:14px;height:14px;
+  border-radius:50%;background:var(--gold);color:#1a2744;font-size:9px;
+  display:grid;place-items:center;font-weight:900;box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.tsw.lk{opacity:.38;filter:grayscale(.9);}
+.tsw.lk::after{
+  content:'\1f512';position:absolute;top:-4px;right:-4px;font-size:10px;
+  filter:none;opacity:1;
+}
+.tsw.lk:hover{opacity:.62;}
+/* Pack picker inside the unlock modal */
+.pack-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px;}
+.pack-sw{
+  width:38px;height:48px;border-radius:7px;border:2px solid transparent;
+  display:grid;place-items:center;font-size:11px;font-weight:800;position:relative;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;opacity:.5;
+}
+.pack-sw.pick{opacity:1;border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,168,75,.25);}
+.pack-sw.pick::after{
+  content:'+';position:absolute;top:-5px;right:-5px;width:14px;height:14px;
+  border-radius:50%;background:var(--gold);color:#1a2744;font-size:11px;
+  display:grid;place-items:center;font-weight:900;
+}
+.pack-sw.main{opacity:1;border-color:var(--gold);cursor:default;}
+.pack-sw.main::after{
+  content:'\2605';position:absolute;top:-5px;right:-5px;width:14px;height:14px;
+  border-radius:50%;background:var(--gold);color:#1a2744;font-size:9px;
+  display:grid;place-items:center;font-weight:900;
+}
+.dl-row{
+  display:flex;align-items:center;gap:10px;padding:9px 11px;border:1.5px solid var(--line);
+  border-radius:9px;margin-bottom:7px;background:var(--white);
+}
+.dl-row .n{
+  width:30px;height:38px;border-radius:6px;display:grid;place-items:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;flex-shrink:0;
+}
+.dl-row .d{flex:1;min-width:0;font-size:12px;color:var(--muted);line-height:1.4;}
+.dl-row .d b{display:block;font-size:12.5px;color:var(--navy);}
+.dl-row button{
+  border:1.5px solid var(--line);background:var(--white);border-radius:7px;
+  padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+.dl-row button.go{background:var(--navy);color:#fff;border-color:var(--navy);}
 
 .pv-stage{
   flex:1;overflow:auto;padding:18px;display:flex;justify-content:center;
@@ -575,6 +634,7 @@ textarea{resize:vertical;line-height:1.6;}
   .brand-txt span{font-size:8.5px;letter-spacing:1.6px;}
   .topbar-spacer{display:none;}
   .lockpill{order:3;flex:1 0 100%;justify-content:center;font-size:11px;padding:5px 10px;}
+  .ttlpill.show{order:4;flex:1 0 100%;justify-content:center;font-size:11px;padding:5px 10px;}
   .tb-btn{font-size:11.5px;padding:6px 11px;white-space:nowrap;}
   #tbPrint{display:none;}          /* the action bar carries this on mobile */
   .pv-foot{padding-bottom:calc(12px + env(safe-area-inset-bottom));}
@@ -600,6 +660,7 @@ textarea{resize:vertical;line-height:1.6;}
   </div>
   <div class="topbar-spacer"></div>
   <div class="lockpill" id="lockPill">🔒 Save &amp; Print locked</div>
+  <div class="ttlpill" id="ttlPill"></div>
   <button class="tb-btn" onclick="openUnlock('check')">I already paid</button>
   <button class="tb-btn gold" id="tbPrint" onclick="doPrint()" disabled>🖨 Print</button>
 </div>
@@ -1028,7 +1089,31 @@ const fullName = p => {
 };
 
 function buildCVHtml(s,tmpl,mode){
-  const p=s.personal;
+  // Everything below is customer-typed and goes into template HTML as-is.
+  // admin.html's copy of this function escapes it all and explains why; this
+  // copy did not, so a company name containing a < broke the layout and a
+  // <script> typed into any field ran inside the preview iframe, which is
+  // same-origin with this page and holds the unlock state in localStorage.
+  const _esc0=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const _rawP=s.personal||{};
+  const p={};
+  // Photo is exempt: it is a base64 data URL used inside src="" and must pass
+  // through untouched.
+  Object.keys(_rawP).forEach(k=>{ p[k] = k==='photo' ? _rawP[k] : _esc0(_rawP[k]); });
+  p.photo=_rawP.photo;
+  // Seafarer and Europe records are nested objects and arrays of rows, so they
+  // need a recursive walk — escaping only the top level would leave every
+  // vessel name, certificate and CEFR entry injectable.
+  const _escDeep=v=>Array.isArray(v)?v.map(_escDeep)
+    :(v&&typeof v==='object')?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,_escDeep(x)]))
+    :(typeof v==='string')?_esc0(v):v;
+  s={...s,
+     skills:(s.skills||[]).map(_esc0),
+     languages:(s.languages||[]).map(_esc0),
+     aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
+     awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
+     seaman:s.seaman?_escDeep(s.seaman):s.seaman,
+     europe:s.europe?_escDeep(s.europe):s.europe};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -1037,14 +1122,15 @@ function buildCVHtml(s,tmpl,mode){
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;">`
     :`<div style="width:100%;height:100%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,.6);">👤</div>`;
 
-  const edu=(s.education||[]).filter(e=>e.school);
+  const esc=_esc0;
+  const edu=(s.education||[]).filter(e=>e.school).map(e=>({
+    school: esc(e.school), degree: esc(e.degree),
+    yearStart: esc(e.yearStart), yearGrad: esc(e.yearGrad), honors: esc(e.honors)
+  }));
   // Experience list = paid work + OJT, mapped into one shape so all 13 templates
   // render it with no per-template changes. OJT is flagged in the position line,
   // which is how Philippine fresh-grad CVs conventionally present it.
   const paidWork=(!isFresh&&s.workExperience?.length)?s.workExperience.filter(w=>w.company):[];
-  // Escape before injecting: these strings go into template HTML as-is, and a
-  // company name containing < would otherwise break the rendered CV.
-  const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   // Tasks are entered one per line; .i-desc has no white-space rule, so without
   // converting newlines they'd collapse into a single run-on paragraph.
   const lines=t=>esc(t).split(/\r?\n/).map(x=>x.trim()).filter(Boolean).join('<br>');
@@ -1057,8 +1143,19 @@ function buildCVHtml(s,tmpl,mode){
     responsibilities: [lines(o.tasks), o.tools?('<em>Tools used: '+esc(o.tools)+'</em>'):'']
                         .filter(Boolean).join('<br>')
   }));
-  const work=[...paidWork,...ojtWork];
-  const refs=(s.references||[]).filter(r=>r.name);
+  // ojtWork is deliberately excluded from this pass: it was escaped above and
+  // carries intentional <br> and <em> markup that must survive.
+  const escWork=paidWork.map(w=>({
+    company: esc(w.company), position: esc(w.position),
+    dateStart: esc(w.dateStart), dateEnd: esc(w.dateEnd),
+    location: esc(w.location),
+    responsibilities: lines(w.responsibilities)
+  }));
+  const work=[...escWork,...ojtWork];
+  const refs=(s.references||[]).filter(r=>r.name).map(r=>({
+    name: esc(r.name), position: esc(r.position),
+    company: esc(r.company), contact: esc(r.contact)
+  }));
 
   const printBar=mode==='print'
     ?`<div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;">
@@ -3009,9 +3106,16 @@ const DRAFT_KEY  = 'arroyo_selfservice_draft_v1';
 const UNLOCK_KEY = 'arroyo_selfservice_unlock_v1';
 
 // Self-service is cheaper than an assisted order because the customer does the
-// typing. Deliberately NOT read from pricing.base, which is the assisted price.
+// typing. FIXED at 25: it is never read from the pricing record, because
+// pricing.base is the ASSISTED price and picking it up here quoted 50 to a
+// self-service customer, then reported them 25 short when they paid 25.
 const SELF_SERVICE_PRICE = 25;
-let BASE_PRICE = SELF_SERVICE_PRICE;
+// Every template after the first one in the pack. Buying a second layout is a
+// re-render of data we already hold, so it is priced as an add-on, not a CV.
+const EXTRA_TMPL_PRICE = 10;
+// Kept under the old name so the many peso(BASE_PRICE) call sites still read
+// correctly. It is a constant now — nothing may reassign it.
+const BASE_PRICE = SELF_SERVICE_PRICE;
 const peso = n => '\u20b1' + Number(n).toLocaleString();
 
 /* ─── STATE ─────────────────────────────────────────────────────────────── */
@@ -3022,6 +3126,143 @@ let tmplPickedByUser = false;
 let unlocked = false;
 let unlockRef = '';
 let pollTimer = null;
+
+/* ─── TEMPLATE PACK ─────────────────────────────────────────────────────────
+   The template is a product, not a preference. Before payment the customer
+   browses freely; the moment they pay, the pack they paid for is frozen and
+   every other layout locks. Extra layouts are EXTRA_TMPL_PRICE each, bought
+   either up front or as a top-up afterwards.
+
+     paidTemplates   — confirmed by the server. Authoritative once unlocked.
+     extraTemplates  — ticked in the unlock modal, not yet paid for.
+     topUpDraft      — an add-templates purchase waiting on approval.
+   ────────────────────────────────────────────────────────────────────────── */
+let paidTemplates  = [];
+let extraTemplates = [];
+let topUpDraft     = null;
+
+// Everything the customer is buying (or has bought), lowest number first.
+function packTemplates(){
+  const base = paidTemplates.length ? paidTemplates : [selectedTmpl];
+  return [...new Set([...base, ...extraTemplates])].sort((a, b) => a - b);
+}
+
+// What this order costs right now: one CV plus every template past the first.
+function orderDue(){
+  return SELF_SERVICE_PRICE + EXTRA_TMPL_PRICE * Math.max(0, packTemplates().length - 1);
+}
+
+// Locked means paid-for-something-else. An order with nothing paid yet is not
+// locked, it is simply undecided, so the whole strip stays open.
+function ownsTemplate(n){
+  return !unlocked || !paidTemplates.length || paidTemplates.includes(Number(n));
+}
+
+// Pulls the pack off a stored order. Orders written before packs existed carry
+// only templatePref, so that single layout is what they own.
+function templatesOf(rec){
+  const list = rec && rec.templates && rec.templates.purchased;
+  if(Array.isArray(list) && list.length) return list.map(Number).filter(n => !isNaN(n));
+  const one = parseInt(rec && rec.templatePref, 10);
+  return one ? [one] : [];
+}
+
+const tmplInfo = n => TMPL_INFO.find(t => t.num === Number(n)) || null;
+
+/* ─── 24-HOUR WINDOW ──────────────────────────────────────────────
+   Orders are removed a day after they are placed, and the CV data goes with
+   them. The clock RESTARTS at payment: a customer who pays 20 hours in gets a
+   full day to download, not the four hours that were left. Derived from
+   timestamps the record already carries, so nothing new has to be written and
+   admin.html arrives at exactly the same deadline from the same fields.
+   ─────────────────────────────────────────────────────────────── */
+const ORDER_TTL_HOURS = 24;
+let expiresAt = 0;          // ms epoch, 0 = no clock running
+let ttlTimer  = null;
+// Read back from localStorage on load. Only ever a FALLBACK for the case where
+// the server cannot be reached: without it, openTheLock() with no record gives
+// expiryOf()===0, the countdown never starts, and an offline customer keeps an
+// unlimited window on a file that no longer exists.
+let savedExpiry = 0;
+
+const resolveExpiry = rec => expiryOf(rec) || savedExpiry || 0;
+
+function expiryOf(rec){
+  const started = rec?.payment?.paidAt || rec?.submittedAt;
+  const t = started ? new Date(started).getTime() : NaN;
+  return isNaN(t) ? 0 : t + ORDER_TTL_HOURS * 3600e3;
+}
+
+// "23h 41m" / "48m 09s". Seconds only appear in the last hour, where they are
+// the difference between hurrying and not bothering.
+function humanLeft(ms){
+  if(ms <= 0) return 'expired';
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  if(h >= 1) return h + 'h ' + String(m).padStart(2, '0') + 'm';
+  return m + 'm ' + String(sec).padStart(2, '0') + 's';
+}
+
+function startCountdown(rec){
+  expiresAt = resolveExpiry(rec);
+  clearInterval(ttlTimer);
+  if(!expiresAt) return;
+  tickCountdown();
+  ttlTimer = setInterval(tickCountdown, 1000);
+}
+
+function stopCountdown(){
+  clearInterval(ttlTimer);
+  ttlTimer = null;
+  expiresAt = 0;
+  const pill = $('ttlPill');
+  if(pill) pill.className = 'ttlpill';
+}
+
+function tickCountdown(){
+  const pill = $('ttlPill');
+  if(!expiresAt || !pill) return;
+  const left = expiresAt - Date.now();
+
+  if(left <= 0){ onExpired(); return; }
+
+  const hrs = left / 3600e3;
+  pill.className = 'ttlpill show' + (hrs < 1 ? ' crit' : hrs < 6 ? ' warn' : '');
+  pill.textContent = '\u23f3 ' + humanLeft(left) + ' left to download';
+
+  // Mirrored into the unlocked modal when it happens to be open, so the number
+  // is in front of them at the moment they are deciding whether to save now.
+  const mirror = $('ttlInline');
+  if(mirror) mirror.textContent = humanLeft(left);
+}
+
+// The window closed. Everything local is cleared: the file is about to stop
+// existing on the server too, and leaving a working Print button behind would
+// promise something that is no longer there.
+function onExpired(){
+  clearInterval(ttlTimer);
+  ttlTimer = null;
+  expiresAt = 0;
+  const pill = $('ttlPill');
+  if(pill){ pill.className = 'ttlpill show crit'; pill.textContent = '\u23f3 Expired'; }
+  if(!unlocked) return;
+  closeTheLock();
+  if($('unlockOv').classList.contains('open')) screenExpired();
+  else toast('Your 24-hour download window has closed and the order has been removed. '
+           + 'Message ' + GCASH_NUMBER + ' if you still need the file.', true);
+}
+
+function screenExpired(){
+  paint('Your download window has closed',
+    'Orders are kept for ' + ORDER_TTL_HOURS + ' hours, then removed.',
+    `<div class="stat err show">This order has expired and is no longer on file.</div>
+     <p style="font-size:12.5px;color:var(--muted);line-height:1.65">
+       Everything you typed is still in this browser, so you can send it again as a
+       new order. If you paid and did not manage to download in time, message
+       <strong>${GCASH_NUMBER}</strong> with your reference number and we will sort it out.
+     </p>`,
+    `<button class="btn-ghost" onclick="closeUnlock()">Close</button>`);
+}
 
 const SKILL_IDEAS = ['Microsoft Office','Communication','Customer Service','Data Entry',
   'Time Management','Teamwork','Problem Solving','Attention to Detail','Basic Accounting',
@@ -3203,8 +3444,20 @@ function loadPhoto(input){
   const file = input.files && input.files[0];
   if(!file) return;
   if(!file.type.startsWith('image/')){ toast('That file is not an image. Use a JPG or PNG.', true); input.value=''; return; }
+  // Rejected before it is ever read. Anything this large is a raw camera file,
+  // and if the browser then fails to decode it there is no compressed version
+  // to fall back on.
+  if(file.size > 12 * 1024 * 1024){
+    toast('That photo is too big. Use one under 12 MB, or screenshot it first.', true);
+    input.value=''; return;
+  }
   const fr = new FileReader();
   fr.onload = e => compressPhoto(e.target.result).then(d => {
+    if(!d){
+      toast('That image could not be read \u2014 iPhone HEIC photos often fail. '
+          + 'Screenshot it and upload the screenshot instead.', true);
+      input.value=''; return;
+    }
     photoBase64 = d;
     $('photoDrop').innerHTML = '<img src="' + d + '" alt="Your photo">';
     $('photoClear').style.display = 'inline-block';
@@ -3235,7 +3488,11 @@ function compressPhoto(dataUrl){
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
       res(c.toDataURL('image/jpeg', 0.5));
     };
-    img.onerror = () => res(dataUrl);
+    // Fails CLOSED. Returning the raw upload here — which is what it used to do
+    // — meant a HEIC or otherwise undecodable photo went into the order at full
+    // size: a 5 MB phone picture is about 6.7 MB of base64 against an 88 KB
+    // budget, which then evicts other people's orders to make room.
+    img.onerror = () => res('');
     img.src = dataUrl;
   });
 }
@@ -3316,26 +3573,69 @@ const photoIsPrinted = () => !(selectedTmpl === 18 || selectedTmpl === 19);
 /* ─── TEMPLATE STRIP ────────────────────────────────────────────────────── */
 function buildStrip(){
   const list = templatesFor(eduLevel());
+  const packed = paidTemplates.length > 0;
 
-  $('pvStrip').innerHTML = list.map(t => `
-    <button type="button" class="tsw${t.num === selectedTmpl ? ' on' : ''}"
-            onclick="pickTmpl(${t.num})" title="${escHtml(t.desc)}"
+  $('pvStrip').innerHTML = list.map(t => {
+    const owns = ownsTemplate(t.num);
+    const cls = 'tsw'
+      + (t.num === selectedTmpl ? ' on' : '')
+      + (packed && owns ? ' owned' : '')
+      + (owns ? '' : ' lk');
+    const tip = owns
+      ? t.desc
+      : t.desc + ' \u2014 not in your pack. Add it for ' + peso(EXTRA_TMPL_PRICE) + '.';
+    return `
+    <button type="button" class="${cls}"
+            onclick="pickTmpl(${t.num})" title="${escHtml(tip)}"
             aria-pressed="${t.num === selectedTmpl}"
-            style="background:${t.bg};color:${t.color};${t.border ? 'border-color:' + t.color : ''}">${t.num}</button>`).join('');
+            style="background:${t.bg};color:${t.color};${t.border ? 'border-color:' + t.color : ''}">${t.num}</button>`;
+  }).join('');
 
   const info = list.find(t => t.num === selectedTmpl);
-  $('pvStatus').textContent = 'Template ' + selectedTmpl + (info ? ' \u00b7 ' + info.desc : '');
+  const suffix = packed
+    ? (ownsTemplate(selectedTmpl) ? ' \u00b7 in your pack' : ' \u00b7 \ud83d\udd12 locked')
+    : '';
+  $('pvStatus').textContent = 'Template ' + selectedTmpl
+    + (info ? ' \u00b7 ' + info.desc : '') + suffix;
+  syncLockChrome();
   syncSections();
+}
+
+// The unlock is per template, not per session, so the seal and the pill follow
+// whatever is on screen rather than staying open once payment clears.
+function syncLockChrome(){
+  const sizer = $('pvSizer'), pill = $('lockPill'), tb = $('tbPrint');
+  if(!sizer || !pill) return;
+  const open = unlocked && ownsTemplate(selectedTmpl);
+  sizer.classList.toggle('unlocked', open);
+  if(!unlocked){
+    pill.className = 'lockpill';
+    pill.innerHTML = '\ud83d\udd12 Save &amp; Print locked';
+  } else if(open){
+    pill.className = 'lockpill open';
+    pill.textContent = '\ud83d\udd13 Save & Print unlocked \u00b7 '
+      + paidTemplates.length + ' template' + (paidTemplates.length > 1 ? 's' : '');
+  } else {
+    pill.className = 'lockpill';
+    pill.innerHTML = '\ud83d\udd12 Not in your pack \u2014 ' + peso(EXTRA_TMPL_PRICE);
+  }
+  if(tb) tb.disabled = !unlocked;
 }
 
 function pickTmpl(n){
   // Guard against a stale onclick firing after a track change swapped the strip.
   if(!templatesFor(eduLevel()).some(t => t.num === n)) return;
+
+  // A paid pack is fixed. Tapping a layout outside it is read as intent to buy
+  // it, not as a mis-tap: the preview still switches so they can see what they
+  // would be getting, but Save and Print refuse until it is paid for.
+  const outside = !ownsTemplate(n);
   selectedTmpl = n;
   tmplPickedByUser = true;
   buildStrip();
   renderPreview();
   saveDraft();
+  if(outside) openAddTemplates(n);
 }
 
 // Which cards are on screen follows the track, and only the track. Every layout
@@ -3453,8 +3753,15 @@ function collectData(){
     profileSummary: val('profileSummary'),
     aboutMe: val('aboutMe'),
     education, workExperience, ojt,
-    quotedTotal: BASE_PRICE,
-    pricing: { base: BASE_PRICE, cl: 0, rl: 0, sale: '', bundle: '', bundleSaving: 0, itemsSum: BASE_PRICE },
+    quotedTotal: orderDue(),
+    pricing: { base: SELF_SERVICE_PRICE, cl: 0, rl: 0, sale: '', bundle: '', bundleSaving: 0,
+               extraTemplates: Math.max(0, packTemplates().length - 1),
+               extraTemplateFee: EXTRA_TMPL_PRICE, itemsSum: orderDue() },
+    // The pack the customer is paying for. admin.html reads templates.purchased
+    // to decide what to unlock; templatePref stays as the one on screen so
+    // every existing renderer keeps working unchanged.
+    templates: { purchased: packTemplates(), base: SELF_SERVICE_PRICE,
+                 extraFee: EXTRA_TMPL_PRICE },
     seaman, europe, skills, languages, references,
     hobbies: val('hobbies'), awards: val('awards'),
     templatePref: String(selectedTmpl),
@@ -4328,8 +4635,18 @@ async function lookupOrderByRef(ref){
 function openUnlock(mode){
   $('unlockOv').classList.add('open');
   if(mode === 'check') return screenCheck();
+  if(mode === 'add')   return screenAddTemplates();
   if(unlocked) return screenDone();
   screenConfirm();
+}
+
+// Reached by tapping a locked swatch. Pre-ticks the one they tapped so the
+// common case — "I want THAT one" — is a single confirm.
+function openAddTemplates(n){
+  if(!unlocked){ openUnlock('request'); return; }
+  topUpPick = ownsTemplate(n) ? [] : [Number(n)];
+  $('unlockOv').classList.add('open');
+  screenAddTemplates();
 }
 
 function closeUnlock(){
@@ -4351,6 +4668,12 @@ function paint(title, sub, body, foot){
 /* ─── SCREEN 1 — confirm ────────────────────────────────────────────────── */
 function screenConfirm(){
   const d = collectData();
+
+  // Ahead of validation on purpose: the photo rule depends on which layout is
+  // being bought, so asking for a photo before the layout is settled produces
+  // an error the customer cannot act on.
+  if(!tmplPickedByUser) return screenPickMain();
+
   const problem = firstProblem(d);
 
   if(problem){
@@ -4365,26 +4688,121 @@ function screenConfirm(){
   }
 
   const name = [d.personal.firstName, d.personal.lastName].filter(Boolean).join(' ');
+  const pack   = packTemplates();
+  const extras = Math.max(0, pack.length - 1);
+  const total  = orderDue();
+  const info   = tmplInfo(selectedTmpl);
+
+  // The pack is what is being bought, so it is chosen HERE, once, as a picker
+  // rather than described in a line of text. A moment later the strip locks to
+  // exactly this set, and that is far easier to accept when you picked it.
+  const picker = templatesFor(eduLevel()).map(t => {
+    const isMain = t.num === selectedTmpl;
+    const on = extraTemplates.includes(t.num);
+    const tip = isMain ? t.desc + ' \u2014 your main template'
+              : on     ? t.desc + ' \u2014 added'
+                       : t.desc + ' \u2014 add for ' + peso(EXTRA_TMPL_PRICE);
+    return `<button type="button"
+        class="pack-sw${isMain ? ' main' : (on ? ' pick' : '')}"
+        ${isMain ? '' : `onclick="toggleExtra(${t.num})"`}
+        title="${escHtml(tip)}"
+        style="background:${t.bg};color:${t.color}">${t.num}</button>`;
+  }).join('');
+
   paint('Unlock Save & Print',
-    'We send your CV to Arroyo CV Builder, you pay by GCash, and the buttons open once we confirm it.',
+    'Choose your templates, pay by GCash, and we verify it \u2014 then every template in your pack opens here.',
     `<div class="pay-row">
        <div class="ic">\ud83d\udcc4</div>
-       <div><div class="v">${escHtml(name)} — Template ${selectedTmpl}</div>
+       <div><div class="v">${escHtml(name)}</div>
             <div class="k">${escHtml(d.personal.email)}</div></div>
      </div>
-     <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06)">
-       <div class="ic">\ud83d\udcb0</div>
-       <div><div class="v">${peso(BASE_PRICE)}</div>
-            <div class="k">One CV, unlimited prints, yours to keep</div></div>
+
+     <div style="margin-top:14px">
+       <div style="font-size:12px;font-weight:800;color:var(--navy)">
+         Your pack \u2014 Template ${selectedTmpl}${info ? ' \u00b7 ' + escHtml(info.desc) : ''}
+       </div>
+       <div style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:3px">
+         Tap any other layout to add it for <strong>${peso(EXTRA_TMPL_PRICE)}</strong> each.
+         Once you pay, this pack is fixed \u2014 the rest lock, and you can download
+         every template you chose as many times as you like.
+       </div>
+       <div class="pack-grid">${picker}</div>
      </div>
+
+     <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
+       <div class="ic">\ud83d\udcb0</div>
+       <div><div class="v">${peso(total)}</div>
+            <div class="k">${peso(SELF_SERVICE_PRICE)} for your CV${extras
+              ? ' + ' + extras + ' extra template' + (extras > 1 ? 's' : '')
+                + ' \u00d7 ' + peso(EXTRA_TMPL_PRICE)
+              : ''} \u00b7 unlimited prints</div></div>
+     </div>
+
      <ol class="steps-ol">
-       <li>We send your CV and give you a reference number.</li>
-       <li>You pay ${peso(BASE_PRICE)} by GCash and send the screenshot.</li>
-       <li>We confirm it, usually within a few hours during the day.</li>
-       <li>Save &amp; Print open here \u2014 come back with your reference number.</li>
+       <li>We save your CV and give you a reference number.</li>
+       <li>You pay ${peso(total)} by GCash and enter the reference number.</li>
+       <li>We check it against GCash and approve it.</li>
+       <li>Save &amp; Print open here for every template in your pack.</li>
      </ol>`,
     `<button class="btn-ghost" onclick="closeUnlock()">Not yet</button>
-     <button class="btn-lock" onclick="sendOrder()">Send my CV</button>`);
+     <button class="btn-lock" onclick="sendOrder()">Send my CV \u2014 ${peso(total)}</button>`);
+}
+
+/* ─── SCREEN 0 — choose the main template ──────────────────────────────
+   Only reached by someone who never touched the strip. The layout is the
+   product here — it is what the pack is priced on and what locks a moment
+   later — so it cannot be something they were defaulted into.
+   ─────────────────────────────────────────────────────────────── */
+function screenPickMain(){
+  const grid = templatesFor(eduLevel()).map(t => `<button type="button"
+      class="pack-sw${t.num === selectedTmpl ? ' pick' : ''}"
+      onclick="pickMainTmpl(${t.num})" title="${escHtml(t.desc)}"
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
+
+  const info = tmplInfo(selectedTmpl);
+  paint('Which template do you want?',
+    'Pick the design for your CV. You can add more afterwards for '
+      + peso(EXTRA_TMPL_PRICE) + ' each.',
+    `<div style="font-size:11.5px;color:var(--muted);line-height:1.6">
+       Tap one to see it in the preview behind this box. Whatever you choose is
+       what you pay for and what unlocks \u2014 so take a look first.
+     </div>
+     <div class="pack-grid">${grid}</div>
+     <div class="pay-row" style="margin-top:12px">
+       <div class="ic">\ud83c\udfa8</div>
+       <div><div class="v">Template ${selectedTmpl}</div>
+            <div class="k">${info ? escHtml(info.desc) : 'Showing in the preview'}</div></div>
+     </div>`,
+    `<button class="btn-ghost" onclick="closeUnlock()">Back to the form</button>
+     <button class="btn-lock" onclick="confirmMainTmpl()">Use Template ${selectedTmpl}</button>`);
+}
+
+// Repaints rather than closing, so they can flick through layouts and watch
+// the preview change without losing their place in the flow.
+function pickMainTmpl(n){
+  n = Number(n);
+  if(!templatesFor(eduLevel()).some(t => t.num === n)) return;
+  selectedTmpl = n;
+  buildStrip();
+  renderPreview();
+  saveDraft();
+  screenPickMain();
+}
+
+function confirmMainTmpl(){
+  tmplPickedByUser = true;
+  saveDraft();
+  screenConfirm();
+}
+
+// Adds or removes an extra layout before payment. Repaints in place so the
+// running total moves as they tick, instead of surprising them at the counter.
+function toggleExtra(n){
+  n = Number(n);
+  if(n === selectedTmpl) return;
+  const at = extraTemplates.indexOf(n);
+  if(at < 0) extraTemplates.push(n); else extraTemplates.splice(at, 1);
+  screenConfirm();
 }
 
 // Takes either a field id or a section id. Sections are not focusable, so the
@@ -4420,11 +4838,10 @@ async function sendOrder(){
     // it a reload could not re-check the payment.
     try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
       { ref: unlockRef, email: data.personal.email, paid: false })); } catch(e){}
-    // Only the first send raises an alert. Pressing the button twice, or
-    // resending after an edit, updates the same record the admin is already
-    // looking at — a second identical mail would just be noise in the inbox.
-    if(isNew) notifyAdminVerifyPayment(data);
-    else console.log('Order updated; admin already alerted for', data.id);
+    // The customer gets their quote. The admin does NOT — they have the
+    // dashboard, and they are mailed when a GCash reference actually arrives.
+    console.log(isNew ? 'Order stored:' : 'Order updated:', data.id);
+    sendQuoteEmail(data);
     screenPay(unlockRef);
     startPolling();
   } catch(err){
@@ -4489,148 +4906,219 @@ function trimToFit(list, keepId){
     const mine = list.find(s => s?.id === keepId);
     if(mine?.personal?.photo) mine.personal.photo = '';
   }
+
+  // Dropping whole orders is the last resort, and two kinds are never dropped:
+  // one that is PAID, and one whose customer has submitted a GCash reference
+  // and is waiting on approval. Evicting either destroys the only record that
+  // money changed hands, and for a self-service order it locks a paying
+  // customer out of their own CV — their page can no longer find the
+  // reference and tells them no order matches.
+  const evictable = s => s?.id !== keepId
+                      && !s?.payment?.paid
+                      && !s?.paymentProof?.gcashRef;
   while(size() > LIMIT && list.length > 1){
-    const drop = list.findIndex(s => s?.id !== keepId);
-    if(drop < 0) break;
+    const drop = list.findIndex(evictable);
+    if(drop < 0) break;            // nothing left that is safe to drop
     list.splice(drop, 1);
   }
 }
 
 
-/* ══════════════════════════════════════════════════════════════════════════
-   ADMIN ALERT
-   A self-service order is stuck until someone ticks "Mark paid" in admin.html,
-   so the alert has to say plainly that an ACTION is waiting, not just that an
-   order arrived. Sent through the same EmailJS template as assisted orders.
-   ══════════════════════════════════════════════════════════════════════════ */
-async function notifyAdminVerifyPayment(data){
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADMIN ALERTS — ONE, NOT TWO
+
+   There used to be an alert here that fired the instant a CV was submitted,
+   headed "Payment verification needed". Nothing had been paid at that point,
+   so there was nothing to verify; the mail that matters is the one sent when
+   the customer actually hands over a GCash reference, and that one lives in
+   notifyAdminProofSubmitted() below. Self-service is a verify-then-complete
+   flow, so it gets exactly one admin mail: the one with a reference in it.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE QUOTE — what to pay, and what it buys
+
+   The next thing this customer does is leave the browser for the GCash app.
+   On a phone that often kills the tab, and everything they need — the amount,
+   the reference number to put in the note — was only ever on screen. This
+   puts all of it in their inbox before they go.
+
+   Not sent to the admin: an order with no payment attached is not news, and
+   two mails about one order is what made the inbox unusable.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+// Guards against re-quoting the same figure when a customer edits and re-sends.
+let lastQuoted = '';
+
+async function sendQuoteEmail(data){
   try {
-    if(typeof emailjs === 'undefined'){
-      console.warn('EmailJS did not load — admin alert skipped.');
-      return;
-    }
-
+    if(typeof emailjs === 'undefined') return;
     const p = data.personal;
-    const name = fullName(p) || 'Unnamed applicant';
-    const total = data.quotedTotal ?? BASE_PRICE;
-    const when = new Date().toLocaleString('en-PH', {
-      timeZone: 'Asia/Manila', year: 'numeric', month: 'long',
-      day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    if(!p.email) return;
 
-    const TRACKS = { college:'Standard', fresh:'Fresh Graduate',
-                     seaman:'Seafarer', europe:'Europe / EU' };
+    const pack   = (data.templates && data.templates.purchased) || [Number(data.templatePref)];
+    const extras = Math.max(0, pack.length - 1);
+    const total  = data.quotedTotal;
 
-    const row = (l, v) => v
-      ? `<tr><td style="padding:6px 10px;font-size:12px;color:#6b7280;border-bottom:1px solid #eef0f5;white-space:nowrap;">${l}</td>
-             <td style="padding:6px 10px;font-size:13px;color:#1f2937;font-weight:600;border-bottom:1px solid #eef0f5;">${escHtml(v)}</td></tr>`
-      : '';
+    // Same order, same price, same pack — nothing new to tell them.
+    const stamp = data.id + '|' + total + '|' + pack.join(',');
+    if(stamp === lastQuoted) return;
+    lastQuoted = stamp;
 
-    const eduList = (data.education || []).filter(e => e.school)
-      .map(e => escHtml((e.degree ? e.degree + ' \u2014 ' : '') + e.school)).join('<br>') || '\u2014';
-    const workList = (data.workExperience || []).filter(w => w.company)
-      .map(w => escHtml((w.position || '') + ' @ ' + w.company)).join('<br>') || '\u2014';
+    const name = p.firstName || fullName(p) || 'there';
+    const chip = n => {
+      const t = tmplInfo(n);
+      return `<td style="padding:0 6px 6px 0;"><div style="width:40px;height:50px;border-radius:7px;
+        background:${t ? t.bg : '#1a2744'};color:${t ? t.color : '#e2c97e'};font-weight:800;
+        font-family:monospace;font-size:13px;text-align:center;line-height:50px;">${n}</div></td>`;
+    };
+
+    const lineRow = (l, v, strong) =>
+      `<tr><td style="padding:7px 0;font-size:13px;color:#6b7280;">${l}</td>
+           <td style="padding:7px 0;font-size:${strong ? '15px' : '13px'};font-weight:${strong ? '800' : '700'};
+                      color:#1a2744;text-align:right;">${v}</td></tr>`;
 
     const htmlBody = `
-      <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;color:#1f2937;">
-        <div style="background:#1a2744;padding:20px 24px;">
-          <h1 style="color:#e2c97e;margin:0;font-size:19px;">\ud83d\udd12 Payment verification needed</h1>
-          <p style="color:rgba(255,255,255,.6);margin:4px 0 0;font-size:12px;">Arroyo CV Builder \u2014 Self Service</p>
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2937;">
+        <div style="background:#1a2744;padding:22px 24px;">
+          <h1 style="color:#e2c97e;margin:0;font-size:19px;">Your CV is saved \u2014 here is what to pay</h1>
+          <p style="color:rgba(255,255,255,.6);margin:5px 0 0;font-size:12px;">Arroyo CV Builder \u00b7 Self Service</p>
         </div>
-        <div style="background:#f7f8fc;padding:22px 24px;border:1px solid #e5e7eb;border-top:none;">
+        <div style="background:#f7f8fc;padding:24px;border:1px solid #e5e7eb;border-top:none;">
 
-          <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
-            <div style="font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.6px;">Waiting on you</div>
-            <div style="font-size:13px;color:#78350f;margin-top:6px;line-height:1.5;">
-              This customer built their own CV. <b>Save and Print stay locked</b> until you
-              mark the order paid in the admin dashboard.
-            </div>
-          </div>
+          <p style="font-size:14px;line-height:1.65;margin:0 0 18px;">
+            Hi ${escHtml(name)}, your CV is on file. Send the amount below by GCash and we will
+            open Save and Print on your page.
+          </p>
 
-          <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
-            <div style="font-size:17px;font-weight:800;color:#1a2744;">${escHtml(name)}</div>
-            <div style="font-size:13px;color:#6b7280;margin-top:2px;">${escHtml(p.jobTitle || 'No position specified')}</div>
-            <div style="margin-top:10px;font-size:15px;font-weight:800;color:#10b981;">
-              ${peso(total)}
-              <span style="font-size:11px;color:#6b7280;font-weight:600;margin-left:6px;">self-service rate</span>
-            </div>
-            <div style="margin-top:8px;font-family:monospace;font-size:14px;font-weight:700;color:#1a2744;letter-spacing:1px;">
+          <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#6b7280;">Your reference number</div>
+            <div style="font-family:monospace;font-size:22px;font-weight:800;color:#1a2744;letter-spacing:1px;margin-top:5px;">
               ${escHtml(data.id)}
             </div>
+            <div style="font-size:11.5px;color:#6b7280;margin-top:6px;">
+              Put this in the GCash message or note, and keep it \u2014 you need it to open your CV again.
+            </div>
           </div>
 
-          <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
-            ${row('Submitted', when)}
-            ${row('Email', p.email)}
-            ${row('Phone', p.phone)}
-            ${row('Address', p.address)}
-            ${row('Track', TRACKS[data.eduLevel] || data.eduLevel)}
-            ${row('Template', 'Template ' + data.templatePref)}
-            ${row('Photo', p.photo ? 'Yes' : 'No')}
-            <tr><td style="padding:6px 10px;font-size:12px;color:#6b7280;border-bottom:1px solid #eef0f5;white-space:nowrap;vertical-align:top;">Education</td>
-                <td style="padding:6px 10px;font-size:13px;color:#1f2937;font-weight:600;border-bottom:1px solid #eef0f5;">${eduList}</td></tr>
-            <tr><td style="padding:6px 10px;font-size:12px;color:#6b7280;white-space:nowrap;vertical-align:top;">Work</td>
-                <td style="padding:6px 10px;font-size:13px;color:#1f2937;font-weight:600;">${workList}</td></tr>
-          </table>
-
-          <div style="margin-top:20px;text-align:center;">
-            <a href="${ADMIN_URL}"
-               style="display:inline-block;background:#c8a84b;color:#1a2744;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:800;">
-              Open Admin Dashboard \u2192
-            </a>
+          <div style="background:#fff;border:1.5px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:16px;">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#6b7280;margin-bottom:9px;">
+              Template${pack.length > 1 ? 's' : ''} you chose
+            </div>
+            <table style="border-collapse:collapse;"><tr>${pack.map(chip).join('')}</tr></table>
+            <table style="width:100%;border-collapse:collapse;margin-top:12px;border-top:1px solid #eef0f5;">
+              ${lineRow('CV \u00b7 Template ' + pack[0], peso(SELF_SERVICE_PRICE))}
+              ${extras ? lineRow(extras + ' extra template' + (extras > 1 ? 's' : '')
+                  + ' (' + pack.slice(1).join(', ') + ') \u00d7 ' + peso(EXTRA_TMPL_PRICE),
+                  peso(EXTRA_TMPL_PRICE * extras)) : ''}
+              <tr><td colspan="2" style="border-top:1.5px solid #1a2744;padding:0;"></td></tr>
+              ${lineRow('Total to pay', peso(total), true)}
+            </table>
           </div>
-          <p style="font-size:11.5px;color:#6b7280;text-align:center;margin-top:12px;line-height:1.5;">
-            Find <b>${escHtml(data.id)}</b>, confirm the GCash payment, then press <b>Mark paid</b>.<br>
-            The customer's page unlocks itself within 30 seconds.
+
+          <div style="background:#1a2744;border-radius:10px;padding:20px;text-align:center;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#c8a84b;">GCash</div>
+            <div style="font-size:30px;font-weight:900;color:#fff;margin:8px 0 4px;">${peso(total)}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.65);margin-bottom:12px;">Send to</div>
+            <div style="background:rgba(200,168,75,.15);border:1.5px solid rgba(200,168,75,.4);border-radius:8px;padding:11px 18px;display:inline-block;">
+              <div style="font-size:21px;font-weight:900;color:#e2c97e;letter-spacing:1px;">${GCASH_NUMBER}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,.6);margin-top:3px;">${GCASH_NAME}</div>
+            </div>
+          </div>
+
+          <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:14px 16px;">
+            <div style="font-size:12.5px;font-weight:800;color:#92400e;margin-bottom:7px;">What to do next</div>
+            <div style="font-size:12.5px;color:#78350f;line-height:1.8;">
+              1. Send ${peso(total)} to ${GCASH_NUMBER} by GCash.<br>
+              2. Go back to the builder and press <b>I already paid</b>.<br>
+              3. Enter <b>${escHtml(data.id)}</b> with this email address.<br>
+              4. Type the GCash reference number from your receipt.<br>
+              5. We check it and your templates unlock by themselves.
+            </div>
+          </div>
+
+          <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:13px 15px;margin-top:16px;">
+            <div style="font-size:12.5px;font-weight:800;color:#991b1b;margin-bottom:5px;">
+              \u23f3 This order is kept for ${ORDER_TTL_HOURS} hours
+            </div>
+            <div style="font-size:12.5px;color:#991b1b;line-height:1.65;">
+              After that it is removed and the CV has to be typed again. Once we approve your
+              payment the clock restarts, so you get a full ${ORDER_TTL_HOURS} hours to download
+              your templates \u2014 but please save them the same day.
+            </div>
+          </div>
+
+          <p style="font-size:12px;color:#6b7280;line-height:1.6;margin:16px 0 0;">
+            Questions? Reply to this email or message <b>${GCASH_NUMBER}</b>.
+            Nothing is charged until you send it \u2014 this is a quote, not a bill.
           </p>
         </div>
-        <div style="background:#1a2744;padding:12px 24px;text-align:center;">
-          <p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">Automated alert \u00b7 Arroyo CV Builder</p>
+        <div style="background:#1a2744;padding:13px 24px;text-align:center;">
+          <p style="color:rgba(255,255,255,.4);font-size:11px;margin:0;">
+            Arroyo CV Builder \u00b7 ${GCASH_NUMBER} \u00b7 ${SUPPORT_EMAIL}</p>
         </div>
       </div>`;
 
     const plainBody =
-      'PAYMENT VERIFICATION NEEDED (SELF SERVICE)\n\n' +
-      'Reference: ' + data.id + '\n' +
-      'Name: ' + name + '\n' +
-      'Position: ' + (p.jobTitle || '\u2014') + '\n' +
-      'Email: ' + p.email + '\n' +
-      'Phone: ' + p.phone + '\n' +
-      'Amount due: ' + peso(total) + ' (self-service rate)\n' +
-      'Track: ' + (TRACKS[data.eduLevel] || data.eduLevel) + '\n' +
-      'Template: ' + data.templatePref + '\n' +
-      'Photo: ' + (p.photo ? 'Yes' : 'No') + '\n' +
-      'Submitted: ' + when + '\n\n' +
-      'The customer built this CV themselves. Save and Print stay locked until\n' +
-      'you mark the order paid in the admin dashboard. Their page unlocks itself\n' +
-      'within 30 seconds of you doing so.\n\n' + ADMIN_URL;
+      'Hi ' + name + ',\n\n' +
+      'Your CV is saved. Here is what to pay.\n\n' +
+      'Reference number: ' + data.id + '  (put this in the GCash note, and keep it)\n\n' +
+      'Template' + (pack.length > 1 ? 's' : '') + ' chosen: ' + pack.join(', ') + '\n' +
+      'CV (Template ' + pack[0] + '): ' + peso(SELF_SERVICE_PRICE) + '\n' +
+      (extras ? extras + ' extra template' + (extras > 1 ? 's' : '') + ' ('
+                + pack.slice(1).join(', ') + ') x ' + peso(EXTRA_TMPL_PRICE) + ': '
+                + peso(EXTRA_TMPL_PRICE * extras) + '\n' : '') +
+      'TOTAL TO PAY: ' + peso(total) + '\n\n' +
+      'Send ' + peso(total) + ' by GCash to ' + GCASH_NUMBER + ' (' + GCASH_NAME + ').\n\n' +
+      'Then:\n' +
+      '1. Go back to the builder and press "I already paid".\n' +
+      '2. Enter ' + data.id + ' with this email address.\n' +
+      '3. Type the GCash reference number from your receipt.\n' +
+      '4. We check it and your templates unlock by themselves.\n\n' +
+      'IMPORTANT: this order is kept for ' + ORDER_TTL_HOURS + ' hours, then removed.\n' +
+      'Once we approve your payment the clock restarts, so you get a full ' + ORDER_TTL_HOURS + '\n' +
+      'hours to download your templates. Please save them the same day.\n\n' +
+      'Nothing is charged until you send it. Questions? Message ' + GCASH_NUMBER
+      + ' or email ' + SUPPORT_EMAIL + '.';
 
     await emailjs.send(EMAILJS_SVC, EMAILJS_TPL, {
-      to_email:         ADMIN_EMAIL,
-      to_name:          'Reymar Arroyo',
+      to_email:         p.email,
+      to_name:          name,
       customer_name:    name,
       cc_email:         '',
-      subject:          '\ud83d\udd12 Verify payment \u2014 ' + name + ' \u2014 ' + peso(total) + ' \u2014 ' + data.id,
+      subject:          'Pay ' + peso(total) + ' to unlock your CV \u2014 ' + data.id,
       translation_note: plainBody,
       html_body:        htmlBody
     });
-    console.log('Admin verification alert sent for', data.id);
+    console.log('Quote emailed to', p.email, peso(total));
   } catch(e){
-    // Never surfaced: the order is already stored, and the customer can still
-    // send their GCash screenshot the manual way.
-    console.warn('Admin alert failed (order still saved):', e);
+    // The pay screen still has everything. A failed quote must never look like
+    // a failed order.
+    console.warn('Quote email failed (order still saved):', e);
   }
 }
 
 /* ─── SCREEN 2 — pay ────────────────────────────────────────────────────── */
 function screenPay(ref){
-  paint('Pay ' + peso(BASE_PRICE) + ' to unlock',
+  const total = orderDue();
+  const pack  = packTemplates();
+  paint('Pay ' + peso(total) + ' to unlock',
     'Keep this page open \u2014 it checks for your payment on its own.',
     `<div class="refbox">
        <div class="lbl">Your reference number</div>
        <div class="code" id="refCode">${escHtml(ref)}</div>
        <div class="note">Write this down. You need it to come back later.</div>
        <button class="copy-btn" onclick="copyRef()">\ud83d\udccb Copy</button>
+     </div>
+
+     <div class="pay-row" style="margin-top:12px">
+       <div class="ic">\ud83c\udfa8</div>
+       <div><div class="v">${pack.length === 1
+              ? 'Template ' + pack[0]
+              : pack.length + ' templates \u00b7 ' + pack.join(', ')}</div>
+            <div class="k">${peso(SELF_SERVICE_PRICE)} for your CV${pack.length > 1
+              ? ' + ' + (pack.length - 1) + ' \u00d7 ' + peso(EXTRA_TMPL_PRICE)
+              : ''}</div></div>
      </div>
 
      <div class="qr-wrap">
@@ -4644,11 +5132,16 @@ function screenPay(ref){
      </div>
 
      <ol class="steps-ol" style="margin-top:16px">
-       <li>Send <strong>${peso(BASE_PRICE)}</strong> to the number above.</li>
+       <li>Send <strong>${peso(total)}</strong> to the number above.</li>
        <li>Put <strong>${escHtml(ref)}</strong> in the GCash message or note.</li>
        <li>Press <strong>I have paid</strong> below and enter your GCash reference number.</li>
-       <li>We verify and approve it. Save &amp; Print open here by themselves.</li>
+       <li>We verify it and approve. Save &amp; Print open here by themselves.</li>
      </ol>
+
+     <p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:12px">
+       \u2709 We emailed this to <strong>${escHtml(collectData().personal.email)}</strong> \u2014 the amount,
+       your reference number and the GCash details. Safe to close this page.
+     </p>
 
      <div class="stat wait show" id="pollStat">\u23f3 Watching for your payment\u2026 last checked just now.</div>`,
     `<button class="btn-ghost" onclick="closeUnlock()">Close \u2014 I will come back</button>
@@ -4755,6 +5248,24 @@ async function loadQR(){
 // Second alert in the flow. The first says an order arrived; this one says a
 // customer claims to have paid and is now blocked on the admin. It leads with
 // the reference number because that is what gets matched in the GCash app.
+// One line describing what a payment actually buys, used by both mails below.
+// Without it a 10-peso reference in the inbox looks like an underpayment
+// rather than a template add-on.
+function payFor(data, proof){
+  if(proof && proof.kind === 'topup' && proof.topUp){
+    const t = proof.topUp.templates || [];
+    return 'EXTRA TEMPLATE' + (t.length > 1 ? 'S' : '') + ' ' + t.join(', ')
+         + ' \u2014 ' + t.length + ' \u00d7 ' + peso(EXTRA_TMPL_PRICE)
+         + (proof.topUp.forOrder ? ' \u00b7 adds to order ' + proof.topUp.forOrder : '');
+  }
+  const pack = (data && data.templates && data.templates.purchased) || [];
+  if(!pack.length) return 'CV \u2014 Template ' + (data ? data.templatePref : '?');
+  return pack.length === 1
+    ? 'CV \u2014 Template ' + pack[0] + ' \u00b7 ' + peso(SELF_SERVICE_PRICE)
+    : 'CV \u2014 Templates ' + pack.join(', ') + ' \u00b7 ' + peso(SELF_SERVICE_PRICE)
+      + ' + ' + (pack.length - 1) + ' \u00d7 ' + peso(EXTRA_TMPL_PRICE);
+}
+
 async function notifyAdminProofSubmitted(data, proof){
   try {
     if(typeof emailjs === 'undefined') return;
@@ -4793,8 +5304,14 @@ async function notifyAdminProofSubmitted(data, proof){
           ${short > 0 ? `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:12px 15px;margin-bottom:16px;font-size:13px;color:#991b1b;font-weight:700;">
             \u26a0 Short by ${peso(short)} \u2014 they sent ${peso(proof.amount)} against ${peso(due)} due.</div>` : ''}
 
+          ${proof.kind === 'topup' ? `<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:10px;padding:12px 15px;margin-bottom:16px;font-size:13px;color:#5b21b6;line-height:1.6;">
+            <b>This is a template add-on, not a new CV.</b><br>
+            The customer already paid for and received their CV. Approving this
+            reference only adds the extra layouts to their pack.</div>` : ''}
+
           <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
             ${row('Order reference', data.id)}
+            ${row('Paying for', payFor(data, proof))}
             ${row('Applicant', name)}
             ${row('Email', p.email)}
             ${row('Phone', p.phone)}
@@ -4827,6 +5344,7 @@ async function notifyAdminProofSubmitted(data, proof){
       'Sender: ' + proof.senderName + (proof.senderPhone ? ' \u00b7 ' + proof.senderPhone : '') + '\n' +
       'Date sent: ' + (proof.paidOn || '\u2014') + '\n\n' +
       'Order reference: ' + data.id + '\n' +
+      'Paying for: ' + payFor(data, proof) + '\n' +
       'Applicant: ' + name + '\n' +
       'Email: ' + p.email + '\n' +
       'Phone: ' + p.phone + '\n' +
@@ -4843,7 +5361,8 @@ async function notifyAdminProofSubmitted(data, proof){
       // Not CC'd to the customer: this mail carries the admin dashboard link
       // and the approve/reject instructions, which are not theirs to see.
       cc_email:         '',
-      subject:          '\ud83e\uddfe Verify GCash ' + proof.gcashRef + ' \u2014 ' + name + ' \u2014 ' + peso(proof.amount),
+      subject:          (proof.kind === 'topup' ? '\u2795 Extra templates \u2014 ' : '\ud83e\uddfe Verify GCash ')
+                        + proof.gcashRef + ' \u2014 ' + name + ' \u2014 ' + peso(proof.amount),
       translation_note: plainBody,
       html_body:        htmlBody
     });
@@ -4900,6 +5419,7 @@ async function sendCustomerReceipt(data, proof){
           </div>
 
           <table style="width:100%;border-collapse:collapse;background:white;border-radius:8px;overflow:hidden;">
+            ${line('For', payFor(data, proof))}
             ${line('GCash reference', proof.gcashRef)}
             ${line('Amount sent', peso(proof.amount))}
             ${line('Sent from', proof.senderName)}
@@ -4916,7 +5436,9 @@ async function sendCustomerReceipt(data, proof){
             <div style="font-size:12.5px;color:#78350f;line-height:1.7;">
               1. We match your reference against GCash.<br>
               2. We approve your order \u2014 usually within a few hours during the day.<br>
-              3. Save and Print unlock on your CV page by themselves.
+              3. Save and Print unlock on your CV page by themselves.<br>
+              4. You then have <b>${ORDER_TTL_HOURS} hours</b> to download your templates before
+                 the order is removed.
             </div>
           </div>
 
@@ -4940,6 +5462,7 @@ async function sendCustomerReceipt(data, proof){
       'We received your GCash reference and your CV is on file. We are checking\n' +
       'the payment now.\n\n' +
       'Your reference number: ' + data.id + '  (keep this)\n' +
+      'For: ' + payFor(data, proof) + '\n' +
       'GCash reference: ' + proof.gcashRef + '\n' +
       'Amount sent: ' + peso(proof.amount) + '\n' +
       'Sent from: ' + proof.senderName + '\n' +
@@ -4961,7 +5484,9 @@ async function sendCustomerReceipt(data, proof){
       to_name:          name,
       customer_name:    name,
       cc_email:         '',
-      subject:          'We got your payment \u2014 ' + data.id + ' \u00b7 Arroyo CV Builder',
+      subject:          (proof.kind === 'topup'
+                          ? 'We got your payment for extra templates \u2014 '
+                          : 'We got your payment \u2014 ') + data.id + ' \u00b7 Arroyo CV Builder',
       translation_note: plainBody,
       html_body:        htmlBody
     });
@@ -4986,12 +5511,25 @@ function screenProof(){
   const d = collectData();
   const today = new Date().toISOString().slice(0, 10);
   const prev = proofDraft || {};
+  // A top-up is the same form for a different figure. Defaulting the amount to
+  // the wrong one is how a customer ends up recorded as short.
+  const isTop = !!topUpDraft;
+  const due   = isTop ? topUpDraft.fee : orderDue();
+  const what  = isTop
+    ? 'Extra template' + (topUpDraft.templates.length > 1 ? 's' : '')
+      + ' ' + topUpDraft.templates.join(', ')
+    : 'Template' + (packTemplates().length > 1 ? 's' : '') + ' ' + packTemplates().join(', ');
 
   paint('Submit your payment',
-    'Enter the details from your GCash receipt so we can match it and approve your CV.',
+    'Enter the details from your GCash receipt so we can match it and approve it.',
     `<div class="refbox" style="padding:12px">
        <div class="lbl">Your reference number</div>
-       <div class="code" style="font-size:18px">${escHtml(unlockRef)}</div>
+       <div class="code" style="font-size:18px">${escHtml(activeRef())}</div>
+     </div>
+
+     <div class="pay-row" style="margin-top:10px">
+       <div class="ic">${isTop ? '\u2795' : '\ud83c\udfa8'}</div>
+       <div><div class="v">${peso(due)}</div><div class="k">${escHtml(what)}</div></div>
      </div>
 
      <div class="proof-grid">
@@ -5003,7 +5541,7 @@ function screenProof(){
        </div>
        <div>
          <label>Amount sent <span class="req">*</span></label>
-         <input type="number" id="pfAmt" value="${prev.amount ?? BASE_PRICE}" min="0" step="1">
+         <input type="number" id="pfAmt" value="${prev.amount ?? due}" min="0" step="1">
        </div>
        <div>
          <label>Date sent</label>
@@ -5015,11 +5553,11 @@ function screenProof(){
                 placeholder="Juan dela Cruz">
        </div>
        <div class="full">
-         <label>GCash number you sent from <span class="opt">— optional</span></label>
+         <label>GCash number you sent from <span class="opt">\u2014 optional</span></label>
          <input type="text" id="pfPhone" value="${escHtml(prev.senderPhone || '')}" placeholder="09XX XXX XXXX">
        </div>
        <div class="full">
-         <label>Anything we should know <span class="opt">— optional</span></label>
+         <label>Anything we should know <span class="opt">\u2014 optional</span></label>
          <input type="text" id="pfNote" value="${escHtml(prev.note || '')}"
                 placeholder="Sent from my sister's GCash">
        </div>
@@ -5028,11 +5566,11 @@ function screenProof(){
      <div class="proof-note">
        The reference number is the 13-digit code on your GCash receipt.
        We only need the number \u2014 no screenshot. If you would rather send one anyway,
-       message <strong>${GCASH_NUMBER}</strong> and mention <strong>${escHtml(unlockRef)}</strong>.
+       message <strong>${GCASH_NUMBER}</strong> and mention <strong>${escHtml(activeRef())}</strong>.
      </div>
 
      <div class="stat" id="pfStat"></div>`,
-    `<button class="btn-ghost" onclick="screenPay(unlockRef)">Back</button>
+    `<button class="btn-ghost" onclick="${isTop ? 'screenTopUpPay()' : 'screenPay(unlockRef)'}">Back</button>
      <button class="btn-lock" onclick="submitProof()">Submit for approval</button>`);
   setTimeout(() => $('pfRef')?.focus(), 60);
 }
@@ -5051,6 +5589,15 @@ async function submitProof(){
     submittedAt: new Date().toISOString(),
     status:      'pending'
   };
+
+  // A top-up rides on the same record and the same approval button. Marking it
+  // as one is what stops admin.html from reading a 10-peso payment as a short
+  // 25-peso one, and tells it which templates to unlock on approval.
+  if(topUpDraft){
+    proof.kind = 'topup';
+    proof.topUp = { templates: topUpDraft.templates.slice(), fee: topUpDraft.fee,
+                    forOrder: unlockRef, alreadyOwned: paidTemplates.slice() };
+  }
   proofDraft = proof;
 
   // A reference that is obviously not a GCash one wastes a round trip for the
@@ -5066,8 +5613,8 @@ async function submitProof(){
   $('ulFoot').querySelectorAll('button').forEach(b => b.disabled = true);
 
   try {
-    await attachProof(unlockRef, proof);
-    const order = collectData();
+    await attachProof(activeRef(), proof);
+    const order = topUpDraft ? topUpDraft.order : collectData();
     notifyAdminProofSubmitted(order, proof);
     sendCustomerReceipt(order, proof);
     screenSubmitted(proof);
@@ -5109,9 +5656,11 @@ async function attachProof(ref, proof){
 }
 
 function screenSubmitted(proof){
+  const isTop = !!topUpDraft;
+  const ref = activeRef();
   paint('Sent for approval',
     'We will match your reference against GCash and approve it.',
-    `<div class="stat good show">\u2713 Payment details received for <strong>${escHtml(unlockRef)}</strong>.</div>
+    `<div class="stat good show">\u2713 Payment details received for <strong>${escHtml(ref)}</strong>.</div>
 
      <div class="pay-row">
        <div class="ic">\ud83e\uddfe</div>
@@ -5119,10 +5668,18 @@ function screenSubmitted(proof){
             <div class="k">${peso(proof.amount)} \u00b7 ${escHtml(proof.senderName)}</div></div>
      </div>
 
+     ${isTop ? `<div class="pay-row" style="margin-top:8px">
+       <div class="ic">\u2795</div>
+       <div><div class="v">Template${topUpDraft.templates.length > 1 ? 's' : ''} ${topUpDraft.templates.join(', ')}</div>
+            <div class="k">Added to your pack once this is approved</div></div>
+     </div>` : ''}
+
      <ol class="steps-ol" style="margin-top:14px">
        <li>We check the reference against the GCash record.</li>
-       <li>We approve the order in the dashboard.</li>
-       <li>Save &amp; Print open here on their own \u2014 usually within a few hours during the day.</li>
+       <li>We approve it in the dashboard.</li>
+       <li>${isTop
+             ? 'The new templates unlock here on their own'
+             : 'Save &amp; Print open here on their own'} \u2014 usually within a few hours during the day.</li>
      </ol>
 
      <div class="stat wait show" id="pollStat">\u23f3 Waiting for approval\u2026 this page checks by itself.</div>
@@ -5134,7 +5691,7 @@ function screenSubmitted(proof){
 
      <p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:4px">
        You can close this page. Come back any time, press <strong>I already paid</strong> at the top,
-       and enter <strong>${escHtml(unlockRef)}</strong> with your email.
+       and enter <strong>${escHtml(ref)}</strong> with your email.
      </p>`,
     `<button class="btn-ghost" onclick="closeUnlock()">Close</button>
      <button class="btn-go" onclick="checkNow()">Check now</button>`);
@@ -5218,7 +5775,7 @@ async function verifyRef(){
     // exact CV that was paid for, not whatever happens to be typed right now.
     unlockRef = ref;
     if(order.record) applyData(order.record);
-    openTheLock();
+    openTheLock(order.record);
     screenDone();
 
   } catch(err){
@@ -5244,17 +5801,278 @@ function proofFromCheck(){
   screenProof();
 }
 
-/* ─── SCREEN 4 — unlocked ───────────────────────────────────────────────── */
+/* ─── SCREEN 4 — unlocked ───────────────────────────────────────
+   Lists the pack rather than offering one Download button, because the pack is
+   what was bought. Anything outside it is a paid add-on, offered here — the
+   one moment the customer is actually thinking about templates.
+   ─────────────────────────────────────────────────────────────────── */
 function screenDone(){
+  const pack = ownedPack();
+  const rows = pack.map(n => {
+    const t = tmplInfo(n);
+    return `<div class="dl-row">
+        <div class="n" style="background:${t ? t.bg : '#1a2744'};color:${t ? t.color : '#fff'}">${n}</div>
+        <div class="d"><b>Template ${n}</b>${t ? escHtml(t.desc) : ''}</div>
+        <button onclick="downloadCV(${n})">\u2b07 Save</button>
+        <button class="go" onclick="doPrint(${n})">\ud83d\udda8 Print</button>
+      </div>`;
+  }).join('');
+
+  const more = templatesFor(eduLevel()).filter(t => !pack.includes(t.num)).length;
+
   paint('Unlocked',
-    'Payment confirmed. Save and print as many copies as you need.',
-    `<div class="stat good show">\u2713 Reference ${escHtml(unlockRef)} is paid.
-       This browser will remember it, so you can come back any time.</div>
-     <p style="font-size:12.5px;color:var(--muted);line-height:1.65">
+    'Payment confirmed. Print and save every template in your pack, as many times as you like.',
+    `<div class="stat good show">\u2713 Reference ${escHtml(unlockRef)} is paid.</div>
+
+     <div style="margin-top:10px;padding:12px 14px;border-radius:10px;
+                 border:1.5px solid #fecaca;background:#fef2f2">
+       <div style="font-size:13px;font-weight:800;color:#991b1b">
+         \u23f3 <span id="ttlInline">${humanLeft(expiresAt - Date.now())}</span> left to download
+       </div>
+       <div style="font-size:11.5px;color:#991b1b;line-height:1.6;margin-top:3px">
+         Save every template you want now. After ${ORDER_TTL_HOURS} hours this order is
+         removed and the file cannot be recovered.
+       </div>
+     </div>
+
+     ${topUpDraft ? `<div style="margin-top:14px;padding:12px 14px;border:1.5px solid #fde68a;
+            background:#fffbeb;border-radius:10px">
+       <div style="font-size:12.5px;font-weight:800;color:#92400e">
+         \u23f3 Template${topUpDraft.templates.length > 1 ? 's' : ''} ${topUpDraft.templates.join(', ')} \u2014 waiting for approval
+       </div>
+       <div style="font-size:11.5px;color:#78350f;line-height:1.6;margin-top:3px">
+         Reference <strong>${escHtml(topUpDraft.ref)}</strong> \u00b7 ${peso(topUpDraft.fee)}.
+         They join your pack as soon as we confirm the payment.
+       </div>
+       <div style="display:flex;gap:8px;margin-top:9px">
+         <button class="btn-ghost" style="flex:1" onclick="checkNow()">Check now</button>
+         <button class="btn-ghost" style="flex:1" onclick="screenTopUpPay()">Payment details</button>
+       </div>
+       <div class="stat" id="pollStat" style="margin-top:8px"></div>
+     </div>` : ''}
+
+     <div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+                 color:var(--muted);margin:16px 0 8px">
+       Your pack \u2014 ${pack.length} template${pack.length > 1 ? 's' : ''}
+     </div>
+     ${rows}
+
+     ${pack.length > 1 ? `<button class="btn-ghost" style="width:100%;margin-top:2px"
+        onclick="downloadAll()">\u2b07 Download all ${pack.length} files</button>` : ''}
+
+     ${more && !topUpDraft ? `<div style="margin-top:16px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px">
+       <div style="font-size:12.5px;font-weight:800;color:var(--navy)">Want another look?</div>
+       <div style="font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:3px">
+         ${more} other layout${more > 1 ? 's are' : ' is'} available at
+         <strong>${peso(EXTRA_TMPL_PRICE)}</strong> each. Your details are already on file,
+         so it is the same CV in a different design.
+       </div>
+       <button class="btn-ghost" style="width:100%;margin-top:9px"
+         onclick="screenAddTemplates()">\u2795 Add templates \u2014 ${peso(EXTRA_TMPL_PRICE)} each</button>
+     </div>` : ''}
+
+     <p style="font-size:12px;color:var(--muted);line-height:1.65;margin-top:14px">
        In the print dialog choose <strong>A4</strong>, margins <strong>None</strong>, and turn
        <strong>Background graphics on</strong> \u2014 otherwise the colours drop out.</p>`,
-    `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download file</button>
-     <button class="btn-lock" onclick="closeUnlock();doPrint()">\ud83d\udda8 Print / Save as PDF</button>`);
+    `<button class="btn-ghost" onclick="closeUnlock()">Close</button>`);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADD TEMPLATES — A SMALL SEPARATE ORDER
+
+   Deliberately NOT a second payment on the original order. The dashboard hides
+   its Approve button once an order is paid, so a top-up attached to a paid
+   order would have nothing to press. A ten-peso add-on is written as its own
+   self-service order instead: it lands under "Needs approval" like any other,
+   the existing Approve payment button works on it untouched, and this page
+   watches THAT reference. Nothing about admin.html has to change.
+
+   When it clears, the templates are folded into the main order's pack and the
+   main order is re-saved, so the unlock survives a new phone or a cleared
+   browser.
+   ═══════════════════════════════════════════════════════════════════════════ */
+let topUpPick = [];
+
+// Whichever order the payment screens are currently talking about.
+const activeRef = () => (topUpDraft && topUpDraft.ref) || unlockRef;
+
+function screenAddTemplates(){
+  if(!unlocked){ screenConfirm(); return; }
+  const pack = ownedPack();
+  const avail = templatesFor(eduLevel()).filter(t => !pack.includes(t.num));
+
+  if(!avail.length){
+    paint('Nothing left to add',
+      'You already own every layout available for this track.',
+      `<div class="stat good show">\u2713 All ${pack.length} templates are in your pack.</div>`,
+      `<button class="btn-ghost" onclick="screenDone()">Back</button>`);
+    return;
+  }
+
+  const fee = EXTRA_TMPL_PRICE * topUpPick.length;
+  const grid = avail.map(t => `<button type="button"
+      class="pack-sw${topUpPick.includes(t.num) ? ' pick' : ''}"
+      onclick="toggleTopUp(${t.num})" title="${escHtml(t.desc)}"
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
+
+  paint('Add templates',
+    peso(EXTRA_TMPL_PRICE) + ' each \u2014 same CV, same details, a different design.',
+    `<div style="font-size:11.5px;color:var(--muted);line-height:1.6">
+       Already yours: <strong>${pack.join(', ')}</strong>. Tap the ones you want to add.
+     </div>
+     <div class="pack-grid">${grid}</div>
+
+     <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
+       <div class="ic">\ud83d\udcb0</div>
+       <div><div class="v">${peso(fee)}</div>
+            <div class="k">${topUpPick.length
+              ? topUpPick.length + ' template' + (topUpPick.length > 1 ? 's' : '')
+                + ' \u00d7 ' + peso(EXTRA_TMPL_PRICE)
+              : 'Nothing selected yet'}</div></div>
+     </div>`,
+    `<button class="btn-ghost" onclick="screenDone()">Back</button>
+     <button class="btn-lock" ${topUpPick.length ? '' : 'disabled style="opacity:.45"'}
+       onclick="sendTopUp()">Pay ${peso(fee)}</button>`);
+}
+
+function toggleTopUp(n){
+  n = Number(n);
+  const at = topUpPick.indexOf(n);
+  if(at < 0) topUpPick.push(n); else topUpPick.splice(at, 1);
+  topUpPick.sort((a, b) => a - b);
+  screenAddTemplates();
+}
+
+// Writes the add-on as its own order and hands back its reference.
+async function sendTopUp(){
+  if(!topUpPick.length) return;
+  const picks = topUpPick.slice();
+  const fee = EXTRA_TMPL_PRICE * picks.length;
+
+  paint('Setting up your add-on', 'This takes a few seconds.',
+    `<div style="text-align:center;padding:26px 0">
+       <div class="spin" style="width:26px;height:26px;border-width:3px;margin:0 auto 14px"></div>
+       <p style="font-size:13px;color:var(--muted)">Saving\u2026</p>
+     </div>`, '');
+
+  const base = collectData();
+  const addOn = {
+    ...base,
+    id: 'ACV-' + Date.now().toString(36).toUpperCase().slice(-5)
+        + '-A' + Math.random().toString(36).toUpperCase().slice(2, 4),
+    submittedAt: new Date().toISOString(),
+    status: 'New',
+    payment: { paid: false },
+    quotedTotal: fee,
+    pricing: { base: fee, cl: 0, rl: 0, sale: '', bundle: '', bundleSaving: 0, itemsSum: fee },
+    templatePref: String(picks[0]),
+    templates: { purchased: [...new Set([...paidTemplates, ...picks])].sort((a, b) => a - b),
+                 added: picks.slice(), addOnFor: unlockRef, isAddOn: true,
+                 base: SELF_SERVICE_PRICE, extraFee: EXTRA_TMPL_PRICE },
+    // Spelled out on the record itself, because in the dashboard this looks
+    // like a second order from the same person until you read this line.
+    specialInstructions: 'EXTRA TEMPLATES for order ' + unlockRef
+      + ' \u2014 template' + (picks.length > 1 ? 's' : '') + ' ' + picks.join(', ')
+      + ' at ' + peso(EXTRA_TMPL_PRICE) + ' each. The CV itself is already paid and delivered; '
+      + 'approving this payment only adds these layouts.',
+    coverLetter: { requested: false },
+    resignationLetter: { requested: false }
+  };
+
+  try {
+    await pushOrder(addOn);
+    topUpDraft = { templates: picks, fee, ref: addOn.id, order: addOn };
+    proofDraft = null;
+    screenTopUpPay();
+    startPolling();
+  } catch(err){
+    paint('That did not go through', 'Your pack is untouched \u2014 nothing was charged.',
+      `<div class="stat err show">${escHtml(err.message)}</div>`,
+      `<button class="btn-ghost" onclick="screenDone()">Back</button>
+       <button class="btn-lock" onclick="sendTopUp()">Try again</button>`);
+  }
+}
+
+function screenTopUpPay(){
+  const t = topUpDraft;
+  if(!t){ screenDone(); return; }
+  paint('Pay ' + peso(t.fee) + ' for ' + t.templates.length + ' template'
+        + (t.templates.length > 1 ? 's' : ''),
+    'Keep this page open \u2014 it checks for your payment on its own.',
+    `<div class="refbox">
+       <div class="lbl">Reference for this add-on</div>
+       <div class="code" id="refCode">${escHtml(t.ref)}</div>
+       <div class="note">Different from your CV reference. Put THIS one in the GCash note.</div>
+       <button class="copy-btn" onclick="copyRef()">\ud83d\udccb Copy</button>
+     </div>
+
+     <div class="pay-row" style="margin-top:12px">
+       <div class="ic">\u2795</div>
+       <div><div class="v">Template${t.templates.length > 1 ? 's' : ''} ${t.templates.join(', ')}</div>
+            <div class="k">${t.templates.length} \u00d7 ${peso(EXTRA_TMPL_PRICE)} = ${peso(t.fee)}</div></div>
+     </div>
+
+     <div class="qr-wrap">
+       <img id="gcashQR" src="${GCASH_QR_FILE}" alt="GCash QR code"
+            onerror="this.style.display='none'">
+     </div>
+
+     <div class="pay-row">
+       <div class="ic">\ud83d\udcf1</div>
+       <div><div class="v">${GCASH_NUMBER}</div><div class="k">${GCASH_NAME} \u2014 GCash</div></div>
+     </div>
+
+     <ol class="steps-ol" style="margin-top:16px">
+       <li>Send <strong>${peso(t.fee)}</strong> to the number above.</li>
+       <li>Put <strong>${escHtml(t.ref)}</strong> in the GCash message or note.</li>
+       <li>Press <strong>I have paid</strong> and enter your GCash reference number.</li>
+       <li>We approve it and the new templates unlock here.</li>
+     </ol>
+
+     <div class="stat wait show" id="pollStat">\u23f3 Watching for your payment\u2026 last checked just now.</div>`,
+    `<button class="btn-ghost" onclick="cancelTopUp()">Cancel</button>
+     <button class="btn-lock" onclick="screenProof()">I have paid</button>`);
+  loadQR();
+}
+
+// Abandons the add-on locally. The order stays on file unpaid, which is what
+// an abandoned order looks like everywhere else in this system.
+function cancelTopUp(){
+  clearInterval(pollTimer);
+  topUpDraft = null;
+  topUpPick = [];
+  proofDraft = null;
+  screenDone();
+}
+
+// Folds an approved add-on into the pack, then re-saves the MAIN order so the
+// unlock is not stranded in one browser's localStorage.
+async function absorbTopUp(picks){
+  paidTemplates = [...new Set([...paidTemplates, ...picks.map(Number)])].sort((a, b) => a - b);
+  savePack();
+  buildStrip();
+  renderPreview();
+  try {
+    const main = { ...collectData(), id: unlockRef };
+    main.templates = { purchased: paidTemplates.slice(), base: SELF_SERVICE_PRICE,
+                       extraFee: EXTRA_TMPL_PRICE };
+    main.quotedTotal = SELF_SERVICE_PRICE + EXTRA_TMPL_PRICE * (paidTemplates.length - 1);
+
+    // pushOrder merges { ...stored, ...data }, so any key present here WINS.
+    // collectData() always stamps status:'New' and a fresh submittedAt, which
+    // would knock a Delivered order back to New in the dashboard and reset its
+    // age purely because the customer bought a ten-peso layout. Dropping the
+    // keys lets the stored values survive the merge untouched.
+    delete main.status;
+    delete main.submittedAt;
+    delete main.payment;
+    delete main.paymentProof;
+    await pushOrder(main);
+  } catch(e){
+    // The customer can still use every template they paid for; only the
+    // server-side copy of the pack is behind, and the add-on order proves it.
+    console.warn('Pack written locally but not synced to the main order:', e);
+  }
 }
 
 /* ─── POLLING ───────────────────────────────────────────────────────────── */
@@ -5278,20 +6096,40 @@ function startPolling(){
 }
 
 async function checkNow(){
-  if(!unlockRef) return;
+  const ref = activeRef();
+  if(!ref) return;
   const box = $('pollStat');
+  const stamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   try {
     const email = (collectData().personal.email || '').toLowerCase();
-    const order = email ? await lookupOrder(unlockRef, email) : null;
+    const order = email ? await lookupOrder(ref, email) : null;
+
+    // An add-on has its own order and its own approval. The main CV is already
+    // paid, so paid-ness there proves nothing about these templates.
+    if(topUpDraft){
+      if(order?.paid){
+        clearInterval(pollTimer);
+        const picks = topUpDraft.templates.slice();
+        topUpDraft = null; topUpPick = []; proofDraft = null;
+        await absorbTopUp(picks);
+        screenDone();
+        toast('Template' + (picks.length > 1 ? 's' : '') + ' ' + picks.join(', ')
+              + ' unlocked \u2014 they are in your pack now.');
+        return;
+      }
+      if(box) box.innerHTML = '\u23f3 Waiting for approval of your extra template'
+        + (topUpDraft.templates.length > 1 ? 's' : '') + '\u2026 last checked ' + stamp() + '.';
+      return;
+    }
+
     if(order?.paid){
       clearInterval(pollTimer);
       if(order.record) applyData(order.record);
-      openTheLock();
+      openTheLock(order.record);
       screenDone();
       return;
     }
-    if(box) box.innerHTML = '\u23f3 Watching for your payment\u2026 last checked '
-      + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '.';
+    if(box) box.innerHTML = '\u23f3 Watching for your payment\u2026 last checked ' + stamp() + '.';
   } catch(e){
     if(box){
       box.className = 'stat err show';
@@ -5305,32 +6143,54 @@ async function checkNow(){
 // off this: edits by the same person are free, a different person is a new order.
 let paidEmail = '';
 
-function openTheLock(){
+// The pack, resolved. Falls back to the layout on screen for an order written
+// before packs existed, so an old customer is never left owning nothing.
+function ownedPack(){
+  return paidTemplates.length ? paidTemplates.slice() : [selectedTmpl];
+}
+
+function savePack(){
+  try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
+    { ref: unlockRef, email: paidEmail, paid: true,
+      pack: paidTemplates, exp: expiresAt || savedExpiry || 0 })); } catch(e){}
+}
+
+function openTheLock(rec){
   unlocked = true;
   paidEmail = (collectData().personal.email || '').toLowerCase();
-  $('pvSizer').classList.add('unlocked');
-  $('tbPrint').disabled = false;
-  $('lockPill').className = 'lockpill open';
-  $('lockPill').textContent = '\ud83d\udd13 Save & Print unlocked';
-  $('pvFoot').innerHTML =
-    `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download</button>
-     <button class="btn-lock" onclick="doPrint()">\ud83d\udda8 Print / Save as PDF</button>`;
-  const mb = $('mbAction');
-  if(mb){
-    mb.className = 'mb-go open';
-    mb.innerHTML = '\ud83d\udda8 Print / Save as PDF';
-    mb.setAttribute('onclick', 'doPrint()');
+
+  // What was paid for, straight off the record. Without this the strip would
+  // lock to whichever swatch is highlighted right now, which after a page
+  // reload is simply template 1.
+  const fromRec = templatesOf(rec);
+  if(fromRec.length) paidTemplates = fromRec;
+  else if(!paidTemplates.length) paidTemplates = packTemplates();
+  extraTemplates = [];
+
+  // Looked up by an add-on reference. The add-on is a receipt for ten pesos,
+  // not the customer's order, so the reference they keep is the original one.
+  const parent = rec && rec.templates && rec.templates.addOnFor;
+  if(parent) unlockRef = parent;
+
+  // The paid pack is now the only thing selectable, so a stale highlight on a
+  // layout they did not buy is moved onto one they did.
+  if(!paidTemplates.includes(selectedTmpl)) selectedTmpl = paidTemplates[0];
+
+  identitySuspended = false;
+
+  // An order already past its window must not unlock at all — on a slow
+  // connection the approval and the deadline can land in either order.
+  if(resolveExpiry(rec) && resolveExpiry(rec) <= Date.now()){
+    unlocked = false;
+    onExpired();
+    return;
   }
-  const pc = $('payCta');
-  if(pc){
-    pc.className = 'pay-cta done';
-    pc.innerHTML = '\u2713 Paid \u2014 Print / Save as PDF';
-    pc.setAttribute('onclick', 'doPrint()');
-  }
-  const pa = document.querySelector('.pay-alt');
-  if(pa) pa.style.display = 'none';
-  try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
-    { ref: unlockRef, email: paidEmail, paid: true })); } catch(e){}
+  startCountdown(rec);
+
+  lockChromeOpen();
+  savePack();
+  buildStrip();
+  renderPreview();
   toast('Payment confirmed \u2014 Save and Print are open.');
 }
 
@@ -5341,6 +6201,14 @@ async function restoreUnlock(){
   const saved = (() => { try { return JSON.parse(localStorage.getItem(UNLOCK_KEY) || '{}'); } catch(e){ return {}; } })();
   if(!saved.ref) return;
   unlockRef = saved.ref;
+  // Read first, used only if the server does not answer. A cached pack is a
+  // hint like the cached unlock flag is: the record wins wherever it arrives.
+  if(Array.isArray(saved.pack) && saved.pack.length) paidTemplates = saved.pack.map(Number);
+  if(saved.exp) savedExpiry = Number(saved.exp) || 0;
+
+  // Checked before the network call. An expired order must stay shut even when
+  // the server is unreachable, or "offline" becomes the way around the window.
+  if(savedExpiry && savedExpiry <= Date.now()){ onExpired(); return; }
   try {
     const email = (saved.email || collectData().personal.email || '').toLowerCase();
 
@@ -5353,14 +6221,16 @@ async function restoreUnlock(){
       ? await lookupOrder(saved.ref, email)
       : await lookupOrderByRef(saved.ref);
 
-    if(!email && !order){ if(saved.paid) openTheLock(); return; }
+    if(!email && !order){ if(saved.paid) openTheLock(order && order.record); return; }
     // Restored before openTheLock() so the identity check has something to
     // compare against on a page that was reloaded rather than freshly filled.
     if(order?.paid && saved.email) paidEmail = String(saved.email).toLowerCase();
-    if(order?.paid){ openTheLock(); return; }
+    if(order?.paid){ openTheLock(order.record); return; }
     if(order && !order.paid && saved.paid){
       // The admin reversed it. Say so plainly rather than silently re-locking.
       toast('This order is marked unpaid again. Message ' + GCASH_NUMBER + ' if that is wrong.', true);
+      paidTemplates = [];
+      buildStrip();
       try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
         { ref: saved.ref, email: saved.email, paid: false })); } catch(e){}
     }
@@ -5381,49 +6251,135 @@ async function restoreUnlock(){
    rewriting every duty: all free, as they should be. Putting a different
    person's email in means a different person's CV, and that is a new order.
    ────────────────────────────────────────────────────────────────────────── */
+let identitySuspended = false;
+
 function enforceIdentity(){
-  if(!unlocked || !paidEmail) return;
+  // Deliberately not gated on `unlocked`: while suspended that flag is false,
+  // and this is the only thing that can turn it back on.
+  if(!paidEmail) return;
 
   const now = (val('email') || '').toLowerCase();
-  if(!now || now === paidEmail) return;
 
-  // Captured first: closeTheLock() clears paidEmail, and the message needs it.
-  const was = paidEmail;
-  closeTheLock();
-  toast('Different email, so this counts as a new CV \u2014 ' + peso(BASE_PRICE)
-      + ' to unlock it. Put ' + was + ' back to reopen the one you paid for.', true);
+  // Mid-edit. An empty box is somebody half way through retyping, not a new
+  // customer, so it neither suspends nor resumes.
+  if(!now) return;
+
+  if(now === paidEmail){
+    if(identitySuspended) resumeLock();
+    return;
+  }
+  if(!identitySuspended) suspendLock();
 }
 
-// The mirror image of openTheLock(). A fresh reference is minted so the new
-// order cannot overwrite the paid one already sitting in the database.
-function closeTheLock(){
+// Closes the outputs without touching the receipt. paidEmail, unlockRef,
+// paidTemplates and the localStorage entry all survive, because the customer
+// still owns everything they paid for — it simply is not this email's CV
+// while the box says something else.
+function suspendLock(){
+  identitySuspended = true;
   unlocked = false;
-  paidEmail = '';
-  unlockRef = '';
   clearInterval(pollTimer);
+  lockChromeClosed('\ud83d\udd12 Email changed \u2014 outputs paused',
+    '\u21a9 Restore ' + escHtml(paidEmail));
+  buildStrip();
+  toast('That is a different email, so Save and Print are paused. Put '
+      + paidEmail + ' back and they open again \u2014 nothing was lost.', true);
+}
+
+function resumeLock(){
+  identitySuspended = false;
+  unlocked = true;
+  if(paidTemplates.length && !paidTemplates.includes(selectedTmpl))
+    selectedTmpl = paidTemplates[0];
+  lockChromeOpen();
+  buildStrip();
+  renderPreview();
+  toast('Welcome back \u2014 Save and Print are open again.');
+}
+
+// Puts the paid email back in the box for them. Faster than retyping it, and
+// it removes the one thing they might not remember.
+function restoreIdentity(){
+  if(!paidEmail) return;
+  const el = $('email');
+  if(el) el.value = paidEmail;
+  enforceIdentity();
+}
+
+// The locked-state chrome, in one place. `label` is the pill text and `cta` is
+// the button, so the same writer serves a genuinely unpaid page and a paused
+// one — which must not offer to sell a CV that is already paid for.
+function lockChromeClosed(label, cta){
+  const isPause = !!identitySuspended;
+  const action  = isPause ? 'restoreIdentity()' : "openUnlock('request')";
+  const text    = cta || ('\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + peso(BASE_PRICE));
 
   $('pvSizer').classList.remove('unlocked');
   $('tbPrint').disabled = true;
   $('lockPill').className = 'lockpill';
-  $('lockPill').innerHTML = '\ud83d\udd12 Save &amp; Print locked';
+  $('lockPill').innerHTML = label || '\ud83d\udd12 Save &amp; Print locked';
   $('pvFoot').innerHTML =
-    `<button class="btn-lock" id="btnUnlock" onclick="openUnlock('request')">`
-    + `\ud83d\udd13 Unlock Save &amp; Print \u2014 ` + peso(BASE_PRICE) + `</button>`;
+    `<button class="btn-lock" id="btnUnlock" onclick="${action}">${text}</button>`;
 
   const mb = $('mbAction');
   if(mb){
     mb.className = 'mb-go';
-    mb.innerHTML = '\ud83d\udd13 Unlock \u2014 ' + peso(BASE_PRICE);
-    mb.setAttribute('onclick', "openUnlock('request')");
+    mb.innerHTML = isPause ? text : '\ud83d\udd13 Unlock \u2014 ' + peso(BASE_PRICE);
+    mb.setAttribute('onclick', action);
   }
   const pc = $('payCta');
   if(pc){
     pc.className = 'pay-cta';
-    pc.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + peso(BASE_PRICE);
-    pc.setAttribute('onclick', "openUnlock('request')");
+    pc.innerHTML = text;
+    pc.setAttribute('onclick', action);
   }
   const pa = document.querySelector('.pay-alt');
-  if(pa) pa.style.display = '';
+  if(pa) pa.style.display = isPause ? 'none' : '';
+}
+
+function lockChromeOpen(){
+  $('pvFoot').innerHTML =
+    `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download</button>
+     <button class="btn-lock" onclick="doPrint()">\ud83d\udda8 Print / Save as PDF</button>`;
+  const mb = $('mbAction');
+  if(mb){
+    mb.className = 'mb-go open';
+    mb.innerHTML = '\ud83d\udda8 Print / Save as PDF';
+    mb.setAttribute('onclick', 'doPrint()');
+  }
+  const pc = $('payCta');
+  if(pc){
+    pc.className = 'pay-cta done';
+    pc.innerHTML = '\u2713 Paid \u2014 Print / Save as PDF';
+    pc.setAttribute('onclick', 'doPrint()');
+  }
+  const pa = document.querySelector('.pay-alt');
+  if(pa) pa.style.display = 'none';
+  syncLockChrome();
+}
+
+// The mirror image of openTheLock(). Reached only from Clear form and from an
+// admin reversal — never from an edit — so it is safe for it to forget
+// everything. A fresh reference is minted so the new order cannot overwrite
+// the paid one already sitting in the database.
+function closeTheLock(){
+  unlocked = false;
+  identitySuspended = false;
+  stopCountdown();
+  paidEmail = '';
+  unlockRef = '';
+  clearInterval(pollTimer);
+
+  // A different person is a different order, so nothing about the old pack
+  // carries over. Leaving paidTemplates in place would unlock this new CV in
+  // the previous customer's templates for free.
+  paidTemplates = [];
+  extraTemplates = [];
+  topUpDraft = null;
+  topUpPick = [];
+
+  lockChromeClosed();
+  buildStrip();
 
   // The saved unlock refers to the previous order, which is still paid and
   // still reachable by reference. It just is not this CV any more.
@@ -5431,34 +6387,66 @@ function closeTheLock(){
 }
 
 /* ─── OUTPUT ────────────────────────────────────────────────────────────── */
-function currentCVHtml(mode){
+function currentCVHtml(mode, tmpl){
   const d = collectData();
   const view = { ...d, personal: { ...d.personal, dob: prettyDOB(d.personal.dob) } };
-  return buildCVHtml(view, selectedTmpl, mode);
+  return buildCVHtml(view, tmpl || selectedTmpl, mode);
 }
 
-function doPrint(){
-  if(!unlocked){ openUnlock('request'); return; }
+// One gate for both outputs. Refusing quietly would look like a broken button,
+// so a locked layout opens the offer to buy it instead.
+function canOutput(n){
+  if(identitySuspended){
+    toast('Save and Print are paused because the email was changed. Put '
+        + paidEmail + ' back to open them.', true);
+    return false;
+  }
+  if(!unlocked){ openUnlock('request'); return false; }
+  // Not redundant with the ticker: a backgrounded or slept tab throttles
+  // setInterval, so the clock alone cannot be what stands between an expired
+  // order and a download. This is the check that actually holds.
+  if(expiresAt && expiresAt <= Date.now()){ onExpired(); return false; }
+  if(!ownsTemplate(n)){
+    toast('Template ' + n + ' is not in your pack \u2014 add it for '
+          + peso(EXTRA_TMPL_PRICE) + '.', true);
+    openAddTemplates(n);
+    return false;
+  }
+  return true;
+}
+
+function doPrint(tmpl){
+  const n = Number(tmpl) || selectedTmpl;
+  if(!canOutput(n)) return;
   const w = window.open('', '_blank');
   if(!w){ toast('Your browser blocked the print window. Allow pop-ups and try again.', true); return; }
-  w.document.write(currentCVHtml('print'));
+  w.document.write(currentCVHtml('print', n));
   w.document.close();
 }
 
-function downloadCV(){
-  if(!unlocked){ openUnlock('request'); return; }
+function downloadCV(tmpl){
+  const n = Number(tmpl) || selectedTmpl;
+  if(!canOutput(n)) return;
   const d = collectData();
   const name = [d.personal.firstName, d.personal.lastName].filter(Boolean).join('_') || 'CV';
-  const blob = new Blob([currentCVHtml('print')], { type: 'text/html' });
+  const blob = new Blob([currentCVHtml('print', n)], { type: 'text/html' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = name + '_CV.html';
+  a.download = name + '_CV_T' + n + '.html';
   document.body.appendChild(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('Downloaded. Open it and print to PDF for a shareable file.');
+  toast('Downloaded Template ' + n + '. Open it and print to PDF for a shareable file.');
+}
+
+// Staggered: browsers silently drop a burst of downloads fired in one tick.
+function downloadAll(){
+  if(!unlocked){ openUnlock('request'); return; }
+  const pack = ownedPack();
+  pack.forEach((n, i) => setTimeout(() => downloadCV(n), i * 700));
+  toast('Saving ' + pack.length + ' files\u2026 allow multiple downloads if your browser asks.');
 }
 
 /* ─── CLEAR THE FORM ────────────────────────────────────────────────────────
@@ -5562,33 +6550,15 @@ function paintPrice(){
   // Written without the peso sign: these sit inside markup that already has one.
   document.querySelectorAll('.how-price-n').forEach(e => e.textContent = BASE_PRICE);
 }
-// The admin can change the CV price from the back office; a stale number here
-// would quote one figure and expect another at the counter.
-// Reads pricing.selfService only. pricing.base is the ASSISTED price, and
-// picking it up here would quietly re-tag self-service orders at the higher
-// rate. Absent that key, the ₱25 default stands.
-async function loadPricing(){
-  try {
-    if(USING_API){
-      const r = await api('/pricing');
-      if(typeof r.selfService === 'number' && r.selfService >= 0){
-        BASE_PRICE = r.selfService;
-        const b = $('btnUnlock');
-        if(b) b.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + peso(BASE_PRICE);
-        const seal = document.querySelector('.seal .l2');
-        if(seal) seal.textContent = peso(BASE_PRICE);
-      }
-      return;
-    }
-    const rec = await readBin();
-    const p = rec.pricing || {};
-    const live = (p.sale && typeof p.sale.selfService === 'number')
-      ? p.sale.selfService : p.selfService;
-    if(typeof live === 'number' && live >= 0 && !isNaN(live)){
-      BASE_PRICE = live;
-      paintPrice();
-    }
-  } catch(e){ /* the default of ₱50 stands */ }
+// Self-service is a FIXED ₱25. It used to be read from the pricing record,
+// which is where the 50 came from: pricing.base is the ASSISTED price, and any
+// deployment that filled in selfService (or fell through to base) quoted 50 on
+// this page while the customer paid the advertised 25 - producing the
+// "short by ₱25" warning in the dashboard. Nothing remote may move it now.
+// The only variable part of the total is the number of templates in the pack,
+// and that is priced locally at EXTRA_TMPL_PRICE each.
+function loadPricing(){
+  paintPrice();
 }
 
 /* ─── RAIL SCROLL SPY ───────────────────────────────────────────────────── */

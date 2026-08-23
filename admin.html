@@ -461,6 +461,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="europe" onclick="setFilter('europe',this)">🇪🇺 Europe <span class="fcount" id="fc_europe">0</span></button>
         <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
         <button class="filter-btn" data-filter="clOnly" onclick="setFilter('clOnly',this)">📝 CL Only <span class="fcount" id="fc_clOnly">0</span></button>
+        <button class="filter-btn" data-filter="archived" onclick="setFilter('archived',this)" title="Expired orders, reduced to a payment receipt">🗃 Archived <span class="fcount" id="fc_archived">0</span></button>
         <button class="filter-btn needs-approval" data-filter="needsApproval" onclick="setFilter('needsApproval',this)" title="Self-service customers who submitted a GCash reference and are waiting on you">🧾 Needs approval <span class="fcount" id="fc_needsApproval">0</span></button>
         <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
         <button class="filter-btn" data-filter="paid" onclick="setFilter('paid',this)">✅ Paid <span class="fcount" id="fc_paid">0</span></button>
@@ -856,6 +857,15 @@ const peso = n => '₱' + n.toLocaleString();
 // Mirrors the helper in index.html. Middle name is optional, so this collapses
 // the gap when it's absent and appends a period to a bare initial ("S" → "S.").
 // Older submissions predate the middleName field entirely and degrade cleanly.
+// The one escaper for anything customer-typed that reaches innerHTML.
+// Single quotes included: several row templates interpolate into attributes.
+const hEsc = t => String(t == null ? '' : t)
+  .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Escaped for display. Kept separate from fullName() so that emails, CSV rows
+// and dialogs still get the raw name.
+const safeName = p => hEsc(fullName(p));
+
 const fullName = p => {
   if (!p) return '';
   let mid = (p.middleName || '').trim();
@@ -868,6 +878,49 @@ const fullName = p => {
 // Mirrors RESIGNATION_PRICE in index.html. addOnFee on the record wins where
 // present, so historical orders keep the price they were actually quoted.
 let RESIGNATION_ADDON_PRICE = 50;
+
+// ── SELF-SERVICE (builder.html) ───────────────────────────────────────────
+// A self-service customer types their own CV and pays a flat ₱25, plus ₱10
+// for every extra template in their pack. These are constants on purpose: they
+// must never be reachable from the Pricing page, and orderTotal() must never
+// fall through to BASE_PRICE for one of these orders.
+const SELF_SERVICE_PRICE = 25;
+const EXTRA_TMPL_PRICE   = 10;
+
+// ── 24-HOUR WINDOW — SELF-SERVICE ONLY ────────────────────────────────
+// A self-service order lives for a day, then the CV data goes. The clock
+// RESTARTS at payment so a customer who pays late still gets a full day to
+// download. Derived from timestamps the record already carries, which is what
+// keeps this file and builder.html agreeing on the deadline to the second.
+//
+// Assisted orders — anything from index.html — have NO clock and are never
+// touched. You build and send those yourself, on your own schedule: an order
+// waiting three days on a customer's missing document is normal work, not
+// litter, and archiving it would delete the CV out from under you mid-job.
+// Every expiry check in this file goes through expiryOf(), so this one guard
+// is what scopes the whole feature.
+const ORDER_TTL_HOURS = 24;
+
+function expiryOf(s){
+  if(!isSelfService(s)) return 0;
+  const started = s?.payment?.paidAt || s?.submittedAt;
+  const t = started ? new Date(started).getTime() : NaN;
+  return isNaN(t) ? 0 : t + ORDER_TTL_HOURS * 3600e3;
+}
+function msLeft(s){ const e = expiryOf(s); return e ? e - Date.now() : Infinity; }
+function isExpired(s){ return msLeft(s) <= 0; }
+
+// Already reduced to a receipt. Kept out of the working list but still counted
+// as revenue, because the money was real even after the CV is gone.
+function isArchived(s){ return !!s?.archived; }
+
+function ttlLabel(s){
+  const ms = msLeft(s);
+  if(!isFinite(ms)) return '';
+  if(ms <= 0) return 'Expired';
+  const h = Math.floor(ms / 3600e3), m = Math.floor((ms % 3600e3) / 60000);
+  return h >= 1 ? h + 'h ' + m + 'm left' : m + 'm left';
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PRICING
@@ -940,6 +993,16 @@ const orderTotal = s => {
   // The frozen quote always wins. Orders placed before this field existed fall
   // through to the per-item stored fees, then finally to today's prices.
   if(typeof s?.quotedTotal === 'number' && !isNaN(s.quotedTotal)) return s.quotedTotal;
+
+  // Before the per-item fall-throughs, because every one of them ends at
+  // BASE_PRICE — the ASSISTED price. A self-service order that reached it was
+  // quoted ₱50, and a customer who paid the advertised ₱25 was then flagged
+  // ₱25 short in this dashboard and told by email to send the difference.
+  if(isSelfService(s)){
+    if(isTemplateAddOn(s)) return EXTRA_TMPL_PRICE * (addedTemplates(s).length || 1);
+    const n = orderTemplates(s).length || 1;
+    return SELF_SERVICE_PRICE + EXTRA_TMPL_PRICE * (n - 1);
+  }
 
   if(s?.serviceType === 'coverLetter'){
     return (typeof s.amountDue === 'number' && !isNaN(s.amountDue))
@@ -1181,6 +1244,89 @@ function showPage(id,btn){
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
+// Reduces one expired order to a receipt. The CV, the photo, the work history
+// and every other bulky field are dropped; what is kept is what a dispute or a
+// tax return needs.
+function toStub(s){
+  return {
+    id: s.id,
+    archived: true,
+    archivedAt: new Date().toISOString(),
+    source: s.source,
+    status: s.status,
+    submittedAt: s.submittedAt,
+    quotedTotal: orderTotal(s),
+    templates: s.templates ? { purchased: orderTemplates(s), isAddOn: !!s.templates.isAddOn,
+                               addOnFor: s.templates.addOnFor || '' } : undefined,
+    payment: s.payment && s.payment.paid
+      ? { paid: true, amount: paidAmount(s), reference: s.payment.reference || '',
+          paidAt: s.payment.paidAt, method: s.payment.method || 'GCash' }
+      : { paid: false },
+    personal: { firstName: s.personal?.firstName || '', lastName: s.personal?.lastName || '',
+                email: s.personal?.email || '', phone: s.personal?.phone || '', photo: '' },
+    emailLog: s.emailLog
+  };
+}
+
+// Runs once per dashboard load, immediately after a fresh read — the only
+// moment in this file where writing the in-memory array back is safe.
+async function purgeExpired(){
+  const due = submissions.filter(s =>
+    isSelfService(s) && !isArchived(s) && isExpired(s) && !awaitingApproval(s));
+  if(!due.length) return 0;
+
+  const before = new Blob([JSON.stringify({submissions})]).size;
+  submissions = submissions.map(s => due.includes(s) ? toStub(s) : s);
+  const after  = new Blob([JSON.stringify({submissions})]).size;
+
+  try{
+    await commitSubmissions();
+  }catch(e){
+    // Reverting keeps the screen honest: nothing was reclaimed, so nothing
+    // should look reclaimed.
+    console.warn('Purge could not be saved:', e);
+    showNotif('Could not archive expired orders — ' + e.message, true);
+    return 0;
+  }
+
+  const kb = Math.max(0, Math.round((before - after) / 1024));
+  showNotif(`\ud83d\uddc3 ${due.length} expired order${due.length===1?'':'s'} archived to receipts`
+            + (kb ? ` · ${kb} KB freed` : ''));
+  return due.length;
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+// Ids present at the last full load. The difference between "I deleted this"
+// and "this arrived while I was working" — without it, merging would resurrect
+// every order you removed.
+let baselineIds = new Set();
+
+function snapshotBaseline(){
+  baselineIds = new Set(submissions.filter(s => s && s.id).map(s => s.id));
+}
+
+async function commitSubmissions(extra){
+  const ex = await getFullRecord();
+  const remote = Array.isArray(ex.submissions) ? ex.submissions : [];
+  const localById = new Map(submissions.filter(s => s && s.id).map(s => [s.id, s]));
+
+  const merged = [];
+  const used = new Set();
+  for(const r of remote){
+    if(!r || !r.id){ merged.push(r); continue; }
+    if(localById.has(r.id)){ merged.push(localById.get(r.id)); used.add(r.id); }
+    else if(baselineIds.has(r.id)){ /* removed here on purpose — stays removed */ }
+    else merged.push(r);                       // arrived while this tab was open
+  }
+  // Anything created locally that the server has not seen yet.
+  for(const l of submissions)
+    if(l && l.id && !used.has(l.id) && !remote.some(r => r && r.id === l.id)) merged.push(l);
+
+  submissions = merged;
+  snapshotBaseline();
+  await putRecord({...ex, ...(extra || {}), submissions: merged});
+}
+
 async function loadData(){
   await loadPricing();
   // Initialise EmailJS once after login — do NOT call emailjs.init() per send
@@ -1190,6 +1336,8 @@ async function loadData(){
     const json=await res.json();
     // Handle both {record:{submissions:[]}} and direct {submissions:[]}
     submissions=json?.record?.submissions||json?.submissions||[];
+    snapshotBaseline();
+    await purgeExpired();
     renderDashboard(); renderSubmissions();
   }catch(e){showNotif('Could not load data. Check connection.',true);}
 }
@@ -1548,7 +1696,7 @@ function renderDashboard(){
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Date</th>
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
   </tr></thead><tbody>${recent.map(s=>`<tr>
-    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${fullName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}${(s.serviceType==='resignation'||s.resignationLetter?.requested)?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}</td>
+    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${safeName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}${(s.serviceType==='resignation'||s.resignationLetter?.requested)?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${s.personal.jobTitle||s.resignation?.position||s.resignationLetter?.position||'—'}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${formatDate(s.submittedAt)}</td>
     <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
@@ -1632,7 +1780,11 @@ function renderSubmissions(){
   };
 
   const passesFilter = (s,f) =>
-    f==='all' ? true
+    // Archived is opt-in everywhere. An expired receipt is bookkeeping, not
+    // work, and leaving it in "all" would bury the orders that need you.
+    f==='archived' ? isArchived(s)
+    : isArchived(s) ? false
+    : f==='all' ? true
     : f==='coverLetter' ? (!!s.coverLetter?.requested || s.serviceType==='coverLetter')
     : f==='seaman' ? s.eduLevel==='seaman'
     : f==='europe' ? s.eduLevel==='europe'
@@ -1647,7 +1799,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','needsApproval','unpaid','paid'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','needsApproval','unpaid','paid','archived'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -1691,7 +1843,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid',archived:'Archived'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -1714,14 +1866,23 @@ function renderSubmissions(){
     const h=hoursWaiting(s);
     const open=s.status!=='Delivered'&&s.status!=='Done';
     const whenCls = open&&h>72 ? ' late' : open&&h>24 ? ' warn' : '';
+    const ttlMs = msLeft(s);
+    const ttlTag = isArchived(s)
+      ? `<span class="test-badge" style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;">\ud83d\uddc3 ARCHIVED</span>`
+      : !isFinite(ttlMs) ? ''
+      : ttlMs <= 0
+      ? `<span class="test-badge" style="background:#fef2f2;color:#991b1b;border-color:#fca5a5;">⏳ EXPIRED</span>`
+      : ttlMs < 6*3600e3
+      ? `<span class="test-badge">⏳ ${ttlLabel(s)}</span>`
+      : '';
 
     return`<tr class="${ageClass(s)}">
       <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${fullName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}</div>
-        ${isClOnly?`<div class="sub-role">${s.coverLetterOnly?.position||''}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+s.coverLetterOnly.company:''}</div>`:isRes?`<div class="sub-role">${s.resignation?.position||''}${s.resignation?.company?' · '+s.resignation.company:''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${s.seaman?.rank||p.jobTitle}</div>`:''}
-        <div class="sub-mail">${p.email||'No email on file'}</div>
+        <div class="sub-name">${safeName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTemplateAddOn(s)?'<span class="ss-badge" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ ADD-ON</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}${ttlTag}</div>
+        ${isClOnly?`<div class="sub-role">${hEsc(s.coverLetterOnly?.position)}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+hEsc(s.coverLetterOnly.company):''}</div>`:isRes?`<div class="sub-role">${hEsc(s.resignation?.position)}${s.resignation?.company?' · '+hEsc(s.resignation.company):''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${hEsc(s.seaman?.rank||p.jobTitle)}</div>`:''}
+        <div class="sub-mail">${hEsc(p.email)||'No email on file'}</div>
       </td>
 
       <td data-label="Waiting">
@@ -1736,9 +1897,15 @@ function renderSubmissions(){
 
       <td data-label="Order">
         <div class="sub-price">${peso(orderTotal(s))}</div>
-        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${isClOnly?'Cover Letter only':isRes?'Resignation Letter':[ 'CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation':null ].filter(Boolean).join(' + ')}</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px;">${
+          isTemplateAddOn(s) ? 'Extra templates only'
+          : isClOnly?'Cover Letter only':isRes?'Resignation Letter':[ 'CV', hasCL?'Cover Letter':null, s.resignationLetter?.requested?'Resignation':null ].filter(Boolean).join(' + ')}</div>
         <div style="margin-top:4px;">${isRes
           ? `<span class="sub-tmpl" style="${s.resignation?.noticeType==='immediate'?'background:#fef2f2;color:#991b1b;border-color:#fecaca;':''}">${s.resignation?.noticeType==='immediate'?'⚠️ Immediate':s.resignation?.noticeType==='shortened'?'Short notice':'30-day notice'}</span>`
+          : isTemplateAddOn(s)
+          ? `<span class="sub-tmpl" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ T${addedTemplates(s).join(', T')}</span>`
+          : isSelfService(s) && orderTemplates(s).length > 1
+          ? `<span class="sub-tmpl">🎨 T${orderTemplates(s).join(', T')}</span>`
           : `<span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span>`}</div>
       </td>
 
@@ -1961,8 +2128,7 @@ async function cycleStatus(idx){
   }
 
   try{
-    const ex=await getFullRecord();
-    await putRecord({...ex,submissions});
+    await commitSubmissions();
   }catch(err){ showNotif('Could not save status: '+err.message, true); return; }
   renderSubmissions(); renderDashboard();
   showNotif(freed
@@ -1972,8 +2138,15 @@ async function cycleStatus(idx){
   // Only ONE automatic email exists: the "CV is Ready" notice at Done.
   // Marking an order Delivered is bookkeeping for you, not news for the
   // customer — they already have the file by then, so no mail is sent.
+  // Self-service is exempt. That flow is verify-then-complete: the customer
+  // paid BEFORE anything unlocked, and prints the CV themselves. sendDoneEmail
+  // carries a GCash panel headed "Please Send Payment", so firing it here
+  // billed them a second time for money already in the account — at today's
+  // assisted price, not the 25 they were actually charged.
   if(newStatus==='Done'){
-    if(alreadyEmailed(idx,'ready')) showNotif('Ready notice was already sent — not re-sending.');
+    if(isSelfService(submissions[idx]))
+      showNotif('Self-service — no payment email sent. They already paid and print it themselves.');
+    else if(alreadyEmailed(idx,'ready')) showNotif('Ready notice was already sent — not re-sending.');
     else await sendDoneEmail(idx);
   }
 }
@@ -1992,8 +2165,7 @@ async function reopenSubmission(idx){
   if(!okReopen) return;
   s.status='Processing';
   try{
-    const ex=await getFullRecord();
-    await putRecord({...ex,submissions});
+    await commitSubmissions();
   }catch(err){ showNotif('Could not save: '+err.message, true); return; }
   renderSubmissions(); renderDashboard();
   showNotif('Reopened → "Processing"');
@@ -2063,8 +2235,7 @@ async function noteEmailSent(idx, type){
     if(!s.emailLog) s.emailLog = {};
     s.emailLog[type] = new Date().toISOString();
     bumpMailCount();
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
   }catch(e){ console.warn('Could not record email send:', e); }
 }
 
@@ -2295,7 +2466,9 @@ async function uploadAdminPhoto(input, idx){
     submissions[idx].personal.photo = photo;
     submissions[idx].photoUploadedByAdminAt = new Date().toISOString();
     delete submissions[idx].photoRemovedAt;   // it's no longer missing
-    await putRecord({...ex, submissions});
+    // commitSubmissions re-reads and merges: `ex` here was fetched only to
+    // measure the bin's size, and by now it is old enough to lose an order.
+    await commitSubmissions();
     const saved = (photo.length/1024).toFixed(1);
     const was   = (file.size/1024).toFixed(0);
     showNotif(`✅ Photo saved — resized from ${was} KB to ${saved} KB.`);
@@ -2316,10 +2489,9 @@ async function removeAdminPhoto(idx){
   if(!okRmPhoto) return;
   const old = submissions[idx]?.personal?.photo || '';
   try {
-    const ex = await getFullRecord();
     submissions[idx].personal.photo = '';
     submissions[idx].photoRemovedAt = new Date().toISOString();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif('Photo removed.');
     viewSubmission(idx);
     renderSubmissions();
@@ -2363,8 +2535,7 @@ async function shrinkAllPhotos(){
   }
 
   try {
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     const freed = Math.max(0, before - after);
     showNotif(`✅ Freed ${(freed/1024).toFixed(1)} KB across ${targets.length} photo(s)`
       + (failed ? ` — ${failed} could not be read.` : '.'));
@@ -2386,8 +2557,7 @@ async function reclaimPhotoSpace(){
   if(!okReclaim) return;
   targets.forEach(x => { x.personal.photo = ''; });
   try{
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif(`✅ Cleared ${targets.length} photo(s). Space reclaimed.`);
     renderHealth(); renderSubmissions();
   }catch(e){ showNotif('Failed to save: '+e.message, true); }
@@ -2417,8 +2587,7 @@ async function purgeDelivered(){
   }
   submissions = keep;
   try{
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif(`✅ Archived and removed ${drop} order(s).`);
     renderHealth(); renderSubmissions(); renderDashboard();
   }catch(e){ showNotif('Failed to save: '+e.message, true); }
@@ -2526,7 +2695,12 @@ async function runSelfServiceTest(){
       const o = await saveAndReload(list => list.push({
         id: testId, isTest: true, source: 'self-service',
         submittedAt: new Date().toISOString(), status: 'New',
-        payment: { paid: false }, quotedTotal: 25, pricing: { base: 25 },
+        payment: { paid: false },
+        // 25 for the CV + 10 for one extra template: the same arithmetic a
+        // real two-template order does, so a regression in orderTotal() shows
+        // up here rather than in someone's inbox.
+        quotedTotal: 35, pricing: { base: 25, extraTemplates: 1, extraTemplateFee: 10 },
+        templates: { purchased: [1, 4], base: 25, extraFee: 10 },
         eduLevel: 'college',
         personal: { firstName: 'TEST', lastName: 'Customer', jobTitle: 'Test Order',
                     email: testEmail, phone: '00000000000', address: 'Test',
@@ -2541,7 +2715,11 @@ async function runSelfServiceTest(){
       created = true;
       if(!o) throw new Error('The write reported success but the order is not there');
       if(o.payment?.paid) throw new Error('A brand-new order came back already paid \u2014 the lock is broken');
-      return 'Reference ' + testId + ' \u00b7 unpaid, Save & Print locked';
+      if(orderTotal(o) !== 35)
+        throw new Error('Priced at ' + peso(orderTotal(o)) + ' instead of ' + peso(35)
+                        + ' \u2014 a self-service order is reading the assisted price');
+      return 'Reference ' + testId + ' \u00b7 ' + peso(35)
+             + ' \u00b7 templates 1, 4 \u00b7 unpaid, Save & Print locked';
     })){ halted = true; return; }
 
     if(!await step('Customer submits a GCash reference', async () => {
@@ -2549,7 +2727,7 @@ async function runSelfServiceTest(){
         const at = list.findIndex(s => s && s.id === testId);
         if(at < 0) throw new Error('The order vanished between steps');
         list[at] = { ...list[at], paymentProof: {
-          gcashRef, amount: 25, paidOn: new Date().toISOString().slice(0,10),
+          gcashRef, amount: 35, paidOn: new Date().toISOString().slice(0,10),
           senderName: 'TEST Customer', senderPhone: '', note: 'Automated test',
           submittedAt: new Date().toISOString(), status: 'pending' } };
       });
@@ -2600,7 +2778,7 @@ async function runSelfServiceTest(){
           subject: '[TEST] We got your payment \u2014 ' + testId,
           translation_note: 'This is a test of the customer receipt.\n\n'
             + 'Reference: ' + testId + '\nGCash reference: ' + gcashRef
-            + '\nAmount: ' + peso(25) + '\n\nNo real order was created.',
+            + '\nAmount: ' + peso(35) + '\n\nNo real order was created.',
           html_body: '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;">'
             + '<div style="background:#1a2744;padding:20px 24px;">'
             + '<h1 style="color:#e2c97e;margin:0;font-size:18px;">[TEST] We got your payment details</h1></div>'
@@ -2611,7 +2789,7 @@ async function runSelfServiceTest(){
             + '<div style="font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#6b7280;">Their reference number</div>'
             + '<div style="font-family:monospace;font-size:20px;font-weight:800;color:#1a2744;margin-top:5px;">' + testId + '</div>'
             + '</div><p style="font-size:12.5px;color:#6b7280;margin-top:16px;">GCash reference ' + gcashRef
-            + ' \u00b7 ' + peso(25) + ' \u00b7 no real order was created.</p></div></div>'
+            + ' \u00b7 ' + peso(35) + ' \u00b7 no real order was created.</p></div></div>'
         });
         bumpMailCount();
         return 'Sent to ' + ADMIN_CC;
@@ -2773,11 +2951,19 @@ function viewSubmission(idx){
   const hasCL=s.coverLetter?.requested;
   const isResign=s.serviceType==='resignation';
   const isClOnly=s.serviceType==='coverLetter';
+  // Every branch goes through orderTotal(s), which honours the price the
+  // customer was actually quoted. The old code priced the two commonest cases
+  // off today's global BASE_PRICE instead, which is why a 25-peso self-service
+  // order opened claiming "50 (CV only)".
   const totalPrice=isClOnly
     ? `${peso(orderTotal(s))} (Cover Letter only)`
     : isResign
     ? `${peso(orderTotal(s))} (Resignation Letter)`
-    : hasCL?`${peso(BASE_PRICE+CL_PRICE)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`:`${peso(BASE_PRICE)} (CV only)`;
+    : isSelfService(s)
+    ? `${peso(orderTotal(s))} (self-service \u00b7 ${packLabel(s)})`
+    : hasCL
+    ? `${peso(orderTotal(s))} (CV + Cover Letter)`
+    : `${peso(orderTotal(s))} (CV only)`;
   // Photo block. The upload control is always available, because the three
   // common cases all need it: the customer skipped the photo, sent a bad one, or
   // the photo was stripped on delivery and the CV now needs rebuilding.
@@ -3144,6 +3330,47 @@ function viewSubmission(idx){
     <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
+  // ── Template pack ──────────────────────────────────────────────────────
+  // A self-service customer buys a SET of layouts: 25 for the CV plus 10 for
+  // each extra. Their page unlocks exactly this set and locks everything else,
+  // so it is worth seeing at a glance — and on an add-on order it is the only
+  // thing that explains what the ten pesos is for.
+  if(isSelfService(s)){
+    const pack  = orderTemplates(s);
+    const added = addedTemplates(s);
+    const addOn = isTemplateAddOn(s);
+    const chip = (n, hot) => `<span style="display:inline-grid;place-items:center;
+        width:34px;height:34px;border-radius:7px;margin:0 5px 5px 0;font-weight:800;
+        font-family:ui-monospace,Menlo,monospace;font-size:12px;
+        background:${hot?'#5b21b6':'var(--navy)'};color:${hot?'#fff':'#e2c97e'};">${n}</span>`;
+
+    html += `<div class="info-group"><h4>🎨 Template pack</h4>
+      <div style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:14px 16px;">
+
+        ${addOn ? `<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:9px;
+              padding:11px 13px;margin-bottom:12px;font-size:12.5px;color:#5b21b6;line-height:1.6;">
+          <b>This is a template add-on, not a new CV.</b><br>
+          ${addOnParent(s) ? `It belongs to order <b style="font-family:ui-monospace,Menlo,monospace;">${hEsc(addOnParent(s))}</b>, which is already paid and delivered. ` : ''}
+          Approving the payment below only adds ${added.length} layout${added.length===1?'':'s'} to that customer's pack.
+        </div>` : ''}
+
+        <div style="font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--gray);margin-bottom:7px;">
+          ${addOn ? 'Templates being added' : 'Unlocked on their page'}
+        </div>
+        <div>${(addOn ? added : pack).map(n => chip(n, addOn)).join('')
+               || '<span style="font-size:12px;color:var(--gray);">None recorded</span>'}</div>
+
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--gray-light);font-size:12px;color:var(--gray);line-height:1.65;">
+          ${addOn
+            ? `${added.length} \u00d7 ${peso(EXTRA_TMPL_PRICE)} = <b style="color:var(--navy);">${peso(orderTotal(s))}</b>`
+            : `${peso(SELF_SERVICE_PRICE)} for the CV${pack.length>1
+                ? ` + ${pack.length-1} extra \u00d7 ${peso(EXTRA_TMPL_PRICE)}` : ''} = <b style="color:var(--navy);">${peso(orderTotal(s))}</b>`}
+          <br>Every other layout stays locked on their page until they pay ${peso(EXTRA_TMPL_PRICE)} for it.
+        </div>
+      </div>
+    </div>`;
+  }
+
   // ── Submitted proof of payment ─────────────────────────────────────────────
   // Only self-service orders carry this. It is shown ABOVE the payment panel
   // because when it is present it is the thing that needs acting on.
@@ -3165,19 +3392,19 @@ function viewSubmission(idx){
           ${approved ? 'Approved' : 'GCash reference to check'}
         </div>
         <div style="font-family:ui-monospace,Menlo,monospace;font-size:21px;font-weight:800;color:var(--navy);letter-spacing:1px;margin:5px 0 3px;">
-          ${pf.gcashRef}
+          ${hEsc(pf.gcashRef)}
         </div>
         <div style="font-size:12.5px;color:${approved?'#166534':'#1e3a8a'};">
-          ${peso(amtP)} from <b>${pf.senderName||'—'}</b>${pf.senderPhone?' · '+pf.senderPhone:''}
+          ${peso(amtP)} from <b>${hEsc(pf.senderName)||'—'}</b>${pf.senderPhone?' · '+hEsc(pf.senderPhone):''}
         </div>
 
         ${shortP>0?`<div style="margin-top:10px;padding:9px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:12px;color:#991b1b;font-weight:700;">
           ⚠ Short by ${peso(shortP)} — ${peso(amtP)} sent against ${peso(dueP)} due.</div>`:''}
 
         <table style="width:100%;border-collapse:collapse;margin-top:10px;">
-          ${prow('Date sent', pf.paidOn)}
+          ${prow('Date sent', hEsc(pf.paidOn))}
           ${prow('Submitted', emailStamp(pf.submittedAt))}
-          ${prow('Customer note', pf.note)}
+          ${prow('Customer note', hEsc(pf.note))}
           ${approved?prow('Approved', emailStamp(pf.approvedAt)):''}
         </table>
 
@@ -3238,8 +3465,8 @@ function viewSubmission(idx){
     html += `<div class="info-group"><h4>🚫 Rejected references</h4>
       ${s.rejectedProofs.map(r => `
         <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:9px 12px;margin-bottom:7px;font-size:11.5px;color:#991b1b;">
-          <b style="font-family:ui-monospace,Menlo,monospace;">${r.gcashRef}</b>
-          · ${peso(r.amount||0)} · ${r.senderName||'—'}
+          <b style="font-family:ui-monospace,Menlo,monospace;">${hEsc(r.gcashRef)}</b>
+          · ${peso(r.amount||0)} · ${hEsc(r.senderName)||'—'}
           <span style="color:#b91c1c;opacity:.75;"> — rejected ${emailStamp(r.rejectedAt)}</span>
         </div>`).join('')}
     </div>`;
@@ -3266,20 +3493,30 @@ function viewSubmission(idx){
       <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--gray);margin-bottom:9px;">Email Status</div>
       ${sentRow(!!readyTs,'CV is Ready / Request Payment',readyTs)}
 
-      <div style="font-size:11px;color:var(--gray);margin:12px 0;line-height:1.6;">
+      ${isSelfService(s) ? `<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:9px;
+            padding:12px 14px;margin:12px 0;font-size:11.5px;color:#1e3a8a;line-height:1.65;">
+        🧑‍💻 <strong>Self-service — nothing is sent automatically.</strong>
+        This customer paid ${peso(orderTotal(s))} up front, approved above, and prints the CV
+        themselves from their own browser. The "CV is Ready" mail asks for payment by GCash,
+        so sending it here bills them twice for the same order.
+      </div>` : `<div style="font-size:11px;color:var(--gray);margin:12px 0;line-height:1.6;">
         📬 This is the <strong>only</strong> automatic email. It goes out once, when you set the status to
         <strong>Done</strong>. Marking an order <strong>Delivered</strong> sends nothing — by then the
         customer already has their file.
-      </div>
+      </div>`}
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button id="emailReadyBtn_${si}" onclick="emailCustomer(${si},'ready')" style="
           padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
           display:inline-flex;align-items:center;gap:6px;
-          ${readyTs
+          ${isSelfService(s)
+            ? 'background:#fff;color:#6b7280;border:1.5px solid var(--gray-light);'
+            : readyTs
             ? 'background:#fff;color:#92400e;border:1.5px solid #fbbf24;'
             : 'background:#10b981;color:white;border:none;'}">
-          <span>${readyTs ? '🔁 Send again: CV is Ready' : '📤 Send: CV is Ready'}</span>
+          <span>${isSelfService(s)
+            ? '⚠ Send payment request anyway'
+            : readyTs ? '🔁 Send again: CV is Ready' : '📤 Send: CV is Ready'}</span>
         </button>
       </div>
     </div>
@@ -3323,7 +3560,10 @@ function viewSubmission(idx){
 
   document.getElementById('viewModal').classList.add('open');
 }
-function grp(title,rows){return`<div class="info-group"><h4>${title}</h4>${rows.map(([l,v])=>v?`<div class="info-row"><span class="info-label">${l}</span><span>${v}</span></div>`:'').join('')}</div>`;}
+// Every value here is customer-typed and lands in innerHTML. No caller passes
+// markup — verified across all call sites — so escaping unconditionally is
+// safe and closes fourteen injection points in one line.
+function grp(title,rows){return`<div class="info-group"><h4>${title}</h4>${rows.map(([l,v])=>v?`<div class="info-row"><span class="info-label">${l}</span><span>${hEsc(v)}</span></div>`:'').join('')}</div>`;}
 
 // ── CLICK-TO-COPY ─────────────────────────────────────────────────────────────
 function copyBtn(value, label){
@@ -4621,8 +4861,7 @@ async function deleteSubmission(idx){
   submissions.splice(idx, 1);
 
   try {
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif(`✅ ${name}'s submission deleted.`);
     renderSubmissions();
     renderDashboard();
@@ -4806,8 +5045,7 @@ async function saveProfileSummary(idx){
   if (!text) { showNotif('Please generate or type a profile summary first.', true); return; }
   submissions[idx].profileSummary = text;
   try {
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif('✅ Profile summary saved!');
   } catch(e) {
     showNotif('Failed to save: ' + e.message, true);
@@ -5044,8 +5282,7 @@ async function saveEdits(idx){
   syncEditFields(idx);
 
   try {
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     showNotif('✅ All changes saved successfully!');
     closeModal('editModal');
     closeModal('viewModal');
@@ -5177,8 +5414,7 @@ async function saveCoverLetter(idx){
   if(!submissions[idx][key]) submissions[idx][key]={};
   submissions[idx][key].generated=text;
   try{
-    const ex=await getFullRecord();
-    await putRecord({...ex,submissions});
+    await commitSubmissions();
     showNotif('✅ Cover letter saved!');
   }catch(e){showNotif('Failed to save: '+e.message,true);}
 }
@@ -5705,8 +5941,7 @@ async function saveNotes(idx){
   const notes=document.getElementById('adminNotesArea')?.value||'';
   submissions[idx].adminNotes=notes;
   try{
-    const ex=await getFullRecord();
-    await putRecord({...ex,submissions});
+    await commitSubmissions();
     showNotif('Notes saved!');
   }catch(e){showNotif('Failed to save notes.',true);}
 }
@@ -6772,6 +7007,42 @@ function isPaid(s){ return !!s?.payment?.paid; }
 function hasProof(s){ return !!s?.paymentProof?.gcashRef; }
 function awaitingApproval(s){ return hasProof(s) && !isPaid(s); }
 function isSelfService(s){ return s?.source === 'self-service'; }
+
+// ── TEMPLATE PACKS ───────────────────────────────────────────────────
+// A self-service order buys a SET of layouts, not one. Orders written before
+// packs existed carry only templatePref, so that single layout is the pack.
+function orderTemplates(s){
+  const list = s?.templates?.purchased;
+  if(Array.isArray(list) && list.length){
+    const out = list.map(Number).filter(n => !isNaN(n));
+    if(out.length) return [...new Set(out)].sort((a, b) => a - b);
+  }
+  const one = parseInt(s?.templatePref, 10);
+  return one ? [one] : [];
+}
+
+// A ₱10-per-layout top-up. It arrives as its own small order rather than as a
+// second payment on the original, because the approve button on this page
+// disappears once an order is paid — a top-up attached to a paid order would
+// have nothing to press. templates.addOnFor names the CV it belongs to.
+function isTemplateAddOn(s){ return !!s?.templates?.isAddOn; }
+function addOnParent(s){ return s?.templates?.addOnFor || ''; }
+function addedTemplates(s){
+  const a = s?.templates?.added;
+  return Array.isArray(a) ? a.map(Number).filter(n => !isNaN(n)) : orderTemplates(s);
+}
+
+// What a self-service order is actually charging for, in words.
+function packLabel(s){
+  if(isTemplateAddOn(s)){
+    const t = addedTemplates(s);
+    return t.length + ' extra template' + (t.length === 1 ? '' : 's')
+         + ' (' + t.join(', ') + ')';
+  }
+  const t = orderTemplates(s);
+  if(t.length <= 1) return 'CV \u00b7 Template ' + (t[0] || '?');
+  return 'CV \u00b7 ' + t.length + ' templates (' + t.join(', ') + ')';
+}
 function paidAmount(s){
   const a = s?.payment?.amount;
   return (typeof a === 'number' && !isNaN(a)) ? a : orderTotal(s);
@@ -6819,8 +7090,7 @@ async function approveProof(idx){
   s.paymentProof = { ...pf, status: 'approved', approvedAt: new Date().toISOString() };
 
   try{
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     renderSubmissions(); renderDashboard();
     if(currentSubmission === idx) viewSubmission(idx);
     showNotif(`\u2705 Approved \u2014 ${nm} can now save and print.`);
@@ -6853,8 +7123,7 @@ async function rejectProof(idx){
   delete s.paymentProof;
 
   try{
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     renderSubmissions(); renderDashboard();
     if(currentSubmission === idx) viewSubmission(idx);
     showNotif(`Reference ${ref} rejected \u2014 tell ${nm} to resend.`);
@@ -6895,8 +7164,7 @@ async function togglePaid(idx){
   }
 
   try{
-    const ex = await getFullRecord();
-    await putRecord({...ex, submissions});
+    await commitSubmissions();
     renderSubmissions(); renderDashboard();
     if(currentSubmission === idx) viewSubmission(idx);
     if(isPaid(s)) showNotif(`✅ ${peso(paidAmount(s))} recorded from ${nm}`);
@@ -7088,6 +7356,23 @@ async function emailCustomer(idx, type){
         .filter(Boolean).join(' and ');
 
   if(!p.email){ showNotif('No email on file for this customer.', true); return; }
+
+  // ── Self-service guard ─────────────────────────────────────────────────────
+  // This mail is headed "Please Send Payment" and carries a GCash panel. A
+  // self-service customer paid before their page unlocked, so it reads as a
+  // demand for money they have already sent. Kept reachable for the rare
+  // correction, but never one click away.
+  if(type === 'ready' && isSelfService(s)){
+    const okSelf = await showConfirm({
+      type:'warning', title:'This asks them to pay again',
+      message:`<strong>${cdlgEsc(fullName(p))}</strong> built this CV themselves and already paid `
+        + `<strong>${peso(paidAmount(s))}</strong>${s.payment?.reference?` (GCash ref ${cdlgEsc(s.payment.reference)})`:''}. `
+        + `Their Save and Print are already open.<br><br>`
+        + `This email asks for ${cdlgEsc(peso(orderTotal(s)))} by GCash. Send it anyway?`,
+      confirmText:'Send anyway', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+    });
+    if(!okSelf){ showNotif('Cancelled — no email sent.'); return; }
+  }
 
   // ── Duplicate guard: this email already went out, so make it a deliberate act.
   // Every send costs quota, and a customer receiving the same mail twice looks
