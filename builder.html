@@ -1210,6 +1210,20 @@ function buildCVHtml(s,tmpl,mode){
       }
       .page{box-shadow:none!important;}
     }
+    /* PDF capture. The screen wrapper centres the sheet inside 60px of grey
+       padding on a #555 body, and html2canvas paints exactly what it is given
+       — so without this every PDF came out with a grey border. Collapses the
+       wrapper to precisely one A4 sheet and drops the screen-only furniture. */
+    ${mode==='pdf'?`
+      html,body{background:#fff!important;}
+      .page-wrap{
+        display:block!important;padding:0!important;margin:0!important;
+        width:210mm!important;height:297mm!important;
+        min-height:0!important;overflow:hidden!important;background:#fff!important;
+      }
+      .page{box-shadow:none!important;}
+      .no-print,.fit-note{display:none!important;}
+    `:''}
   </style>
   <script>
   /* ============================================================
@@ -5813,7 +5827,7 @@ function screenDone(){
     return `<div class="dl-row">
         <div class="n" style="background:${t ? t.bg : '#1a2744'};color:${t ? t.color : '#fff'}">${n}</div>
         <div class="d"><b>Template ${n}</b>${t ? escHtml(t.desc) : ''}</div>
-        <button onclick="downloadCV(${n})">\u2b07 Save</button>
+        <button onclick="downloadCV(${n})">\u2b07 PDF</button>
         <button class="go" onclick="doPrint(${n})">\ud83d\udda8 Print</button>
       </div>`;
   }).join('');
@@ -5858,7 +5872,7 @@ function screenDone(){
      ${rows}
 
      ${pack.length > 1 ? `<button class="btn-ghost" style="width:100%;margin-top:2px"
-        onclick="downloadAll()">\u2b07 Download all ${pack.length} files</button>` : ''}
+        onclick="downloadAll()">\u2b07 Download all ${pack.length} as PDF</button>` : ''}
 
      ${more && !topUpDraft ? `<div style="margin-top:16px;padding:12px 14px;border:1.5px dashed var(--line);border-radius:10px">
        <div style="font-size:12.5px;font-weight:800;color:var(--navy)">Want another look?</div>
@@ -6151,13 +6165,18 @@ function ownedPack(){
 
 function savePack(){
   try { localStorage.setItem(UNLOCK_KEY, JSON.stringify(
-    { ref: unlockRef, email: paidEmail, paid: true,
+    { ref: unlockRef, email: paidEmail, paid: true, name: paidName,
       pack: paidTemplates, exp: expiresAt || savedExpiry || 0 })); } catch(e){}
 }
 
 function openTheLock(rec){
   unlocked = true;
-  paidEmail = (collectData().personal.email || '').toLowerCase();
+  const who = (rec && rec.personal) || collectData().personal;
+  paidEmail = (who.email || '').toLowerCase();
+  // Taken from the RECORD where there is one: that is the name the payment was
+  // approved against, which may not be what is typed on screen right now.
+  paidName = { firstName: who.firstName || '', lastName: who.lastName || '' };
+  suspendReason = '';
 
   // What was paid for, straight off the record. Without this the strip would
   // lock to whichever swatch is highlighted right now, which after a page
@@ -6205,6 +6224,7 @@ async function restoreUnlock(){
   // hint like the cached unlock flag is: the record wins wherever it arrives.
   if(Array.isArray(saved.pack) && saved.pack.length) paidTemplates = saved.pack.map(Number);
   if(saved.exp) savedExpiry = Number(saved.exp) || 0;
+  if(saved.name) paidName = saved.name;
 
   // Checked before the network call. An expired order must stay shut even when
   // the server is unreachable, or "offline" becomes the way around the window.
@@ -6252,42 +6272,116 @@ async function restoreUnlock(){
    person's email in means a different person's CV, and that is a new order.
    ────────────────────────────────────────────────────────────────────────── */
 let identitySuspended = false;
+let suspendReason = '';
+// The name the payment was approved against, alongside paidEmail.
+let paidName = { firstName: '', lastName: '' };
+
+// Case, accents, punctuation and spacing all dropped: "Ma. Cristina",
+// "MA CRISTINA" and "ma-cristina" are one person. Generational suffixes go too,
+// because adding Jr. after paying is a correction, not a new customer.
+const normName = t => String(t || '')
+  .toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/\b(jr|sr|ii|iii|iv|v)\b/g, '')
+  .replace(/[^a-z]/g, '');
+
+// Damerau-Levenshtein, not plain Levenshtein. Plain Levenshtein scores a
+// TRANSPOSITION as two edits, so "Jaun" for "Juan" — far and away the most
+// common way a name gets mistyped — came out as distance 2 and locked the
+// customer out of a CV they had paid for. Counting a swap as one edit fixes
+// exactly that case without loosening anything else.
+function editDist(a, b){
+  if(a === b) return 0;
+  if(!a.length || !b.length) return Math.max(a.length, b.length);
+  const rows = [];
+  for(let i = 0; i <= a.length; i++) rows.push([i, ...Array(b.length).fill(0)]);
+  for(let j = 0; j <= b.length; j++) rows[0][j] = j;
+  for(let i = 1; i <= a.length; i++){
+    for(let j = 1; j <= b.length; j++){
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      let v = Math.min(rows[i-1][j] + 1, rows[i][j-1] + 1, rows[i-1][j-1] + cost);
+      // Adjacent swap counts once.
+      if(i > 1 && j > 1 && a[i-1] === b[j-2] && a[i-2] === b[j-1])
+        v = Math.min(v, rows[i-2][j-2] + 1);
+      rows[i][j] = v;
+    }
+  }
+  return rows[a.length][b.length];
+}
+
+// Tolerance scales with length: one letter in a short name, more in a long one.
+// "cristina"/"christina" passes; "juan"/"pedro" does not.
+function nearEnough(a, b){
+  if(a === b) return true;
+  if(!a || !b) return false;
+  const allow = Math.max(1, Math.floor(Math.min(a.length, b.length) / 4));
+  return editDist(a, b) <= allow;
+}
+
+// Only first and last are compared. The middle name is optional on the form and
+// routinely added or dropped afterwards, so making it load-bearing would lock
+// people for tidying their own record.
+function sameName(now){
+  const pf = normName(paidName.firstName), pl = normName(paidName.lastName);
+  if(!pf && !pl) return true;                       // paid before names were tracked
+  const nf = normName(now.firstName), nl = normName(now.lastName);
+  if(!nf || !nl) return true;                       // mid-edit, not a verdict
+  return nearEnough(pf, nf) && nearEnough(pl, nl);
+}
 
 function enforceIdentity(){
   // Deliberately not gated on `unlocked`: while suspended that flag is false,
   // and this is the only thing that can turn it back on.
   if(!paidEmail) return;
 
-  const now = (val('email') || '').toLowerCase();
+  const email = (val('email') || '').toLowerCase();
+  // An empty box is somebody half way through retyping, not a new customer, so
+  // it neither suspends nor resumes.
+  if(!email) return;
 
-  // Mid-edit. An empty box is somebody half way through retyping, not a new
-  // customer, so it neither suspends nor resumes.
-  if(!now) return;
+  const emailOk = email === paidEmail;
+  const nameOk  = sameName({ firstName: val('firstName'), lastName: val('lastName') });
 
-  if(now === paidEmail){
+  if(emailOk && nameOk){
     if(identitySuspended) resumeLock();
     return;
   }
-  if(!identitySuspended) suspendLock();
+  const why = !emailOk ? 'email' : 'name';
+  // Already paused for the same reason — no need to repaint or re-toast on
+  // every keystroke.
+  if(identitySuspended && suspendReason === why) return;
+  suspendReason = why;
+  suspendLock(why);
 }
 
 // Closes the outputs without touching the receipt. paidEmail, unlockRef,
 // paidTemplates and the localStorage entry all survive, because the customer
 // still owns everything they paid for — it simply is not this email's CV
 // while the box says something else.
-function suspendLock(){
+function suspendLock(why){
   identitySuspended = true;
+  suspendReason = why || 'email';
   unlocked = false;
   clearInterval(pollTimer);
-  lockChromeClosed('\ud83d\udd12 Email changed \u2014 outputs paused',
-    '\u21a9 Restore ' + escHtml(paidEmail));
+
+  const isName = suspendReason === 'name';
+  const was = isName
+    ? [paidName.firstName, paidName.lastName].filter(Boolean).join(' ')
+    : paidEmail;
+
+  lockChromeClosed(
+    isName ? '\ud83d\udd12 Name changed \u2014 outputs paused'
+           : '\ud83d\udd12 Email changed \u2014 outputs paused',
+    '\u21a9 Restore ' + escHtml(was));
   buildStrip();
-  toast('That is a different email, so Save and Print are paused. Put '
-      + paidEmail + ' back and they open again \u2014 nothing was lost.', true);
+  toast('This CV was paid for as ' + was + '. A different '
+      + (isName ? 'name' : 'email') + ' is a different person\u2019s CV, so Save and Print '
+      + 'are paused \u2014 put it back and they open again. Nothing was lost.', true);
 }
 
 function resumeLock(){
   identitySuspended = false;
+  suspendReason = '';
   unlocked = true;
   if(paidTemplates.length && !paidTemplates.includes(selectedTmpl))
     selectedTmpl = paidTemplates[0];
@@ -6297,9 +6391,16 @@ function resumeLock(){
   toast('Welcome back \u2014 Save and Print are open again.');
 }
 
-// Puts the paid email back in the box for them. Faster than retyping it, and
-// it removes the one thing they might not remember.
+// Puts whichever field drifted back to what was paid for. Faster than
+// retyping, and it removes the one thing they might not remember.
 function restoreIdentity(){
+  if(suspendReason === 'name'){
+    if($('firstName')) $('firstName').value = paidName.firstName || '';
+    if($('lastName'))  $('lastName').value  = paidName.lastName  || '';
+    renderPreview();
+    enforceIdentity();
+    return;
+  }
   if(!paidEmail) return;
   const el = $('email');
   if(el) el.value = paidEmail;
@@ -6339,7 +6440,7 @@ function lockChromeClosed(label, cta){
 
 function lockChromeOpen(){
   $('pvFoot').innerHTML =
-    `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download</button>
+    `<button class="btn-ghost" onclick="downloadCV()">\u2b07 Download PDF</button>
      <button class="btn-lock" onclick="doPrint()">\ud83d\udda8 Print / Save as PDF</button>`;
   const mb = $('mbAction');
   if(mb){
@@ -6377,6 +6478,8 @@ function closeTheLock(){
   extraTemplates = [];
   topUpDraft = null;
   topUpPick = [];
+  paidName = { firstName: '', lastName: '' };
+  suspendReason = '';
 
   lockChromeClosed();
   buildStrip();
@@ -6387,6 +6490,103 @@ function closeTheLock(){
 }
 
 /* ─── OUTPUT ────────────────────────────────────────────────────────────── */
+/* ─── PDF ENGINE ──────────────────────────────────────────────────────
+   Loaded on demand. Both libraries together are about 400 KB, which is a lot
+   to spend on every visitor when only a paying customer ever downloads.
+   ─────────────────────────────────────────────────────────────── */
+const PDF_LIBS = [
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+];
+let pdfLibsReady = null;
+
+function loadScript(src){
+  return new Promise((ok, no) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = ok;
+    el.onerror = () => no(new Error('Could not load ' + src));
+    document.head.appendChild(el);
+  });
+}
+
+function ensurePdfLibs(){
+  if(window.html2canvas && window.jspdf) return Promise.resolve();
+  if(!pdfLibsReady){
+    pdfLibsReady = Promise.all(PDF_LIBS.map(loadScript))
+      .catch(e => { pdfLibsReady = null; throw e; });
+  }
+  return pdfLibsReady;
+}
+
+// A4 at 96dpi. The CV is laid out at exactly this size, so painting at these
+// dimensions means no rescaling and no soft edges.
+const A4_PX_W = 794, A4_PX_H = 1123;
+
+// Renders the CV off-screen and paints it. An iframe rather than a hidden div
+// because every template defines generic class names (.page, .hdr, .who) that
+// would collide with this page's own stylesheet.
+function paintCV(html){
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement('iframe');
+    // Off-screen rather than display:none — a hidden iframe has no layout, and
+    // html2canvas would measure everything as zero.
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;left:-20000px;top:0;border:0;'
+                        + 'width:' + A4_PX_W + 'px;height:' + A4_PX_H + 'px;';
+    frame.srcdoc = html;
+
+    let done = false;
+    const fail = msg => { if(done) return; done = true; frame.remove(); reject(new Error(msg)); };
+    // Webfonts, the auto-fit pass and a photo can all stall. Twenty seconds is
+    // generous; past that something is wrong and the customer needs to know.
+    const bail = setTimeout(() => fail('The CV took too long to render.'), 20000);
+
+    frame.onload = async () => {
+      try {
+        const doc = frame.contentDocument;
+        // The auto-fit script measures text, so it can only be trusted once the
+        // webfonts it measured against have actually arrived.
+        if(doc.fonts && doc.fonts.ready) await doc.fonts.ready;
+        await new Promise(r => setTimeout(r, 350));   // let auto-fit settle
+
+        const canvas = await window.html2canvas(doc.querySelector('.page-wrap') || doc.body, {
+          scale: 2,                     // 192dpi — sharp in print, still a sane file size
+          backgroundColor: '#ffffff',
+          width: A4_PX_W, height: A4_PX_H,
+          windowWidth: A4_PX_W, windowHeight: A4_PX_H,
+          useCORS: true, logging: false
+        });
+        if(done) return;
+        done = true;
+        clearTimeout(bail);
+        frame.remove();
+        resolve(canvas);
+      } catch(e){
+        clearTimeout(bail);
+        fail('The CV could not be drawn: ' + e.message);
+      }
+    };
+    document.body.appendChild(frame);
+  });
+}
+
+async function makePDF(tmpl, filename){
+  await ensurePdfLibs();
+  const canvas = await paintCV(currentCVHtml('pdf', tmpl));
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+  // JPEG at 0.92 rather than PNG: a PNG of a full-colour CV runs to several
+  // megabytes, which is a painful download on mobile data for no visible gain.
+  pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+  pdf.save(filename);
+}
+
+// T18 and T19 are the ATS layouts. A rasterised PDF is invisible to a CV
+// parser, so recommending the print dialog there is not a limitation — it is
+// the only output that does what those templates exist to do.
+const isATS = n => Number(n) === 18 || Number(n) === 19;
+
 function currentCVHtml(mode, tmpl){
   const d = collectData();
   const view = { ...d, personal: { ...d.personal, dob: prettyDOB(d.personal.dob) } };
@@ -6424,29 +6624,54 @@ function doPrint(tmpl){
   w.document.close();
 }
 
-function downloadCV(tmpl){
-  const n = Number(tmpl) || selectedTmpl;
-  if(!canOutput(n)) return;
+function cvFileName(n, ext){
   const d = collectData();
-  const name = [d.personal.firstName, d.personal.lastName].filter(Boolean).join('_') || 'CV';
-  const blob = new Blob([currentCVHtml('print', n)], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name + '_CV_T' + n + '.html';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('Downloaded Template ' + n + '. Open it and print to PDF for a shareable file.');
+  const name = [d.personal.firstName, d.personal.lastName]
+    .filter(Boolean).join('_').replace(/[^A-Za-z0-9_]/g, '') || 'CV';
+  return name + '_CV_T' + n + '.' + ext;
 }
 
-// Staggered: browsers silently drop a burst of downloads fired in one tick.
-function downloadAll(){
+async function downloadCV(tmpl){
+  const n = Number(tmpl) || selectedTmpl;
+  if(!canOutput(n)) return;
+
+  if(isATS(n)){
+    toast('Template ' + n + ' is the ATS layout \u2014 use Print / Save as PDF so the '
+        + 'text stays machine-readable for job sites.', true);
+  }
+
+  toast('Building your PDF\u2026');
+  try {
+    await makePDF(n, cvFileName(n, 'pdf'));
+    toast('Saved Template ' + n + ' as a PDF.');
+  } catch(e){
+    console.error('PDF failed:', e);
+    // Falling back to HTML rather than to nothing: they have paid, and a file
+    // they can open and print themselves beats an error message.
+    const blob = new Blob([currentCVHtml('print', n)], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = cvFileName(n, 'html');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast('PDF could not be made here, so we saved the CV as a web file instead \u2014 '
+        + 'open it and press Print to get a PDF.', true);
+  }
+}
+
+// Sequential, not staggered. Each PDF holds the CPU for a second or two, and
+// firing them together made the browser drop all but the first.
+async function downloadAll(){
   if(!unlocked){ openUnlock('request'); return; }
   const pack = ownedPack();
-  pack.forEach((n, i) => setTimeout(() => downloadCV(n), i * 700));
-  toast('Saving ' + pack.length + ' files\u2026 allow multiple downloads if your browser asks.');
+  toast('Building ' + pack.length + ' PDFs\u2026 this takes a few seconds.');
+  for(const n of pack){
+    if(!ownsTemplate(n)) continue;
+    try { await makePDF(n, cvFileName(n, 'pdf')); }
+    catch(e){ console.warn('PDF failed for template ' + n + ':', e); }
+    await new Promise(r => setTimeout(r, 400));   // let each download register
+  }
+  toast('Done \u2014 check your downloads folder.');
 }
 
 /* ─── CLEAR THE FORM ────────────────────────────────────────────────────────
