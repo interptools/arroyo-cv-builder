@@ -3704,9 +3704,9 @@ async function scanOldCV(input){
 {
   "fullName": "", "email": "", "phone": "", "address": "", "linkedin": "",
   "jobTitle": "", "summary": "", "skills": "", "languages": "",
-  "achievements": "", "interests": "",
+  "certifications": "", "achievements": "", "interests": "",
   "workHistory": [{"company":"","position":"","startDate":"","endDate":"","location":"","description":""}],
-  "education": [{"school":"","degree":"","startYear":"","endYear":"","honors":""}],
+  "education": [{"school":"","degree":"","field":"","startYear":"","endYear":"","gwa":""}],
   "references": [{"name":"","title":"","company":"","contact":""}]
 }
 
@@ -3772,9 +3772,29 @@ Rules:
 
   } catch(err){
     console.error('CV scan failed:', err);
-    say('err', /failed to fetch/i.test(err.message)
-      ? 'Could not reach the reader. Open the page at interptools.github.io (not from a downloaded file) and try again.'
-      : escHtml(err.message) + '<br>You can still fill in the form by hand below.');
+    // Three different causes, three different fixes. index.html separates these
+    // too, and "try a clearer photo" is useless advice for a timeout.
+    const msg = String(err.message || '');
+    const timedOut = err.name === 'AbortError' || /abort|timed out/i.test(msg);
+    const blocked  = /failed to fetch|networkerror|load failed/i.test(msg);
+    const many = files.length > 1;
+
+    const tip = blocked
+      ? 'Could not reach the reader. Open the page at <strong>interptools.github.io</strong> '
+        + '(not from a downloaded file) and try again.'
+      : timedOut
+        ? (many
+            ? '\u23f1 Timed out reading several pages at once. Try scanning just page 1, '
+              + 'then add the rest by hand \u2014 or retry in a moment.'
+            : '\u23f1 The scan timed out \u2014 the reader may be busy. Try again in a moment.')
+        : 'Could not read the CV. Make sure each page is clear, well lit and not blurry. '
+          + 'A higher quality photo or screenshot usually fixes it.';
+
+    say('err', tip
+      + '<br><small style="opacity:.75">(' + escHtml(msg || 'Unknown error') + ')</small>'
+      + '<br><button type="button" class="duty-btn" style="margin-top:9px"'
+      + ' onclick="document.getElementById(\'scanInput\').click()">\u21bb Try again</button>'
+      + '<br><small style="opacity:.75">Or just fill in the form by hand below.</small>');
   } finally {
     drop.classList.remove('busy');
     input.value = '';
@@ -3815,7 +3835,9 @@ function applyScan(d){
   set('linkedin', d.linkedin);
   set('jobTitle', d.jobTitle);
   set('profileSummary', d.summary);
-  set('awards', d.achievements);
+  // index.html folds certifications in with achievements rather than dropping
+  // them, and a licence or training certificate is worth as much on a CV.
+  set('awards', [d.achievements, d.certifications].filter(Boolean).join('\n'));
   set('hobbies', d.interests);
 
   const addTags = (raw, kind) => {
