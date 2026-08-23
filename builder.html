@@ -2740,10 +2740,13 @@ ${pc}
    migration aid, not a destination: the key below is readable by anyone who
    opens this file, so the payment lock is only a courtesy until you switch.
    ─────────────────────────────────────────────────────────────────────────── */
-const API_BASE = '';
+const API_BASE = 'https://arroyo-cv-api.areymar36.workers.dev';
 
-const JSONBIN_BIN_ID  = '6a49d820f5f4af5e296133f3';
-const JSONBIN_API_KEY = '$2a$10$nFL02GTjngKoz62Rf/RsMuEEoJUujItio3x0qF98sn9AowSSjTzfS';
+// The JSONBin key used to live here and was readable by every visitor. It now
+// lives only inside the Worker. These placeholders keep the old fallback code
+// syntactically valid; they are never used while API_BASE is set.
+const JSONBIN_BIN_ID  = '';
+const JSONBIN_API_KEY = '';
 const AI_PROXY        = 'https://gemini-proxy.areymar36.workers.dev';
 const GCASH_NUMBER    = '09063964052';
 const GCASH_NAME      = 'Reymar Arroyo';
