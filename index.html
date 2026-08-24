@@ -820,6 +820,16 @@
     line-height: 1;
   }
   .tag-remove:hover { color: var(--error); }
+  .tsw-group {
+    flex-basis: 100%; width: 100%; grid-column: 1 / -1;
+    margin: 14px 0 2px;
+  }
+  .tsw-group:first-child { margin-top: 4px; }
+  .tsw-group-h {
+    font-size: 11px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--navy);
+  }
+  .tsw-group-b { font-size: 11px; color: #6b7280; line-height: 1.5; margin-top: 2px; }
   .tag-input-row {
     display: flex;
     gap: 8px;
@@ -2585,7 +2595,8 @@ function renderTemplateSwatches() {
   // The maritime layout only makes sense with sea service data, and the ordinary
   // designs can't show documents or vessel history — so each side sees only what
   // it can actually use.
-  const shown = TMPL_INFO.filter(t => isSeaman ? t.seamanOnly : !t.seamanOnly);
+  const shown = TMPL_INFO.filter(t =>
+    (isSeaman ? t.seamanOnly : !t.seamanOnly && !t.gulfOnly) && !t.retired);
 
   // A stale pick from the other list would silently survive the switch
   if (cur && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
@@ -2597,12 +2608,18 @@ function renderTemplateSwatches() {
       <div class="tsw-desc">We'll choose</div>
     </div>`;
 
-  html += shown.map(t => `
+  const card = t => `
     <div class="tsw ${cur === String(t.num) ? 'sel' : ''}" data-t="${t.num}" onclick="pickTemplate('${t.num}')">
       <div class="tsw-chip" style="background:${t.bg || '#243358'};color:${t.color || '#c8a84b'};${t.border ? 'border:' + t.border + ';' : ''}">${t.num}</div>
       <div class="tsw-label">Template ${t.num}</div>
       <div class="tsw-desc">${t.desc}</div>
-    </div>`).join('');
+    </div>`;
+  // Grouped by the kind of job each design suits, so the list reads as a
+  // question the applicant can answer rather than twenty numbered squares.
+  html += groupTemplates(shown).map(g => `
+    <div class="tsw-group"><div class="tsw-group-h">${g.label}</div>
+      <div class="tsw-group-b">${g.blurb}</div></div>
+    ${g.items.map(card).join('')}`).join('');
 
   grid.innerHTML = html;
 }
@@ -5242,32 +5259,80 @@ const SAMPLE = {
 };
 
 const TMPL_INFO = [
-  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
-  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316'},
-  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a'},
-  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white'},
-  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white'},
-  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623'},
-  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white'},
-  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b'},
-  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd'},
-  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b'},
-  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white'},
-  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c'},
-  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac'},
-  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
-  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac'},
-  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
-  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
-  {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true},
-  {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true},
-  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999'},,
-  {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24'},
-  {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917'},
-  {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa'},
-  {num:26, name:'Template 26', desc:'Compact · Executive',   bg:'#0f172a', color:'#22d3ee'},
-  {num:27, name:'Template 27', desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a'}
+  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff', group:'modern'},
+  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316', group:'modern'},
+  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a', group:'modern'},
+  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white', group:'corp'},
+  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white', group:'corp'},
+  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623', group:'corp'},
+  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white', group:'corp'},
+  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b', group:'fresh'},
+  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd', group:'ats'},
+  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b', group:'corp'},
+  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white', retired:true, group:'modern'},
+  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c', group:'warm'},
+  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac', group:'warm'},
+  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1', group:'warm'},
+  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac', group:'modern'},
+  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true, group:'sea'},
+  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true, group:'sea'},
+  {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true, group:'gulf'},
+  {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true, group:'gulf'},
+  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},,
+  {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24', group:'modern'},
+  {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917', group:'ats'},
+  {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa', group:'modern'},
+  {num:26, name:'Template 26', desc:'Compact · Executive',   bg:'#0f172a', color:'#22d3ee', group:'corp'},
+  {num:27, name:'Template 27', desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a', group:'warm'}
 ];
+
+// ─── TEMPLATE GROUPS ────────────────────────────────────────────────────────
+// Twenty numbered squares tell an applicant nothing. Grouping them by the kind
+// of job they suit turns the picker into a question the person can actually
+// answer — "what am I applying for" rather than "which number looks nice".
+// Order matters: this is the order the groups appear in.
+const TMPL_GROUPS = [
+  ['ats',    'Clean &amp; ATS-Safe',
+             'Plain and single-column. Safest for job portals and big companies that scan CVs by machine.'],
+  ['corp',   'Office &amp; Corporate',
+             'BPO, admin, accounting, banking, government and other office roles.'],
+  ['modern', 'Modern &amp; Bold',
+             'Sales, marketing, design, hospitality — anywhere standing out helps.'],
+  ['warm',   'Soft &amp; Approachable',
+             'Healthcare, teaching, childcare and service roles.'],
+  ['fresh',  'First Job &amp; Fresh Graduate',
+             'Built to look complete when your work history is still short.'],
+  ['sea',    '⚓ Seafarer',
+             'Documents, certificates, vaccinations and sea service.'],
+  ['eu',     '🇪🇺 Europe / EU',
+             'No photo or personal data, CEFR language levels.'],
+  ['gulf',   '🕌 Gulf / Middle East',
+             'Passport, visa status and availability shown up front.']
+];
+
+// Splits a template list into its groups, keeping TMPL_GROUPS order and
+// dropping any group with nothing in it. Anything carrying an unknown group
+// still comes out at the end rather than silently disappearing from the picker.
+function groupTemplates(list){
+  const out = [];
+  // A track-specific group leads when it is present: on the Gulf track the
+  // Gulf layouts are the answer and the shared ATS one is the alternative,
+  // so listing ATS first would bury what the applicant came for.
+  const TRACK = ['sea','eu','gulf'];
+  const order = TMPL_GROUPS.slice().sort(function(a,b){
+    const at = TRACK.indexOf(a[0]) >= 0 && list.some(function(t){ return t.group===a[0]; });
+    const bt = TRACK.indexOf(b[0]) >= 0 && list.some(function(t){ return t.group===b[0]; });
+    return (bt ? 1 : 0) - (at ? 1 : 0);
+  });
+  order.forEach(function(g){
+    const items = list.filter(function(t){ return t.group === g[0]; });
+    if(items.length) out.push({ key:g[0], label:g[1], blurb:g[2], items:items });
+  });
+  const known = TMPL_GROUPS.map(function(g){ return g[0]; });
+  const rest = list.filter(function(t){ return known.indexOf(t.group) < 0; });
+  if(rest.length) out.push({ key:'other', label:'Other', blurb:'', items:rest });
+  return out;
+}
 
 let previewSelectedTmpl = 1;
 
@@ -5281,11 +5346,13 @@ function openTemplatePreview(){
 
   // Build sidebar buttons
   const btns = document.getElementById('tmplBtns');
-  btns.innerHTML = TMPL_INFO.map(t => `
+  btns.innerHTML = groupTemplates(TMPL_INFO.filter(t => !t.retired))
+    .map(g => `<div style="font-size:9.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:rgba(255,255,255,.45);margin:12px 0 6px;">${g.label}</div>`
+      + g.items.map(t => `
     <div onclick="previewTmpl(${t.num},this)" class="tmpl-btn-prev" style="border:2px solid ${previewSelectedTmpl===t.num?'#c8a84b':'rgba(255,255,255,0.08)'};background:${previewSelectedTmpl===t.num?'rgba(200,168,75,0.1)':'rgba(255,255,255,0.02)'};border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:8px;">
       <div style="width:28px;height:28px;border-radius:6px;background:${t.bg||'#243358'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:${t.color||'#c8a84b'};flex-shrink:0;${t.border?'border:'+t.border:''}">${t.num}</div>
       <div><div style="font-size:11px;font-weight:700;color:white;">${t.name}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px;">${t.desc}</div></div>
-    </div>`).join('');
+    </div>`).join('')).join('');
 
   previewTmpl(previewSelectedTmpl, null);
   setTimeout(scalePreviewFrame, 100);

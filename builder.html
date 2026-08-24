@@ -424,7 +424,23 @@ textarea{resize:vertical;line-height:1.6;}
 .pv-strip{
   display:flex;gap:7px;overflow-x:auto;padding:10px 14px;background:var(--white);
   border-bottom:1px solid var(--line);flex-shrink:0;scrollbar-width:thin;
+  align-items:flex-end;
 }
+/* Each run of swatches carries its purpose above it, so the strip reads as
+   groups rather than one undifferentiated row of numbers. */
+.tgrp{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.tgrp-h{
+  font-size:8.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;padding-left:2px;
+}
+.tgrp-row{display:flex;gap:7px;}
+.tgrp+.tgrp{border-left:1px solid var(--line);padding-left:10px;margin-left:3px;}
+.pack-h{
+  font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  color:var(--navy);margin:13px 0 2px;
+}
+.pack-h:first-child{margin-top:4px;}
+.pack-b{font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:5px;}
 .tsw{
   flex-shrink:0;width:40px;height:52px;border-radius:7px;border:2px solid transparent;
   display:grid;place-items:center;font-size:11px;font-weight:800;position:relative;
@@ -1164,33 +1180,33 @@ textarea{resize:vertical;line-height:1.6;}
    ══════════════════════════════════════════════════════════════════════════ */
 
 const TMPL_INFO = [
-  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
-  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316'},
-  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a'},
-  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white'},
-  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white'},
-  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623'},
-  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white'},
-  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b'},
-  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd'},
-  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b'},
-  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white'},
-  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c'},
-  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac'},
-  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
-  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac'},
-  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
-  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
-  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true},
-  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true},
-  {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true},
-  {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true},
-  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999'},
-  {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24'},
-  {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917'},
-  {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa'},
-  {num:26, name:'Template 26', desc:'Compact · Executive',   bg:'#0f172a', color:'#22d3ee'},
-  {num:27, name:'Template 27', desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a'}
+  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff', group:'modern'},
+  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316', group:'modern'},
+  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a', group:'modern'},
+  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white', group:'corp'},
+  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white', group:'corp'},
+  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623', group:'corp'},
+  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white', group:'corp'},
+  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b', group:'fresh'},
+  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd', group:'ats'},
+  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b', group:'corp'},
+  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white', retired:true, group:'modern'},
+  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c', group:'warm'},
+  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac', group:'warm'},
+  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1', group:'warm'},
+  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac', group:'modern'},
+  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true, group:'sea'},
+  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true, group:'sea'},
+  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true, group:'eu'},
+  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true, group:'eu'},
+  {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true, group:'gulf'},
+  {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true, group:'gulf'},
+  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},
+  {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24', group:'modern'},
+  {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917', group:'ats'},
+  {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa', group:'modern'},
+  {num:26, name:'Template 26', desc:'Compact · Executive',   bg:'#0f172a', color:'#22d3ee', group:'corp'},
+  {num:27, name:'Template 27', desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a', group:'warm'}
 ];
 
 // Assembles the display name for CV templates. Middle name is optional, so this
@@ -4572,6 +4588,54 @@ const escHtml = t => String(t == null ? '' : t)
 // has no sea service to print and a seafarer template has no CEFR grid, so
 // mixing them produced half-empty CVs and a form that grew sections the
 // applicant had no reason to see.
+// ─── TEMPLATE GROUPS ────────────────────────────────────────────────────────
+// Twenty numbered squares tell an applicant nothing. Grouping them by the kind
+// of job they suit turns the picker into a question the person can actually
+// answer — "what am I applying for" rather than "which number looks nice".
+// Order matters: this is the order the groups appear in.
+const TMPL_GROUPS = [
+  ['ats',    'Clean &amp; ATS-Safe',
+             'Plain and single-column. Safest for job portals and big companies that scan CVs by machine.'],
+  ['corp',   'Office &amp; Corporate',
+             'BPO, admin, accounting, banking, government and other office roles.'],
+  ['modern', 'Modern &amp; Bold',
+             'Sales, marketing, design, hospitality — anywhere standing out helps.'],
+  ['warm',   'Soft &amp; Approachable',
+             'Healthcare, teaching, childcare and service roles.'],
+  ['fresh',  'First Job &amp; Fresh Graduate',
+             'Built to look complete when your work history is still short.'],
+  ['sea',    '⚓ Seafarer',
+             'Documents, certificates, vaccinations and sea service.'],
+  ['eu',     '🇪🇺 Europe / EU',
+             'No photo or personal data, CEFR language levels.'],
+  ['gulf',   '🕌 Gulf / Middle East',
+             'Passport, visa status and availability shown up front.']
+];
+
+// Splits a template list into its groups, keeping TMPL_GROUPS order and
+// dropping any group with nothing in it. Anything carrying an unknown group
+// still comes out at the end rather than silently disappearing from the picker.
+function groupTemplates(list){
+  const out = [];
+  // A track-specific group leads when it is present: on the Gulf track the
+  // Gulf layouts are the answer and the shared ATS one is the alternative,
+  // so listing ATS first would bury what the applicant came for.
+  const TRACK = ['sea','eu','gulf'];
+  const order = TMPL_GROUPS.slice().sort(function(a,b){
+    const at = TRACK.indexOf(a[0]) >= 0 && list.some(function(t){ return t.group===a[0]; });
+    const bt = TRACK.indexOf(b[0]) >= 0 && list.some(function(t){ return t.group===b[0]; });
+    return (bt ? 1 : 0) - (at ? 1 : 0);
+  });
+  order.forEach(function(g){
+    const items = list.filter(function(t){ return t.group === g[0]; });
+    if(items.length) out.push({ key:g[0], label:g[1], blurb:g[2], items:items });
+  });
+  const known = TMPL_GROUPS.map(function(g){ return g[0]; });
+  const rest = list.filter(function(t){ return known.indexOf(t.group) < 0; });
+  if(rest.length) out.push({ key:'other', label:'Other', blurb:'', items:rest });
+  return out;
+}
+
 const TMPL_SCOPE = {
   seaman: [16, 17],
   europe: [18, 19],
@@ -4584,14 +4648,22 @@ const TMPL_SCOPE = {
 // Layouts available to a given track. Anything scoped to another track is
 // excluded, so the standard and fresh-graduate tracks share T1–T15.
 function templatesFor(lvl){
+  // A retired layout is hidden from anyone choosing fresh, but stays visible to
+  // a customer whose pack already includes it — they paid for that one, and
+  // dropping it from the strip would take away what they bought.
+  // ownsTemplate() is the wrong test here: before payment it returns true for
+  // everything, which would leave the retired layout on offer to new customers.
+  const live = t => !t.retired
+    || paidTemplates.map(Number).includes(t.num)
+    || Number(selectedTmpl) === t.num;
   const scoped = TMPL_SCOPE[lvl];
-  if(scoped) return TMPL_INFO.filter(t => scoped.includes(t.num));
+  if(scoped) return TMPL_INFO.filter(t => scoped.includes(t.num) && live(t));
   // 22 is listed under the Gulf track but is not exclusive to it — a
   // photo-free ATS layout is what the US, Canada, Australia and New Zealand
   // all want, so the standard and fresh-graduate tracks keep it too.
   const SHARED = [22];
   const reserved = Object.values(TMPL_SCOPE).flat().filter(n => !SHARED.includes(n));
-  return TMPL_INFO.filter(t => !reserved.includes(t.num));
+  return TMPL_INFO.filter(t => !reserved.includes(t.num) && live(t));
 }
 
 function onFormat(){
@@ -4622,7 +4694,7 @@ function buildStrip(){
   const list = templatesFor(eduLevel());
   const packed = paidTemplates.length > 0;
 
-  $('pvStrip').innerHTML = list.map(t => {
+  const swatch = t => {
     const owns = ownsTemplate(t.num);
     const cls = 'tsw'
       + (t.num === selectedTmpl ? ' on' : '')
@@ -4636,7 +4708,12 @@ function buildStrip(){
             onclick="pickTmpl(${t.num})" title="${escHtml(tip)}"
             aria-pressed="${t.num === selectedTmpl}"
             style="background:${t.bg};color:${t.color};${t.border ? 'border-color:' + t.color : ''}">${t.num}</button>`;
-  }).join('');
+  };
+  $('pvStrip').innerHTML = groupTemplates(list).map(g => `
+    <div class="tgrp">
+      <div class="tgrp-h">${g.label}</div>
+      <div class="tgrp-row">${g.items.map(swatch).join('')}</div>
+    </div>`).join('');
 
   const info = list.find(t => t.num === selectedTmpl);
   const suffix = packed
@@ -5510,6 +5587,29 @@ function saveDraft(){
   } catch(e){ /* quota full or private mode — the form still works */ }
 }
 
+// When this browser last wrote its own copy of the form. Used to decide whether
+// a stored record is newer than what the customer has in front of them.
+function draftSavedAt(){
+  try { return Number(JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}').savedAt) || 0; }
+  catch(e){ return 0; }
+}
+
+// Pulls an admin-corrected record back into the form on load \u2014 but only when
+// the stored copy is newer than this browser's draft. Applying it
+// unconditionally would wipe whatever the customer is part-way through typing,
+// which is why the reload path never pulled anything before.
+function syncFromRecord(rec){
+  if(!rec || !rec.updatedAt) return false;
+  const when = Date.parse(rec.updatedAt);
+  if(isNaN(when)) return false;
+  const mine = draftSavedAt();
+  if(mine && when <= mine) return false;      // their typing is the newer copy
+  applyData(rec);
+  saveDraft();                                 // the pulled copy is now the draft
+  toast('Your CV was updated by Arroyo CV Builder \u2014 showing the latest version.');
+  return true;
+}
+
 function loadDraft(){
   let raw;
   try { raw = localStorage.getItem(DRAFT_KEY); } catch(e){ return false; }
@@ -5774,7 +5874,7 @@ function screenConfirm(){
   // The pack is what is being bought, so it is chosen HERE, once, as a picker
   // rather than described in a line of text. A moment later the strip locks to
   // exactly this set, and that is far easier to accept when you picked it.
-  const picker = templatesFor(eduLevel()).map(t => {
+  const packSw = t => {
     const isMain = t.num === selectedTmpl;
     const on = extraTemplates.includes(t.num);
     const tip = isMain ? t.desc + ' \u2014 your main template'
@@ -5785,7 +5885,10 @@ function screenConfirm(){
         ${isMain ? '' : `onclick="toggleExtra(${t.num})"`}
         title="${escHtml(tip)}"
         style="background:${t.bg};color:${t.color}">${t.num}</button>`;
-  }).join('');
+  };
+  const picker = groupTemplates(templatesFor(eduLevel())).map(g => `
+    <div class="pack-h">${g.label}</div>
+    <div class="pack-grid">${g.items.map(packSw).join('')}</div>`).join('');
 
   paint('Unlock Save & Print',
     'Choose your templates, pay by GCash, and we verify it \u2014 then every template in your pack opens here.',
@@ -5804,7 +5907,7 @@ function screenConfirm(){
          Once you pay, this pack is fixed \u2014 the rest lock, and you can download
          every template you chose as many times as you like.
        </div>
-       <div class="pack-grid">${picker}</div>
+       ${picker}
      </div>
 
      <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
@@ -5832,10 +5935,14 @@ function screenConfirm(){
    later — so it cannot be something they were defaulted into.
    ─────────────────────────────────────────────────────────────── */
 function screenPickMain(){
-  const grid = templatesFor(eduLevel()).map(t => `<button type="button"
+  const mainSw = t => `<button type="button"
       class="pack-sw${t.num === selectedTmpl ? ' pick' : ''}"
       onclick="pickMainTmpl(${t.num})" title="${escHtml(t.desc)}"
-      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`;
+  const grid = groupTemplates(templatesFor(eduLevel())).map(g => `
+    <div class="pack-h">${g.label}</div>
+    <div class="pack-b">${g.blurb}</div>
+    <div class="pack-grid">${g.items.map(mainSw).join('')}</div>`).join('');
 
   const info = tmplInfo(selectedTmpl);
   paint('Which template do you want?',
@@ -5845,7 +5952,7 @@ function screenPickMain(){
        Tap one to see it in the preview behind this box. Whatever you choose is
        what you pay for and what unlocks \u2014 so take a look first.
      </div>
-     <div class="pack-grid">${grid}</div>
+     ${grid}
      <div class="pay-row" style="margin-top:12px">
        <div class="ic">\ud83c\udfa8</div>
        <div><div class="v">Template ${selectedTmpl}</div>
@@ -5958,13 +6065,30 @@ async function pushOrder(data){
       if(isNew) list.push(data);
       // Never overwrite the payment block: the admin may have ticked it paid
       // between the customer's first send and this one.
-      else list[at] = { ...list[at], ...data, payment: list[at].payment || { paid: false } };
+      else {
+        const prev = list[at];
+        // An admin correction made after this browser last saved its draft is
+        // newer than anything on screen, and spreading the form over it would
+        // silently undo the correction with nobody told. This happens when the
+        // tab was left open through the edit, so a reload is the fix and the
+        // message says so.
+        const adminNewer = prev && prev.updatedBy === 'admin' && prev.updatedAt
+          && Date.parse(prev.updatedAt) > draftSavedAt();
+        if(adminNewer){
+          const stale = new Error('We updated your CV a moment ago. Reload this page to '
+            + 'pull the latest version, then send again \u2014 nothing you typed is lost.');
+          stale.staleAdminEdit = true;
+          throw stale;
+        }
+        list[at] = { ...prev, ...data, payment: prev.payment || { paid: false } };
+      }
 
       trimToFit(list, data.id);
       await writeBin({ ...record, submissions: list });
       return { isNew };
     } catch(e){
       lastErr = e;
+      if(e && e.staleAdminEdit) break;
       if(attempt === 1) await new Promise(r => setTimeout(r, 1200));
     }
   }
@@ -6989,17 +7113,20 @@ function screenAddTemplates(){
   }
 
   const fee = EXTRA_TMPL_PRICE * topUpPick.length;
-  const grid = avail.map(t => `<button type="button"
+  const upSw = t => `<button type="button"
       class="pack-sw${topUpPick.includes(t.num) ? ' pick' : ''}"
       onclick="toggleTopUp(${t.num})" title="${escHtml(t.desc)}"
-      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`;
+  const grid = groupTemplates(avail).map(g => `
+    <div class="pack-h">${g.label}</div>
+    <div class="pack-grid">${g.items.map(upSw).join('')}</div>`).join('');
 
   paint('Add templates',
     peso(EXTRA_TMPL_PRICE) + ' each \u2014 same CV, same details, a different design.',
     `<div style="font-size:11.5px;color:var(--muted);line-height:1.6">
        Already yours: <strong>${pack.join(', ')}</strong>. Tap the ones you want to add.
      </div>
-     <div class="pack-grid">${grid}</div>
+     ${grid}
 
      <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
        <div class="ic">\ud83d\udcb0</div>
@@ -7310,7 +7437,7 @@ async function restoreUnlock(){
     // Restored before openTheLock() so the identity check has something to
     // compare against on a page that was reloaded rather than freshly filled.
     if(order?.paid && saved.email) paidEmail = String(saved.email).toLowerCase();
-    if(order?.paid){ openTheLock(order.record); return; }
+    if(order?.paid){ syncFromRecord(order.record); openTheLock(order.record); return; }
     if(order && !order.paid && saved.paid){
       // The admin reversed it. Say so plainly rather than silently re-locking.
       toast('This order is marked unpaid again. Message ' + GCASH_NUMBER + ' if that is wrong.', true);

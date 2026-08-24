@@ -3748,48 +3748,109 @@ window.addEventListener('resize', scalePreview);
 // had no way back to it after clicking anything else. Generated from a list now,
 // and filtered by format so each order only offers layouts that can render it.
 const ADMIN_TMPL = [
-  {num:1,  desc:'Dark \u00b7 Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
-  {num:2,  desc:'Black \u00b7 Orange',       bg:'#1a1a1a', color:'#f97316'},
-  {num:3,  desc:'Gray \u00b7 Maroon',        bg:'#4a4a4a', color:'#8b1a4a'},
-  {num:4,  desc:'Blue \u00b7 Pro',           bg:'#1565c0', color:'white'},
-  {num:5,  desc:'Modern Blue',          bg:'#1976d2', color:'white'},
-  {num:6,  desc:'Navy \u00b7 Gold',          bg:'#1a2744', color:'#f5a623'},
-  {num:7,  desc:'Classic \u00b7 Clean',      bg:'#2c3e50', color:'white'},
-  {num:8,  desc:'Fresh Grad \u00b7 Grid',    bg:'#1a2744', color:'#c8a84b'},
-  {num:9,  desc:'Minimalist \u00b7 White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd'},
-  {num:10, desc:'Elegant \u00b7 Black Gold', bg:'#111',    color:'#c8a84b'},
-  {num:11, desc:'Bold \u00b7 Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white'},
-  {num:12, desc:'Pastel \u00b7 Peach',       bg:'#fde8dc', color:'#c2410c'},
-  {num:13, desc:'Green \u00b7 Nature',       bg:'#14532d', color:'#86efac'},
-  {num:14, desc:'Pastel \u00b7 Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
-  {num:15, desc:'Forest \u00b7 Emerald',     bg:'#1a4731', color:'#86efac'},
-  {num:16, desc:'\u2693 Seafarer \u00b7 Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
-  {num:17, desc:'\u2693 Seafarer \u00b7 Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
-  {num:18, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 ATS Classic', bg:'#ffffff', color:'#111',    border:'1.5px solid #111', europeOnly:true},
-  {num:19, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 Accent Rule', bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true},
-  {num:20, desc:'\ud83d\udd4c Gulf \u00b7 Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true},
-  {num:21, desc:'\ud83d\udd4c Gulf \u00b7 Data Sheet', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true},
-  {num:22, desc:'\ud83c\udf0e Global ATS \u00b7 No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999'},
-  {num:23, desc:'Timeline · Slate', bg:'#334155', color:'#fbbf24'},
-  {num:24, desc:'Editorial · Serif', bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917'},
-  {num:25, desc:'Banner · Terracotta', bg:'#9a3412', color:'#fed7aa'},
-  {num:26, desc:'Compact · Executive', bg:'#0f172a', color:'#22d3ee'},
-  {num:27, desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a'}
+  {num:1,  desc:'Dark \u00b7 Cyan',          bg:'#1a1a2e', color:'#00d4ff', group:'modern'},
+  {num:2,  desc:'Black \u00b7 Orange',       bg:'#1a1a1a', color:'#f97316', group:'modern'},
+  {num:3,  desc:'Gray \u00b7 Maroon',        bg:'#4a4a4a', color:'#8b1a4a', group:'modern'},
+  {num:4,  desc:'Blue \u00b7 Pro',           bg:'#1565c0', color:'white', group:'corp'},
+  {num:5,  desc:'Modern Blue',          bg:'#1976d2', color:'white', group:'corp'},
+  {num:6,  desc:'Navy \u00b7 Gold',          bg:'#1a2744', color:'#f5a623', group:'corp'},
+  {num:7,  desc:'Classic \u00b7 Clean',      bg:'#2c3e50', color:'white', group:'corp'},
+  {num:8,  desc:'Fresh Grad \u00b7 Grid',    bg:'#1a2744', color:'#c8a84b', group:'fresh'},
+  {num:9,  desc:'Minimalist \u00b7 White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd', group:'ats'},
+  {num:10, desc:'Elegant \u00b7 Black Gold', bg:'#111',    color:'#c8a84b', group:'corp'},
+  {num:11, desc:'Bold \u00b7 Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white', retired:true, group:'modern'},
+  {num:12, desc:'Pastel \u00b7 Peach',       bg:'#fde8dc', color:'#c2410c', group:'warm'},
+  {num:13, desc:'Green \u00b7 Nature',       bg:'#14532d', color:'#86efac', group:'warm'},
+  {num:14, desc:'Pastel \u00b7 Sky Blue',    bg:'#e0f2fe', color:'#0369a1', group:'warm'},
+  {num:15, desc:'Forest \u00b7 Emerald',     bg:'#1a4731', color:'#86efac', group:'modern'},
+  {num:16, desc:'\u2693 Seafarer \u00b7 Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true, group:'sea'},
+  {num:17, desc:'\u2693 Seafarer \u00b7 Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true, group:'sea'},
+  {num:18, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 ATS Classic', bg:'#ffffff', color:'#111',    border:'1.5px solid #111', europeOnly:true, group:'eu'},
+  {num:19, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 Accent Rule', bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true, group:'eu'},
+  {num:20, desc:'\ud83d\udd4c Gulf \u00b7 Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true, group:'gulf'},
+  {num:21, desc:'\ud83d\udd4c Gulf \u00b7 Data Sheet', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true, group:'gulf'},
+  {num:22, desc:'\ud83c\udf0e Global ATS \u00b7 No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},
+  {num:23, desc:'Timeline · Slate', bg:'#334155', color:'#fbbf24', group:'modern'},
+  {num:24, desc:'Editorial · Serif', bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917', group:'ats'},
+  {num:25, desc:'Banner · Terracotta', bg:'#9a3412', color:'#fed7aa', group:'modern'},
+  {num:26, desc:'Compact · Executive', bg:'#0f172a', color:'#22d3ee', group:'corp'},
+  {num:27, desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a', group:'warm'}
 ];
+
+// ─── TEMPLATE GROUPS ────────────────────────────────────────────────────────
+// Twenty numbered squares tell an applicant nothing. Grouping them by the kind
+// of job they suit turns the picker into a question the person can actually
+// answer — "what am I applying for" rather than "which number looks nice".
+// Order matters: this is the order the groups appear in.
+const TMPL_GROUPS = [
+  ['ats',    'Clean &amp; ATS-Safe',
+             'Plain and single-column. Safest for job portals and big companies that scan CVs by machine.'],
+  ['corp',   'Office &amp; Corporate',
+             'BPO, admin, accounting, banking, government and other office roles.'],
+  ['modern', 'Modern &amp; Bold',
+             'Sales, marketing, design, hospitality — anywhere standing out helps.'],
+  ['warm',   'Soft &amp; Approachable',
+             'Healthcare, teaching, childcare and service roles.'],
+  ['fresh',  'First Job &amp; Fresh Graduate',
+             'Built to look complete when your work history is still short.'],
+  ['sea',    '⚓ Seafarer',
+             'Documents, certificates, vaccinations and sea service.'],
+  ['eu',     '🇪🇺 Europe / EU',
+             'No photo or personal data, CEFR language levels.'],
+  ['gulf',   '🕌 Gulf / Middle East',
+             'Passport, visa status and availability shown up front.']
+];
+
+// Splits a template list into its groups, keeping TMPL_GROUPS order and
+// dropping any group with nothing in it. Anything carrying an unknown group
+// still comes out at the end rather than silently disappearing from the picker.
+function groupTemplates(list){
+  const out = [];
+  // A track-specific group leads when it is present: on the Gulf track the
+  // Gulf layouts are the answer and the shared ATS one is the alternative,
+  // so listing ATS first would bury what the applicant came for.
+  const TRACK = ['sea','eu','gulf'];
+  const order = TMPL_GROUPS.slice().sort(function(a,b){
+    const at = TRACK.indexOf(a[0]) >= 0 && list.some(function(t){ return t.group===a[0]; });
+    const bt = TRACK.indexOf(b[0]) >= 0 && list.some(function(t){ return t.group===b[0]; });
+    return (bt ? 1 : 0) - (at ? 1 : 0);
+  });
+  order.forEach(function(g){
+    const items = list.filter(function(t){ return t.group === g[0]; });
+    if(items.length) out.push({ key:g[0], label:g[1], blurb:g[2], items:items });
+  });
+  const known = TMPL_GROUPS.map(function(g){ return g[0]; });
+  const rest = list.filter(function(t){ return known.indexOf(t.group) < 0; });
+  if(rest.length) out.push({ key:'other', label:'Other', blurb:'', items:rest });
+  return out;
+}
 
 function renderTemplateButtons(sub){
   const bar=document.getElementById('tmplSidebar');
   if(!bar) return [];
   const lvl=sub&&sub.eduLevel;
+  // A retired layout stays selectable only for an order that already names it,
+  // so an old Template 11 order can still be printed as Template 11.
+  const keeps = n => String(sub&&sub.templatePref)===String(n)
+                  || (sub&&sub.templates&&Array.isArray(sub.templates.purchased)
+                      && sub.templates.purchased.map(Number).includes(n));
   const shown=ADMIN_TMPL.filter(t =>
-    lvl==='seaman' ? !!t.seamanOnly
-  : lvl==='europe' ? !!t.europeOnly
-  : !t.seamanOnly && !t.europeOnly);
-  bar.innerHTML = shown.map(t=>`
+    (lvl==='seaman' ? !!t.seamanOnly
+   : lvl==='europe' ? !!t.europeOnly
+   : lvl==='gulf'   ? (!!t.gulfOnly || t.num===22)
+   : !t.seamanOnly && !t.europeOnly && !t.gulfOnly)
+    && (!t.retired || keeps(t.num)));
+  const btn = t=>`
     <div class="to-tmpl-btn" data-tmpl="${t.num}" onclick="selectTemplate(${t.num},this)">
       <div class="to-tmpl-swatch" style="background:${t.bg};color:${t.color};${t.border?'border:'+t.border+';':''}">${t.num}</div>
       <div><div class="to-tmpl-name">Template ${t.num}</div><div class="to-tmpl-desc">${t.desc}</div></div>
-    </div>`).join('');
+    </div>`;
+  // Grouped by purpose so picking a layout for a customer is a judgement about
+  // the job they are applying for, not a scroll through numbered swatches.
+  bar.innerHTML = groupTemplates(shown).map(g=>`
+    <div style="font-size:9.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;
+                color:var(--gray);margin:12px 0 5px;padding-left:2px;">${g.label}</div>
+    ${g.items.map(btn).join('')}`).join('');
   return shown;
 }
 
@@ -5126,12 +5187,24 @@ async function saveProfileSummary(idx){
   const text = display?.value?.trim();
   if (!text) { showNotif('Please generate or type a profile summary first.', true); return; }
   submissions[idx].profileSummary = text;
+  stampEdit(submissions[idx]);
   try {
     await commitSubmissions();
     showNotif('✅ Profile summary saved!');
   } catch(e) {
     showNotif('Failed to save: ' + e.message, true);
   }
+}
+
+// Marks a record as edited here rather than by the customer. builder.html reads
+// both fields: updatedAt decides whether the stored copy is newer than the
+// draft in the customer's browser, and updatedBy stops their next submit from
+// spreading their form straight back over an admin correction.
+function stampEdit(s){
+  if(!s) return s;
+  s.updatedAt = new Date().toISOString();
+  s.updatedBy = 'admin';
+  return s;
 }
 
 // ── EDIT SUBMISSION ──────────────────────────────────────────────────────────
@@ -5364,6 +5437,7 @@ function syncEditFields(idx){
 async function saveEdits(idx){
   // Sync all current field values first
   syncEditFields(idx);
+  stampEdit(submissions[idx]);
 
   try {
     await commitSubmissions();
