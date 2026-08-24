@@ -152,6 +152,9 @@ button{cursor:pointer;}
   scroll-margin-top:76px;
 }
 .card.hide{display:none;}
+/* .hide is otherwise scoped to rail links and whole cards. Individual fields
+   inside a grid need their own rule or they stay on screen. */
+.grid>.hide{display:none;}
 
 /* Opening panel. People were reaching the form with no idea what the sequence
    was, or that a payment sat between them and their file. */
@@ -700,7 +703,7 @@ textarea{resize:vertical;line-height:1.6;}
     <a href="#s-seaman" data-sec="s-seaman"><span class="rn">06</span>Seafarer records<span class="tick">✓</span></a>
     <a href="#s-europe" data-sec="s-europe"><span class="rn">07</span>Europe details<span class="tick">✓</span></a>
     <a href="#s-skills" data-sec="s-skills"><span class="rn">08</span>Skills &amp; languages<span class="tick">✓</span></a>
-    <a href="#s-extra" data-sec="s-extra"><span class="rn">09</span>Awards &amp; interests<span class="tick">✓</span></a>
+    <a href="#s-extra" data-sec="s-extra"><span class="rn">09</span>Trainings, awards &amp; interests<span class="tick">✓</span></a>
     <a href="#s-refs" data-sec="s-refs"><span class="rn">10</span>References<span class="tick">✓</span></a>
     <a href="#s-summary" data-sec="s-summary"><span class="rn">11</span>Profile summary<span class="tick">✓</span></a>
   </nav>
@@ -925,9 +928,15 @@ textarea{resize:vertical;line-height:1.6;}
 
     <!-- 10 EXTRA -->
     <section class="card" id="s-extra">
-      <div class="card-h"><span class="num">09</span><h2>Awards &amp; interests</h2></div>
+      <div class="card-h"><span class="num">09</span><h2>Trainings, awards &amp; interests</h2></div>
       <p class="card-sub">Optional, but they fill out a short CV nicely.</p>
       <div class="grid">
+        <!-- Hidden for seafarers: their trainings already go in with numbers and
+             expiry dates under Trainings &amp; Certificates, and asking twice
+             would only get the same list typed in again. -->
+        <div class="full" id="trainingsField"><label>Trainings &amp; seminars attended</label>
+          <textarea id="trainings" rows="4" placeholder="Basic Occupational Safety and Health (BOSH), DOLE, March 2024&#10;Customer Service Excellence Seminar, TESDA, 2023"></textarea>
+          <div class="hint">One per line. Include the organiser and the year if you have them.</div></div>
         <div class="full"><label>Awards, honours, recognition</label>
           <textarea id="awards" rows="3" placeholder="Dean's Lister 2023&#10;Employee of the Month, March 2024"></textarea></div>
         <div class="full"><label>Hobbies &amp; interests</label>
@@ -1133,6 +1142,16 @@ function buildCVHtml(s,tmpl,mode){
      languages:(s.languages||[]).map(_esc0),
      aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
      awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
+     // Trainings and seminars arrive as one box, one entry per line, so the
+     // breaks have to become <br> here — .para and the sidebar <p> rules have
+     // no white-space setting and would otherwise run every entry together.
+     // Each line is escaped before the <br> are added, so the markup this
+     // introduces survives and anything the customer typed does not.
+     // Seafarer orders already itemise this material under Trainings &
+     // Certificates with numbers and expiry dates, so it is blanked for them
+     // rather than printed twice.
+     trainingsHtml:(s.eduLevel==='seaman')?'':String(s.trainings||'').split(/\r?\n/)
+       .map(x=>x.trim()).filter(Boolean).map(_esc0).join('<br>'),
      seaman:s.seaman?_escDeep(s.seaman):s.seaman,
      europe:s.europe?_escDeep(s.europe):s.europe};
   const isFresh=s.eduLevel==='fresh';
@@ -1585,6 +1604,7 @@ ${pb}
           `<div><b>${l.lang}</b>${[l.level,l.cert].filter(Boolean).join(' · ')}</div>`).join('')}</div>`
       : (plainLangs.length?`<p class="para">${plainLangs.join(' · ')}</p>`:''))}
 
+  ${sec('Trainings & Seminars', s.trainingsHtml?`<p class="para">${s.trainingsHtml}</p>`:'')}
   ${sec('Certifications & Awards', s.awards?`<p class="para">${s.awards}</p>`:'')}
 
   ${sec('Additional Information', extras.length
@@ -1666,6 +1686,7 @@ ${pb}
     ${s.profileSummary?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${edu.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${work.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Trainings &amp; Seminars</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Awards</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -1733,6 +1754,7 @@ ${pb}
       ${s.profileSummary?`<div class="rsec"><div class="rs-head">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${edu.length?`<div class="rsec"><div class="rs-head">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${work.length?`<div class="rsec"><div class="rs-head">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="rsec"><div class="rs-head">Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rs-head">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -1805,6 +1827,7 @@ ${pb}
     <div class="R">
       ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -1871,6 +1894,7 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div><div class="rh-text">Profile</div><div class="rh-line"></div></div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div><div class="rh-text">Experience</div><div class="rh-line"></div></div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Education</div><div class="rh-line"></div></div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Trainings &amp; Seminars</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div><div class="rh-text">Awards</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -1927,6 +1951,7 @@ ${pb}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${skills.length?`<div class="lsec"><div class="lh">Skills</div><div>${skills.map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
+      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2009,6 +2034,7 @@ ${pb}
     ${work.length?`<div class="rsec"><div class="rh">💼 Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">🎓 Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${refs.length?`<div class="rsec"><div class="rh">🤝 References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="rsec"><div class="rh">🎓 Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">🏆 Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2080,6 +2106,7 @@ ${pb}
       ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-r">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Education</div>${edu.map(e=>`<div class="item"><div class="i-header"><div class="i-co">${e.school}</div>${e.yearGrad||e.yearStart?`<div class="i-date-r">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div>Awards</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -2162,9 +2189,10 @@ ${pb}
       <div class="ch">Languages</div>
       ${langs.length?langs.map(l=>`<div class="li">${l}</div>`).join(''):''}
     </div>
+    ${s.trainingsHtml?`<div class="cell"><div class="ch">Trainings &amp; Seminars</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="cell"><div class="ch">Achievements &amp; Awards</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.awards}</p></div>`:''}
     ${s.awards?'':''}
-    ${s.hobbies||refs.length?`<div class="cell ${s.awards?'':'full'}">
+    ${s.hobbies||refs.length?`<div class="cell ${(s.awards||s.trainingsHtml)?'':'full'}">
       ${s.hobbies?`<div class="ch">Interests &amp; Hobbies</div><p style="font-size:11px;color:#444;line-height:1.75;margin-bottom:${refs.length?'10px':'0'};">${s.hobbies}</p>`:''}
       ${refs.length?`<div class="ch" style="margin-top:${s.hobbies?'10px':'0'};">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}`:''}
     </div>`:''}
@@ -2236,6 +2264,7 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="sh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="sh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="sh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="lsec"><div class="sh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="sh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2321,6 +2350,7 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2385,6 +2415,7 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2466,6 +2497,7 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2533,6 +2565,7 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2604,6 +2637,7 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile Summary</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2681,6 +2715,7 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
+    ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -3683,6 +3718,7 @@ function syncSections(){
   $('s-ojt').classList.toggle('hide', !(lvl === 'fresh' || lvl === 'college'));
   $('s-seaman').classList.toggle('hide', lvl !== 'seaman');
   $('s-europe').classList.toggle('hide', lvl !== 'europe');
+  $('trainingsField').classList.toggle('hide', lvl === 'seaman');
 
   if(lvl === 'seaman' && !$('docList').children.length){ addDoc(); addCert(); addVax(); addSea(); }
   if(lvl === 'europe' && !$('euLangList').children.length){ addEuLang(); addEuLang(); }
@@ -3798,7 +3834,7 @@ function collectData(){
     templates: { purchased: packTemplates(), base: SELF_SERVICE_PRICE,
                  extraFee: EXTRA_TMPL_PRICE },
     seaman, europe, skills, languages, references,
-    hobbies: val('hobbies'), awards: val('awards'),
+    hobbies: val('hobbies'), awards: val('awards'), trainings: val('trainings'),
     templatePref: String(selectedTmpl),
     specialInstructions: '',
     coverLetter: { requested: false },
@@ -3855,7 +3891,7 @@ function updateRailTicks(d){
     's-seaman': !!(d.seaman && d.seaman.rank),
     's-europe': !!(d.europe && d.europe.cefrLanguages.length),
     's-skills': !!(skills.length || languages.length),
-    's-extra': !!(d.hobbies || d.awards),
+    's-extra': !!(d.hobbies || d.awards || d.trainings),
     's-refs': !!d.references.length
   };
   document.querySelectorAll('#rail a').forEach(a =>
@@ -4062,7 +4098,7 @@ async function scanOldCV(input){
 {
   "fullName": "", "email": "", "phone": "", "address": "", "linkedin": "",
   "jobTitle": "", "summary": "", "skills": "", "languages": "",
-  "certifications": "", "achievements": "", "interests": "",
+  "certifications": "", "trainings": "", "achievements": "", "interests": "",
   "workHistory": [{"company":"","position":"","startDate":"","endDate":"","location":"","description":""}],
   "education": [{"school":"","degree":"","field":"","startYear":"","endYear":"","gwa":""}],
   "references": [{"name":"","title":"","company":"","contact":""}]
@@ -4070,6 +4106,7 @@ async function scanOldCV(input){
 
 Rules:
 - skills and languages: comma-separated lists
+- trainings: seminars, workshops and short courses attended, ONE PER LINE. Put licences and certificates under certifications instead
 - description: the person's duties, ONE PER LINE, separated by newline characters
 - If a field is not visible in the CV, leave it as an empty string ""
 - workHistory and education must be arrays even if there is only one item
@@ -4193,9 +4230,10 @@ function applyScan(d){
   set('linkedin', d.linkedin);
   set('jobTitle', d.jobTitle);
   set('profileSummary', d.summary);
-  // index.html folds certifications in with achievements rather than dropping
-  // them, and a licence or training certificate is worth as much on a CV.
-  set('awards', [d.achievements, d.certifications].filter(Boolean).join('\n'));
+  set('awards', d.achievements);
+  // Certifications used to be folded in with achievements because there was
+  // nowhere else to put them. They belong with the trainings now.
+  set('trainings', [d.trainings, d.certifications].filter(Boolean).join('\n'));
   set('hobbies', d.interests);
 
   const addTags = (raw, kind) => {
@@ -4369,6 +4407,7 @@ async function generateSummary(){
       .map(o => [o.role, o.company, o.hours].filter(Boolean).join(', ')).join(' | ')),
     skills.length && ('Skills: ' + skills.join(', ')),
     languages.length && ('Languages: ' + languages.join(', ')),
+    d.trainings && ('Trainings & seminars: ' + d.trainings.replace(/\n/g,'; ')),
     d.awards && ('Awards: ' + d.awards),
     d.eduLevel === 'fresh' && 'This person is a fresh graduate with no paid work experience yet.',
     d.eduLevel === 'seaman' && ('Applying as a seafarer' + (d.seaman?.rank ? ' for the rank of ' + d.seaman.rank : '') + '.'),
@@ -4516,6 +4555,7 @@ function applyData(d){
   set('aboutMe', d.aboutMe);
   set('hobbies', d.hobbies);
   set('awards', d.awards);
+  set('trainings', d.trainings);
 
   skills    = Array.isArray(d.skills) ? d.skills.slice() : [];
   languages = Array.isArray(d.languages) ? d.languages.slice() : [];
