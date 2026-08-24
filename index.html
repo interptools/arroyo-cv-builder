@@ -840,11 +840,17 @@
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
-    font-weight: 600;
+    /* 44px is the minimum reliable touch target; the old 8px/12px button was
+       small enough to miss on a phone, which is half of why adding a skill
+       felt broken. */
+    padding: 0 18px;
+    min-height: 44px;
+    flex: 0 0 auto;
+    font-size: 14px;
+    font-weight: 700;
     cursor: pointer;
   }
+  .tag-add-btn:active { opacity: .75; }
 
   .footer-note {
     text-align: center;
@@ -1360,17 +1366,21 @@
       <div class="card-body">
         <label style="font-size:12px;font-weight:600;color:var(--navy);">Add Skills</label>
         <div class="tag-input-row">
-          <input type="text" id="skillInput" placeholder="e.g. Microsoft Office, Communication..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('skill');}">
-          <button class="tag-add-btn" onclick="addTag('skill')">Add</button>
+          <input type="text" id="skillInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
+                 placeholder="e.g. Microsoft Office, Communication..."
+                 onkeydown="tagKey('skill',event)" onblur="blurTag('skill')">
+          <button type="button" class="tag-add-btn" onclick="addTag('skill')">Add</button>
         </div>
         <div class="tags-container" id="skillTags"></div>
-        <span class="field-hint" style="margin-top:8px;display:block;">Press Enter or click Add after each skill</span>
+        <span class="field-hint" style="margin-top:8px;display:block;">Tap <b>Add</b> after each one \u2014 or type several separated by commas: <em>Excel, Communication, Data Entry</em></span>
 
         <div style="margin-top:20px;">
           <label style="font-size:12px;font-weight:600;color:var(--navy);">Languages</label>
           <div class="tag-input-row">
-            <input type="text" id="langInput" placeholder="e.g. English, Filipino, Bisaya..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('lang');}">
-            <button class="tag-add-btn" onclick="addTag('lang')">Add</button>
+            <input type="text" id="langInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
+                   placeholder="e.g. English, Filipino, Bisaya..."
+                   onkeydown="tagKey('lang',event)" onblur="blurTag('lang')">
+            <button type="button" class="tag-add-btn" onclick="addTag('lang')">Add</button>
           </div>
           <div class="tags-container" id="langTags"></div>
         </div>
@@ -2313,6 +2323,41 @@ async function pushFunnel(from, to){
 }
 const SUBMIT_KEY_PREFIX = 'arroyo_cv_submitted_';
 
+// The bin has a hard ceiling. Photos on older orders go first because those
+// have already been delivered; whole orders are the last resort, and an order
+// that is PAID or is waiting on approval is never evicted — losing either
+// destroys the only record that money changed hands.
+const BIN_LIMIT = 88000;
+function trimRecordToFit(record, submissions, keepId){
+  const build = () => JSON.stringify({ ...record, submissions });
+  let payload = build();
+  if(payload.length <= BIN_LIMIT) return payload;
+
+  for(const row of submissions){
+    if(row && row.id !== keepId && row.personal && row.personal.photo){
+      row.personal.photo = '';
+      payload = build();
+      if(payload.length <= BIN_LIMIT) return payload;
+    }
+  }
+  const keep = submissions.find(x => x && x.id === keepId);
+  if(keep && keep.personal && keep.personal.photo){
+    keep.personal.photo = '';
+    payload = build();
+    if(payload.length <= BIN_LIMIT) return payload;
+  }
+  const evictable = x => x && x.id !== keepId
+                      && !(x.payment && x.payment.paid)
+                      && !(x.paymentProof && x.paymentProof.gcashRef);
+  while(payload.length > BIN_LIMIT && submissions.length > 1){
+    const at = submissions.findIndex(evictable);
+    if(at < 0) break;
+    submissions.splice(at, 1);
+    payload = build();
+  }
+  return payload;
+}
+
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let skills = [];
 let languages = [];
@@ -2824,8 +2869,9 @@ function restoreDraft() {
   skills = []; languages = [];
   document.getElementById('skillTags').innerHTML = '';
   document.getElementById('langTags').innerHTML = '';
-  (d.skills || []).forEach(s => { document.getElementById('skillInput').value = s; addTag('skill'); });
-  (d.languages || []).forEach(l => { document.getElementById('langInput').value = l; addTag('lang'); });
+  (d.skills || []).forEach(s => { if (s) skills.push(s); });
+  (d.languages || []).forEach(l => { if (l) languages.push(l); });
+  drawTagList('skill'); drawTagList('lang');
 
   // Repeating groups — add rows to match saved count, then fill
   const restoreGroup = (arr, containerSel, adder) => {
@@ -3117,7 +3163,7 @@ async function submitCoverLetter(){
     const put = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-      body: JSON.stringify({ ...record, submissions })
+      body: trimRecordToFit(record, submissions, data.id)
     });
     if(!put.ok) throw new Error('Server returned ' + put.status);
 
@@ -3598,7 +3644,7 @@ async function submitResignation(){
     const put = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-      body: JSON.stringify({ ...record, submissions })
+      body: trimRecordToFit(record, submissions, data.id)
     });
     if(!put.ok) throw new Error('Server returned ' + put.status);
 
@@ -4021,21 +4067,10 @@ Rules:
     set('linkedin', data.linkedin);
     set('jobTitle', data.jobTitle);
 
-    // Skills as tags
-    if (data.skills) {
-      const skillInput = document.getElementById('skillInput');
-      data.skills.split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
-        if (skillInput) { skillInput.value = s; addTag('skill'); }
-      });
-    }
-
-    // Languages as tags
-    if (data.languages) {
-      const langInput = document.getElementById('langInput');
-      data.languages.split(',').map(l => l.trim()).filter(Boolean).forEach(l => {
-        if (langInput) { langInput.value = l; addTag('lang'); }
-      });
-    }
+    // Skills and languages as tags. addTag splits on commas itself now, so the
+    // scanned list goes in whole rather than one round-trip through the box.
+    if (data.skills) addTag('skill', data.skills);
+    if (data.languages) addTag('lang', data.languages);
 
     // Achievements / awards
     set('awards', data.achievements || '');
@@ -4523,25 +4558,57 @@ function removeEntry(id) {
 }
 
 // ─── TAGS ─────────────────────────────────────────────────────────────────────
-function addTag(type) {
+const tagEsc = t => String(t == null ? '' : t)
+  .replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// One box, several entries. Someone who types "Excel, Word, Communication"
+// and taps Add means three skills, not one skill with commas in it.
+function addTag(type, forced) {
   const input = document.getElementById(type === 'skill' ? 'skillInput' : 'langInput');
+  const arr = type === 'skill' ? skills : languages;
+  const raw = forced !== undefined ? forced : input.value;
+  String(raw).split(/[,;\u3001\uff0c]/).map(t => t.trim()).filter(Boolean).forEach(val => {
+    if (!arr.some(x => x.toLowerCase() === val.toLowerCase())) arr.push(val);
+  });
+  if (forced === undefined) input.value = '';
+  drawTagList(type);
+}
+
+// Redrawn from the array rather than appended to, so removal cannot drift out
+// of step with the data, and every value goes through tagEsc on the way in.
+function drawTagList(type) {
   const container = document.getElementById(type === 'skill' ? 'skillTags' : 'langTags');
   const arr = type === 'skill' ? skills : languages;
-  const val = input.value.trim();
-  if (!val || arr.includes(val)) { input.value = ''; return; }
-  arr.push(val);
-  const tag = document.createElement('div');
-  tag.className = 'tag';
-  tag.innerHTML = `${val} <span class="tag-remove" onclick="removeTag(this, '${type}', '${val}')">×</span>`;
-  container.appendChild(tag);
-  input.value = '';
+  container.innerHTML = arr.map((t, i) =>
+    `<div class="tag">${tagEsc(t)}<span class="tag-remove" role="button"
+       aria-label="Remove ${tagEsc(t)}" onclick="removeTag('${type}',${i})">\u00d7</span></div>`
+  ).join('');
 }
-function removeTag(el, type, val) {
+
+function removeTag(type, i) {
   const arr = type === 'skill' ? skills : languages;
-  const i = arr.indexOf(val);
-  if (i > -1) arr.splice(i, 1);
-  el.parentElement.remove();
+  arr.splice(i, 1);
+  drawTagList(type);
 }
+
+// Enter is unreliable on phone keyboards \u2014 they show Go/Done, and several
+// Android keyboards send nothing a keydown handler can see. A typed comma or
+// semicolon commits the tag too, which is how people already write lists.
+function tagKey(type, e) {
+  if (e.key === 'Enter' || e.key === ',' || e.key === ';') {
+    e.preventDefault();
+    addTag(type);
+  }
+}
+
+// Anything still sitting in the box when the customer moves on is a skill they
+// meant to add and would otherwise lose without ever seeing why.
+function blurTag(type) {
+  const el = document.getElementById(type === 'skill' ? 'skillInput' : 'langInput');
+  if (el && el.value.trim()) addTag(type);
+}
+
+function flushTags() { ['skill','lang'].forEach(blurTag); }
 
 // ─── PHOTO PREVIEW ─────────────────────────────────────────────────────────────
 function previewPhoto(input) {
@@ -4646,6 +4713,10 @@ function collectFormData() {
         + '-' + Math.random().toString(36).toUpperCase().slice(2,5),
     submittedAt: new Date().toISOString(),
     status: 'New',
+    // Matches builder.html, which stamps 'self-service'. admin.html's
+    // isSelfService() tests for that exact value, so an assisted order naming
+    // itself here changes no behaviour and stops `source` reading as undefined.
+    source: 'assisted',
     // Payment starts unrecorded; the admin marks it when GCash confirms.
     payment: { paid: false },
     dataConsent: {
@@ -4871,6 +4942,7 @@ function onCVConsentChange() {
 }
 
 async function submitForm() {
+  flushTags();
   try { await pricingReady; } catch(e){}
   if (!document.getElementById('cv-consent-check').checked) {
     showNotif('Please agree to the Data Privacy Terms before submitting.', true);
@@ -5260,7 +5332,29 @@ function buildSampleCV(tmpl){
 
 // ── BUILD CV HTML ─────────────────────────────────────────────────────────────
 function buildCVHtml(s,tmpl,mode){
-  const p=s.personal;
+  // Everything below is customer-typed and goes into template HTML as-is, then
+  // into a same-origin srcdoc iframe. builder.html and admin.html already
+  // escape it all up front; this copy did not, so a company name containing a
+  // < broke the layout and a <script> typed into any field ran on this page.
+  const _esc0=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const _rawP=s.personal||{};
+  const p={};
+  // Photo is exempt: it is a base64 data URL used inside src="" and must pass
+  // through untouched.
+  Object.keys(_rawP).forEach(k=>{ p[k] = k==='photo' ? _rawP[k] : _esc0(_rawP[k]); });
+  p.photo=_rawP.photo;
+  // Seafarer records are nested objects and arrays of rows, so they need a
+  // recursive walk — escaping only the top level would leave every vessel name
+  // and certificate injectable.
+  const _escDeep=v=>Array.isArray(v)?v.map(_escDeep)
+    :(v&&typeof v==='object')?Object.fromEntries(Object.entries(v).map(([k,x])=>[k,_escDeep(x)]))
+    :(typeof v==='string')?_esc0(v):v;
+  s={...s,
+     skills:(s.skills||[]).map(_esc0),
+     languages:(s.languages||[]).map(_esc0),
+     aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
+     awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
+     seaman:s.seaman?_escDeep(s.seaman):s.seaman};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -5269,7 +5363,7 @@ function buildCVHtml(s,tmpl,mode){
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;">`
     :`<div style="width:100%;height:100%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(255,255,255,.6);">👤</div>`;
 
-  const edu=(s.education||[]).filter(e=>e.school);
+  const edu=(s.education||[]).filter(e=>e.school).map(_escDeep);
   // Experience list = paid work + OJT, mapped into one shape so all 13 templates
   // render it with no per-template changes. OJT is flagged in the position line,
   // which is how Philippine fresh-grad CVs conventionally present it.
@@ -5289,8 +5383,16 @@ function buildCVHtml(s,tmpl,mode){
     responsibilities: [lines(o.tasks), o.tools?('<em>Tools used: '+esc(o.tools)+'</em>'):'']
                         .filter(Boolean).join('<br>')
   }));
-  const work=[...paidWork,...ojtWork];
-  const refs=(s.references||[]).filter(r=>r.name);
+  // ojtWork is deliberately excluded from this pass: it was escaped above and
+  // carries intentional <br> and <em> markup that must survive.
+  const escWork=paidWork.map(w=>({
+    company: esc(w.company), position: esc(w.position),
+    dateStart: esc(w.dateStart), dateEnd: esc(w.dateEnd),
+    location: esc(w.location),
+    responsibilities: lines(w.responsibilities)
+  }));
+  const work=[...escWork,...ojtWork];
+  const refs=(s.references||[]).filter(r=>r.name).map(_escDeep);
   // Trainings and seminars arrive as one box, one entry per line. lines() both
   // escapes and joins with <br>, which the sidebar <p> rules need since they
   // carry no white-space setting. Seafarer orders already itemise this material
@@ -5572,6 +5674,7 @@ ${pb}
       ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -5640,6 +5743,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -5711,6 +5815,8 @@ ${pb}
     ${p.phone?`<div class="cb-item">📱 ${p.phone}</div>`:''}
     ${p.email?`<div class="cb-item">✉️ ${p.email}</div>`:''}
     ${p.address?`<div class="cb-item">📍 ${p.address}</div>`:''}
+    ${p.social?`<div class="cb-item">🌐 ${p.social}</div>`:''}
+    ${p.linkedin?`<div class="cb-item">🔗 ${p.linkedin}</div>`:''}
     ${p.nationality?`<div class="cb-item">🌏 ${p.nationality}</div>`:''}
     ${p.civilStatus?`<div class="cb-item">💍 ${p.civilStatus}</div>`:''}
   </div>
@@ -5780,6 +5886,7 @@ ${pb}
       ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -5858,6 +5965,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -5920,6 +6028,8 @@ ${pb}
       ${p.email?`<div class="ci"><div class="ci-label">Email</div><div class="ci-val">${p.email}</div></div>`:''}
       ${p.phone?`<div class="ci"><div class="ci-label">Phone</div><div class="ci-val">${p.phone}</div></div>`:''}
       ${p.address?`<div class="ci"><div class="ci-label">Address</div><div class="ci-val">${p.address}</div></div>`:''}
+      ${p.social?`<div class="ci"><div class="ci-label">Social</div><div class="ci-val">${p.social}</div></div>`:''}
+      ${p.linkedin?`<div class="ci"><div class="ci-label">LinkedIn</div><div class="ci-val">${p.linkedin}</div></div>`:''}
       ${p.nationality?`<div class="ci"><div class="ci-label">Nationality</div><div class="ci-val">${p.nationality}</div></div>`:''}
       ${p.civilStatus?`<div class="ci"><div class="ci-label">Civil Status</div><div class="ci-val">${p.civilStatus}</div></div>`:''}
     </div>
@@ -5992,6 +6102,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>

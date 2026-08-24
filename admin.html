@@ -1114,7 +1114,11 @@ async function verifyPassword(typed){
   // cloud read is prevented by the !res.ok guard in loadPasswordFromCloud.)
   usingBootstrap = true;
   if(typedHash) return typedHash === BOOTSTRAP_HASH;
-  return typed === 'Arroyo2024!'; // crypto.subtle unavailable (e.g. file://)
+  // No crypto.subtle means file:// or plain HTTP. The old fallback compared the
+  // typed value against the bootstrap password in plaintext, which put a bare
+  // string equality check on the only thing guarding the dashboard. Fail closed:
+  // serve this page over HTTPS.
+  throw new Error('This page must be opened over HTTPS to sign in.');
 }
 
 async function migrateToHash(hash){
@@ -1134,7 +1138,9 @@ async function changePassword(){
   if(!c||!n||!cf){showNotif('Fill in all fields.',true);return;}
 
   await loadPasswordFromCloud();
-  if(!(await verifyPassword(c))){showNotif('Current password is incorrect.',true);return;}
+  try {
+    if(!(await verifyPassword(c))){showNotif('Current password is incorrect.',true);return;}
+  } catch(err){ showNotif(err.message || 'Could not verify the current password.', true); return; }
   if(n.length<6){showNotif('Password must be at least 6 characters.',true);return;}
   if(n!==cf){showNotif('New passwords do not match.',true);return;}
   if(n===c){showNotif('New password must be different from the current one.',true);return;}
@@ -1182,7 +1188,14 @@ async function doLogin(){
     return;
   }
 
-  if(u===ADMIN_USER && await verifyPassword(p)){
+  let ok = false;
+  try { ok = (u===ADMIN_USER) && await verifyPassword(p); }
+  catch(err){
+    errEl.textContent = err.message || 'Sign-in is unavailable on this connection.';
+    errEl.style.display='block';
+    return;
+  }
+  if(ok){
     startSession();
     enterApp();
     errEl.style.display='none';
@@ -1697,7 +1710,7 @@ function renderDashboard(){
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
   </tr></thead><tbody>${recent.map(s=>`<tr>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${safeName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}${(s.serviceType==='resignation'||s.resignationLetter?.requested)?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}</td>
-    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${s.personal.jobTitle||s.resignation?.position||s.resignationLetter?.position||'—'}</td>
+    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${hEsc(s.personal.jobTitle||s.resignation?.position||s.resignationLetter?.position)||'—'}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${formatDate(s.submittedAt)}</td>
     <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
   </tr>`).join('')}</tbody></table>`;
@@ -1906,7 +1919,7 @@ function renderSubmissions(){
           ? `<span class="sub-tmpl" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ T${addedTemplates(s).join(', T')}</span>`
           : isSelfService(s) && orderTemplates(s).length > 1
           ? `<span class="sub-tmpl">🎨 T${orderTemplates(s).join(', T')}</span>`
-          : `<span class="sub-tmpl">${s.templatePref?'Template '+s.templatePref:'No preference'}</span>`}</div>
+          : `<span class="sub-tmpl">${s.templatePref?'Template '+hEsc(s.templatePref):'No preference'}</span>`}</div>
       </td>
 
       <td data-label="Payment">
@@ -3127,8 +3140,8 @@ function viewSubmission(idx){
       <div style="font-size:11px;color:var(--gray);margin-top:6px;">💡 Use this as context when generating the profile summary below.</div>
     </div>`;
   }
-  html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${s.profileSummary||'—'}</p></div>`;
-  if(s.education?.length){html+=`<div class="info-group"><h4>Education</h4>`;s.education.forEach(e=>{if(e.school)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${e.school}</strong><br><span style="color:var(--gray)">${e.degree||''} · ${e.yearStart||''}–${e.yearGrad||''} ${e.honors?'· '+e.honors:''}</span></div>`;});html+='</div>';}
+  html+=`<div class="info-group"><h4>Profile Summary</h4><p style="font-size:13px;line-height:1.7">${hEsc(s.profileSummary)||'—'}</p></div>`;
+  if(s.education?.length){html+=`<div class="info-group"><h4>Education</h4>`;s.education.forEach(e=>{if(e.school)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${hEsc(e.school)}</strong><br><span style="color:var(--gray)">${hEsc(e.degree)} · ${hEsc(e.yearStart)}–${hEsc(e.yearGrad)} ${e.honors?'· '+hEsc(e.honors):''}</span></div>`;});html+='</div>';}
   // OJT sits above work history because for a fresh graduate it IS the
   // experience section, and it's the part that needs writing up carefully.
   if(s.ojt?.length){
@@ -3147,7 +3160,7 @@ function viewSubmission(idx){
     });
     html+='</div>';
   }
-  if(s.eduLevel!=='fresh'&&s.eduLevel!=='seaman'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
+  if(s.eduLevel!=='fresh'&&s.eduLevel!=='seaman'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${hEsc(w.company)}</strong> — ${hEsc(w.position)}<br><span style="color:var(--gray)">${hEsc(w.dateStart)}–${hEsc(w.dateEnd)} · ${hEsc(w.location)}</span><br><span style="white-space:pre-wrap;">${hEsc(w.responsibilities)}</span></div>`;});html+='</div>';}
 
   // ── Seafarer panels ────────────────────────────────────────────────────────
   // Rendered as tables rather than the usual label/value rows: the whole point
@@ -3158,7 +3171,7 @@ function viewSubmission(idx){
       return String(t.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+'-'+t.getFullYear(); };
     // Same expiry shading as the printed CV, so what you see here matches
     // what the customer receives.
-    const exp=v=>{ if(!v) return '<td></td>'; const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
+    const exp=v=>{ if(!v) return '<td></td>'; const t=new Date(v); if(isNaN(t)) return `<td>${hEsc(v)}</td>`;
       const days=(t-Date.now())/864e5;
       const st = days<0 ? 'background:#fee2e2;color:#b91c1c;font-weight:800;'
                : days<90 ? 'background:#fef3c7;color:#92400e;font-weight:700;' : '';
@@ -3166,7 +3179,10 @@ function viewSubmission(idx){
     const tbl=(heads,rows)=>`<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px;">
       <thead><tr>${heads.map(h=>`<th style="background:var(--off-white);border:1px solid var(--gray-light);padding:5px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--gray);white-space:nowrap;">${h}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody></table></div>`;
-    const cell=v=>`<td style="border:1px solid var(--gray-light);padding:5px 8px;">${v||''}</td>`;
+    // Escapes by default. The three call sites that pass their own <strong>
+    // wrapper use cellRaw and escape the value themselves.
+    const cell=v=>`<td style="border:1px solid var(--gray-light);padding:5px 8px;">${hEsc(v)}</td>`;
+    const cellRaw=v=>`<td style="border:1px solid var(--gray-light);padding:5px 8px;">${v||''}</td>`;
 
     html+=grp('⚓ Rank & Physical',[
       ['Rank Applied For',m.rank],['Last Rank Held',m.lastRank],
@@ -3179,19 +3195,19 @@ function viewSubmission(idx){
     const docs=(m.documents||[]).filter(x=>x.type||x.number);
     if(docs.length) html+=`<div class="info-group"><h4>🛂 Travel Documents</h4>${
       tbl(['Document','Number','Issued','Expiry','Place'],
-        docs.map(x=>`<tr>${cell('<strong>'+(x.type||'')+'</strong>')}${cell(x.number)}${cell(dd(x.dateIssued))}${exp(x.dateExpiry)}${cell(x.placeIssued)}</tr>`).join(''))}</div>`;
+        docs.map(x=>`<tr>${cellRaw('<strong>'+hEsc(x.type)+'</strong>')}${cell(x.number)}${cell(dd(x.dateIssued))}${exp(x.dateExpiry)}${cell(x.placeIssued)}</tr>`).join(''))}</div>`;
 
     const certs=(m.certificates||[]).filter(c=>c.name);
     if(certs.length) html+=`<div class="info-group"><h4>📜 Trainings & Certificates</h4>${
       tbl(['Course','Number','Issued By','Issued','Valid Until'],
-        certs.map(c=>`<tr>${cell('<strong>'+(c.name||'')+'</strong>')}${cell(c.number)}${cell(c.issuedBy)}${cell(dd(c.dateIssued))}${exp(c.validUntil)}</tr>`).join(''))}
+        certs.map(c=>`<tr>${cellRaw('<strong>'+hEsc(c.name)+'</strong>')}${cell(c.number)}${cell(c.issuedBy)}${cell(dd(c.dateIssued))}${exp(c.validUntil)}</tr>`).join(''))}
       <div style="font-size:11px;color:var(--gray);margin-top:6px;">Red has lapsed · amber expires within 90 days.</div></div>`;
 
     const sea=(m.seaService||[]).filter(v=>v.vessel);
     html+=`<div class="info-group"><h4>🚢 Sea Service Record</h4>${
       sea.length
         ? tbl(['Vessel','Rank','Type','GRT','KW/HP','Company','Sign On','Sign Off','Trade Area'],
-            sea.map(v=>`<tr>${cell('<strong>'+(v.vessel||'')+'</strong>')}${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.kw)}${cell(v.company)}${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.tradeArea)}</tr>`).join(''))
+            sea.map(v=>`<tr>${cellRaw('<strong>'+hEsc(v.vessel)+'</strong>')}${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.kw)}${cell(v.company)}${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.tradeArea)}</tr>`).join(''))
         : `<p style="font-size:12.5px;color:var(--gray);font-style:italic;">No sea service — first-time applicant.</p>`}</div>`;
   }
 
@@ -3210,13 +3226,13 @@ function viewSubmission(idx){
       const days=(new Date(e.permitExpiry)-Date.now())/864e5;
       const st = days<0 ? 'background:#fee2e2;color:#b91c1c;font-weight:800;padding:1px 6px;border-radius:4px;'
                : days<90 ? 'background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px;' : '';
-      permitTxt += ` <span style="${st}">valid to ${dd(e.permitExpiry)}${days<0?' — EXPIRED':''}</span>`;
+      permitTxt += ` <span style="${st}">valid to ${hEsc(dd(e.permitExpiry))}${days<0?' — EXPIRED':''}</span>`;
     }
     if(/^No permit yet/.test(e.permit||''))
       permitTxt += ' <span style="background:#ffedd5;color:#9a3412;font-weight:800;padding:1px 6px;border-radius:4px;">NEEDS SPONSORSHIP</span>';
 
     html+=grp('🇪🇺 Target Market & Right to Work',[
-      ['Target Country', e.country ? `<span class="eu-flag">${e.country}</span>` : ''],
+      ['Target Country', e.country ? `<span class="eu-flag">${hEsc(e.country)}</span>` : ''],
       ['Target City / Region', e.city],
       ['Right to Work', permitTxt],
       ['Currently Based', e.currentLocation],
@@ -3268,11 +3284,11 @@ function viewSubmission(idx){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Position *</label>
-        <input id="clPosition" type="text" value="${clPos}" placeholder="e.g. Accounting Staff" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <input id="clPosition" type="text" value="${hEsc(clPos)}" placeholder="e.g. Accounting Staff" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Target Company *</label>
-        <input id="clCompany" type="text" value="${clCo}" placeholder="${clIsGeneral?'Not needed — general letter':'e.g. ABC Corporation'}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <input id="clCompany" type="text" value="${hEsc(clCo)}" placeholder="${clIsGeneral?'Not needed — general letter':'e.g. ABC Corporation'}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
         <label style="display:flex;align-items:center;gap:8px;margin-top:7px;font-size:11.5px;color:var(--gray);cursor:pointer;font-weight:600;">
           <input type="checkbox" id="clGeneral" ${clIsGeneral?'checked':''} style="width:16px;height:16px;accent-color:#1a2744;cursor:pointer;">
           General letter — for multiple companies
@@ -3281,12 +3297,12 @@ function viewSubmission(idx){
     </div>
     <div style="margin-bottom:10px;">
       <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Key Strengths / Skills to Highlight</label>
-      <input id="clStrengths" type="text" value="${clStr}" placeholder="e.g. attention to detail, 3 years experience, MS Office" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+      <input id="clStrengths" type="text" value="${hEsc(clStr)}" placeholder="e.g. attention to detail, 3 years experience, MS Office" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Why This Job?</label>
-        <input id="clWhy" type="text" value="${clWhy}" placeholder="e.g. wants to grow in finance" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+        <input id="clWhy" type="text" value="${hEsc(clWhy)}" placeholder="e.g. wants to grow in finance" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Tone / Style</label>
@@ -3327,7 +3343,7 @@ function viewSubmission(idx){
   </div>`;
   // Admin notes
   html+=`<div class="info-group"><h4>🗒️ Admin Notes</h4>
-    <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${s.adminNotes||''}</textarea>
+    <textarea class="notes-area" id="adminNotesArea" placeholder="e.g. Payment received ✓, Draft sent, Revision requested...">${hEsc(s.adminNotes)}</textarea>
     <button onclick="saveNotes(${si})" style="margin-top:8px;padding:9px 18px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">💾 Save Notes</button>
   </div>`;
   // ── Template pack ──────────────────────────────────────────────────────
@@ -3445,7 +3461,7 @@ function viewSubmission(idx){
           </div>
           <div style="font-size:11px;color:var(--gray);margin-top:2px;">
             ${isPaid(s)
-              ? `Recorded ${emailStamp(s.payment.paidAt)}${s.payment.reference?` · GCash ref ${s.payment.reference}`:''}`
+              ? `Recorded ${emailStamp(s.payment.paidAt)}${s.payment.reference?` · GCash ref ${hEsc(s.payment.reference)}`:''}`
               : `Order total ${peso(due)} — not yet received`}
           </div>
         </div>
@@ -3546,7 +3562,7 @@ function viewSubmission(idx){
         <span id="genProfileSpinner" style="display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;"></span>
       </button>
     </div>
-    <textarea id="profileDisplay" rows="5" placeholder="Paste the AI-generated profile summary here..." style="width:100%;font-size:13px;line-height:1.8;color:#333;background:var(--off-white);border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:Inter,sans-serif;resize:vertical;">${s.profileSummary||''}</textarea>
+    <textarea id="profileDisplay" rows="5" placeholder="Paste the AI-generated profile summary here..." style="width:100%;font-size:13px;line-height:1.8;color:#333;background:var(--off-white);border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:Inter,sans-serif;resize:vertical;">${hEsc(s.profileSummary)}</textarea>
     <button onclick="saveProfileSummary(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Profile Summary</button>
   </div>`;
 

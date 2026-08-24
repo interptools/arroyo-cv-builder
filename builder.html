@@ -353,6 +353,17 @@ textarea{resize:vertical;line-height:1.6;}
 
 /* Tags */
 .tagbox{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;min-height:4px;}
+/* Phone keyboards show Go/Done/newline instead of Enter on a bare text input,
+   and several Android keyboards send nothing a keydown handler can see. The
+   Add button is the reliable way in; Enter and a typed comma still work. */
+.tag-row{display:flex;gap:8px;align-items:stretch;}
+.tag-row input{flex:1;min-width:0;}
+.tag-add{
+  flex:0 0 auto;padding:0 18px;border:none;border-radius:10px;
+  background:var(--navy);color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;min-height:44px;
+}
+.tag-add:active{opacity:.75;}
 .tag{
   display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;
   padding:5px 11px;border-radius:16px;font-size:12px;font-weight:500;
@@ -913,15 +924,26 @@ textarea{resize:vertical;line-height:1.6;}
     <!-- 09 SKILLS -->
     <section class="card" id="s-skills">
       <div class="card-h"><span class="num">08</span><h2>Skills &amp; languages</h2></div>
-      <p class="card-sub">Press Enter after each one. Tap a suggestion to add it instantly.</p>
+      <p class="card-sub">Type one and tap Add — or separate them with commas. Tap a suggestion to add it instantly.</p>
 
       <label>Skills</label>
-      <input type="text" id="skillInput" placeholder="Microsoft Office, Communication…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('skill');}">
+      <div class="tag-row">
+        <input type="text" id="skillInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
+               placeholder="Microsoft Office, Communication…"
+               onkeydown="tagKey('skill',event)" onblur="blurTag('skill')">
+        <button type="button" class="tag-add" onclick="addTag('skill')">Add</button>
+      </div>
+      <div class="hint">You can type several at once: <em>Excel, Communication, Data Entry</em></div>
       <div class="chip-row" id="skillSuggest"></div>
       <div class="tagbox" id="skillTags"></div>
 
       <label style="margin-top:18px">Languages</label>
-      <input type="text" id="langInput" placeholder="English, Filipino, Bisaya…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('lang');}">
+      <div class="tag-row">
+        <input type="text" id="langInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
+               placeholder="English, Filipino, Bisaya…"
+               onkeydown="tagKey('lang',event)" onblur="blurTag('lang')">
+        <button type="button" class="tag-add" onclick="addTag('lang')">Add</button>
+      </div>
       <div class="chip-row" id="langSuggest"></div>
       <div class="tagbox" id="langTags"></div>
     </section>
@@ -1674,6 +1696,7 @@ ${pb}
       ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -1742,6 +1765,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -1813,6 +1837,8 @@ ${pb}
     ${p.phone?`<div class="cb-item">📱 ${p.phone}</div>`:''}
     ${p.email?`<div class="cb-item">✉️ ${p.email}</div>`:''}
     ${p.address?`<div class="cb-item">📍 ${p.address}</div>`:''}
+    ${p.social?`<div class="cb-item">🌐 ${p.social}</div>`:''}
+    ${p.linkedin?`<div class="cb-item">🔗 ${p.linkedin}</div>`:''}
     ${p.nationality?`<div class="cb-item">🌏 ${p.nationality}</div>`:''}
     ${p.civilStatus?`<div class="cb-item">💍 ${p.civilStatus}</div>`:''}
   </div>
@@ -1882,6 +1908,7 @@ ${pb}
       ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -1960,6 +1987,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -2022,6 +2050,8 @@ ${pb}
       ${p.email?`<div class="ci"><div class="ci-label">Email</div><div class="ci-val">${p.email}</div></div>`:''}
       ${p.phone?`<div class="ci"><div class="ci-label">Phone</div><div class="ci-val">${p.phone}</div></div>`:''}
       ${p.address?`<div class="ci"><div class="ci-label">Address</div><div class="ci-val">${p.address}</div></div>`:''}
+      ${p.social?`<div class="ci"><div class="ci-label">Social</div><div class="ci-val">${p.social}</div></div>`:''}
+      ${p.linkedin?`<div class="ci"><div class="ci-label">LinkedIn</div><div class="ci-val">${p.linkedin}</div></div>`:''}
       ${p.nationality?`<div class="ci"><div class="ci-label">Nationality</div><div class="ci-val">${p.nationality}</div></div>`:''}
       ${p.civilStatus?`<div class="ci"><div class="ci-label">Civil Status</div><div class="ci-val">${p.civilStatus}</div></div>`:''}
     </div>
@@ -2094,6 +2124,7 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
+        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -3568,16 +3599,47 @@ function compressPhoto(dataUrl){
 }
 
 /* ─── TAGS ──────────────────────────────────────────────────────────────── */
+// One box, several entries. Someone who types "Excel, Word, Communication"
+// and taps Add means three skills, not one skill with commas in it.
 function addTag(kind, forced){
   const input = $(kind + 'Input');
-  const text  = (forced || input.value).trim();
-  if(!text) return;
-  const arr = kind === 'skill' ? skills : languages;
-  if(!arr.some(x => x.toLowerCase() === text.toLowerCase())) arr.push(text);
-  if(!forced) input.value = '';
+  const raw   = forced !== undefined ? forced : input.value;
+  const arr   = kind === 'skill' ? skills : languages;
+  String(raw).split(/[,;\u3001\uff0c]/).map(t => t.trim()).filter(Boolean).forEach(text => {
+    if(!arr.some(x => x.toLowerCase() === text.toLowerCase())) arr.push(text);
+  });
+  if(forced === undefined) input.value = '';
   drawTags(kind);
   queuePreview();
 }
+
+// Enter is unreliable on phone keyboards, so a typed comma or semicolon commits
+// the tag too — that is how people already write lists.
+function tagKey(kind, e){
+  if(e.key === 'Enter' || e.key === ',' || e.key === ';'){
+    e.preventDefault();
+    addTag(kind);
+  }
+}
+
+// Set while a suggestion chip is being pressed. On a touchscreen the input
+// blurs BEFORE the chip's click lands, so without this, typing "Micro" and then
+// tapping the "Microsoft Office" suggestion would add both.
+let chipPress = 0;
+
+// Anything still sitting in the box when the customer moves on is a skill they
+// meant to add and would otherwise lose without ever seeing why.
+function blurTag(kind){
+  if(Date.now() - chipPress < 500) return;
+  const el = $(kind + 'Input');
+  if(el && el.value.trim()) addTag(kind);
+}
+
+// Called before the order is read, so a half-typed entry still counts.
+function flushTags(){ ['skill','lang'].forEach(k => {
+  const el = $(k + 'Input');
+  if(el && el.value.trim()) addTag(k);
+}); }
 
 function dropTag(kind, i){
   (kind === 'skill' ? skills : languages).splice(i, 1);
@@ -3593,7 +3655,8 @@ function drawTags(kind){
   const ideas = (kind === 'skill' ? SKILL_IDEAS : LANG_IDEAS)
     .filter(s => !arr.some(x => x.toLowerCase() === s.toLowerCase()));
   $(kind + 'Suggest').innerHTML = ideas.slice(0, 8).map(s =>
-    `<button type="button" class="chip" onclick="addTag('${kind}','${s.replace(/'/g,"\\'")}')">+ ${s}</button>`
+    `<button type="button" class="chip" onpointerdown="chipPress=Date.now()"
+       onclick="addTag('${kind}','${s.replace(/'/g,"\\'")}')">+ ${s}</button>`
   ).join('');
 }
 
@@ -4898,6 +4961,7 @@ function jumpTo(id){
 
 /* ─── SEND ORDER ────────────────────────────────────────────────────────── */
 async function sendOrder(){
+  flushTags();
   paint('Sending your CV', 'This takes a few seconds.',
     `<div style="text-align:center;padding:26px 0">
        <div class="spin" style="width:26px;height:26px;border-width:3px;margin:0 auto 14px"></div>
