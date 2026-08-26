@@ -2744,8 +2744,7 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const vax   = (m.vaccinations|| []).filter(v=>v.name);
   const sea   = (m.seaService  || []).filter(v=>v.vessel);
 
-  // Dates arrive as ISO from <input type=date>; agencies read DD-MMM-YYYY.
-  const d = v => {
+  const fmtD = v => {
     if(!v) return '';
     const t = new Date(v);
     if(isNaN(t)) return v;
@@ -2753,93 +2752,144 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
       ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]+
       '-'+t.getFullYear();
   };
-
-  // Certificates and documents lapse. Flagging what's expired or close to it is
-  // the single most useful thing this layout can do for the person reading it.
-  const expiryCell = v => {
+  const exCell = v => {
     if(!v) return '<td></td>';
-    const t=new Date(v);
-    if(isNaN(t)) return `<td>${v}</td>`;
+    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
     const days=(t-Date.now())/864e5;
-    const cls = days<0 ? ' class="exp"' : days<90 ? ' class="soon"' : '';
-    return `<td${cls}>${d(v)}</td>`;
+    return `<td${days<0?' class="exp"':days<90?' class="soon"':''}>${fmtD(v)}</td>`;
   };
+  const kv = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+  const nm  = fullName(p);
 
-  const row = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+  // ── continuation mini-header shown on pages 2+ ──────────────────────────────
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  body{font-family:'Inter',Arial,sans-serif;color:#14213d;}
-  /* The shared page CSS sets .page{display:flex} for the two-column designs.
-     This one stacks, so it has to opt out or the header becomes a sidebar. */
-  .page.pg{display:block;background:white;min-height:297mm;}
-  .hdr{background:#0b2545;color:white;padding:15px 18px;display:flex;gap:15px;align-items:center;
+  /* ── reset ── */
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',Arial,sans-serif;color:#14213d;background:white;}
+
+  /* ── multi-page layout ── */
+  /* On screen: show one A4-wide column, natural scroll */
+  .sea-doc{width:210mm;margin:0 auto;background:white;}
+
+  /* Each section never splits across a page */
+  .sec{margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}
+
+  /* ── main header (page 1 only) ── */
+  .hdr{background:#0b2545;color:white;padding:14px 18px;display:flex;gap:14px;align-items:center;
        border-bottom:3px solid #ffd166;}
-  .hdr .ph{width:80px;height:96px;flex-shrink:0;border:2px solid #ffd166;background:rgba(255,255,255,.1);overflow:hidden;}
+  .hdr .ph{width:78px;height:94px;flex-shrink:0;border:2px solid #ffd166;
+            background:rgba(255,255,255,.1);overflow:hidden;}
   .hdr .who{flex:1;min-width:0;}
-  .hdr h1{font-size:23px;font-weight:900;letter-spacing:.4px;margin:0 0 5px;text-transform:uppercase;line-height:1.08;}
-  .rank{display:inline-block;background:#ffd166;color:#0b2545;font-size:11px;font-weight:900;
-        padding:3px 11px;text-transform:uppercase;letter-spacing:.8px;}
-  .hc{font-size:9px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6;}
+  .hdr h1{font-size:21px;font-weight:900;letter-spacing:.3px;margin:0 0 4px;
+          text-transform:uppercase;line-height:1.1;}
+  .rank-badge{display:inline-block;background:#ffd166;color:#0b2545;font-size:10px;
+              font-weight:900;padding:2px 10px;text-transform:uppercase;letter-spacing:.8px;}
+  .hc{font-size:8.5px;color:rgba(255,255,255,.8);margin-top:7px;line-height:1.65;}
   .hc b{color:#ffd166;font-weight:700;}
 
-  .body{padding:13px 18px 16px;}
-  .sec{margin-bottom:11px;}
-  .sh{background:#0b2545;color:#ffd166;font-size:9px;font-weight:800;letter-spacing:1.6px;
-      text-transform:uppercase;padding:4px 9px;margin-bottom:0;display:flex;justify-content:space-between;}
+  /* ── continuation header (pages 2+) ── */
+
+  /* ── body ── */
+  .body{padding:11px 18px 14px;}
+
+  /* ── section heading ── */
+  .sh{background:#0b2545;color:#ffd166;font-size:8.5px;font-weight:800;letter-spacing:1.5px;
+      text-transform:uppercase;padding:4px 9px;display:flex;justify-content:space-between;
+      page-break-after:avoid;break-after:avoid;}
   .sh .cnt{color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;}
 
-  table.g{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto;}
-  table.g th,table.g td{border:1px solid #c3cddc;padding:3.5px 6px;text-align:left;vertical-align:top;}
-  /* Sea service is the widest table here, so its columns are sized explicitly.
-     Figures carry .n: break-word would otherwise split 24,725.00 across lines. */
+  /* ── data tables ── */
+  table.g{width:100%;border-collapse:collapse;font-size:7.8px;table-layout:fixed;}
+  table.g th,table.g td{border:1px solid #c3cddc;padding:3px 5px;text-align:left;vertical-align:top;
+                         overflow-wrap:break-word;word-break:normal;}
+  table.g thead th{background:#0b2545;color:#ffd166;font-size:7px;font-weight:800;
+                   letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
+  table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
+  table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
+  table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
+  table.g td.pri{font-weight:800;color:#0b2545;}
+
+  /* Sea service is the widest table on the sheet, so its columns are sized
+     explicitly rather than left to the browser. Change a value here and the
+     header and every row move together. */
   table.sea .c-vessel{width:15%;}  table.sea .c-rank  {width:7%;}
   table.sea .c-type  {width:8%;}   table.sea .c-grt   {width:6.5%;}
   table.sea .c-dwt   {width:5.5%;} table.sea .c-kw    {width:7%;}
   table.sea .c-engine{width:11%;}  table.sea .c-agency{width:14%;}
   table.sea .c-on    {width:8%;}   table.sea .c-off   {width:8%;}
   table.sea .c-reason{width:10%;}
+  /* Figures and dates must never be split across lines. */
   table.g td.n{white-space:nowrap;}
   table.g td.sm{font-size:7px;line-height:1.35;}
   table.g thead th{word-break:normal;white-space:nowrap;}
-  table.g thead th{background:#0b2545;color:#ffd166;font-size:7.5px;font-weight:800;letter-spacing:.6px;
-                   text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
-  table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
-  table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
-  table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
-  table.g td.pri{font-weight:800;color:#0b2545;}
+  /* thead repeats on each printed page so columns stay labelled */
+  table.g thead{display:table-header-group;}
 
-  /* Two-column key/value grid used for personal particulars */
-  table.kv{width:100%;border-collapse:collapse;font-size:8.5px;}
-  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3.5px 7px;text-align:left;}
-  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:38%;white-space:nowrap;}
+  /* ── key/value grids ── */
+  table.kv{width:100%;border-collapse:collapse;font-size:8px;}
+  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3px 6px;text-align:left;}
+  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:34%;white-space:nowrap;}
   table.kv td{font-weight:700;color:#14213d;}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 9px;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 8px;}
 
-  .obj{font-size:9px;line-height:1.75;color:#2c3a52;padding:8px 11px;border:1px solid #c3cddc;border-top:none;
-       background:#fafbfe;text-align:justify;}
-  .none{font-size:8.5px;color:#96a0b2;font-style:italic;padding:6px 10px;border:1px solid #c3cddc;border-top:none;}
-  .sign{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;
-        font-size:8px;color:#4a5b75;line-height:1.6;}
-  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:215px;text-align:center;font-weight:900;
-           color:#0b2545;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;}
-  .cert-note{font-size:7px;color:#96a0b2;margin-top:4px;line-height:1.5;}
-  .skl{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;border:1px solid #c3cddc;border-top:none;}
-  .skl span{font-size:8px;font-weight:700;background:#eef2f8;color:#0b2545;padding:2.5px 8px;
-            border:1px solid #c3cddc;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+  /* ── misc ── */
+  .obj{font-size:8.5px;line-height:1.75;color:#2c3a52;padding:7px 10px;border:1px solid #c3cddc;
+       border-top:none;background:#fafbfe;text-align:justify;}
+  .none{font-size:8px;color:#96a0b2;font-style:italic;padding:5px 9px;border:1px solid #c3cddc;border-top:none;}
+  .cert-note{font-size:6.5px;color:#96a0b2;margin-top:3px;line-height:1.5;}
+  .skl{display:flex;flex-wrap:wrap;gap:3px;padding:6px 9px;border:1px solid #c3cddc;border-top:none;}
+  .skl span{font-size:7.5px;font-weight:700;background:#eef2f8;color:#0b2545;
+            padding:2px 7px;border:1px solid #c3cddc;}
+  .sign{margin-top:18px;display:flex;justify-content:space-between;align-items:flex-end;
+        font-size:7.5px;color:#4a5b75;line-height:1.6;}
+  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:200px;text-align:center;
+           font-weight:900;color:#0b2545;font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
 
+  /* ── manual page-break (admin-inserted) ── */
+  .pg-break{page-break-before:always;break-before:page;}
+
+  /* ── screen preview ── */
+  @media screen{
+    body{background:#555;padding:30px 0 60px;}
+    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);margin:0 auto;}
+    /* admin page-break shows as a visible rule on screen */
+    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;page-break-before:always;break-before:page;}
+  }
+
+  /* ── print ── */
+  @media print{
+    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .no-print{display:none!important;}
+    /* Margins belong on @page so they repeat on every sheet — a container's
+       padding only applies once, which left page 2 on the paper edge.
+       The browser also prints its date, title and file path into this margin.
+       No CSS can suppress that: untick "Headers and footers" in the print
+       dialog. Chrome remembers the setting. */
+    @page{margin:12mm;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:0!important;}
+    /* thead already repeats via display:table-header-group */
+  }
+</style></head><body>${pb}
+<div class="sea-doc">
+
+  <!-- PAGE 1 HEADER -->
   <div class="hdr">
     <div class="ph">${ph}</div>
     <div class="who">
-      <h1>${fullName(p)}</h1>
-      ${m.rank?`<span class="rank">⚓ ${m.rank}</span>`:''}
+      <h1>${nm}</h1>
+      ${m.rank?`<span class="rank-badge">⚓ ${m.rank}</span>`:''}
       <div class="hc">
         ${p.address?p.address+'<br>':''}
-        ${p.phone?`<b>T</b> ${p.phone}`:''}${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
-        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+        ${p.phone?`<b>T</b> ${p.phone}`:''}${m.phone2?` &nbsp;/&nbsp; ${m.phone2}`:''}
+        ${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
+        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}
+        ${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+        ${m.highestLicense?`<br><b>Highest License</b> ${m.highestLicense}`:''}
       </div>
     </div>
   </div>
@@ -2848,79 +2898,80 @@ ${pc}
 
     ${s.profileSummary?`<div class="sec"><div class="sh"><span>Objective</span></div><div class="obj">${s.profileSummary}</div></div>`:''}
 
+    <!-- PERSONAL PARTICULARS -->
     <div class="sec">
       <div class="sh"><span>Personal Particulars</span></div>
       <div class="split">
         <table class="kv">
-          ${row('Surname',p.lastName)}
-          ${row('First Name',p.firstName)}
-          ${row('Middle Name',p.middleName)}
-          ${row('Date of Birth',d(p.dob))}
-          ${row('Place of Birth',m.birthPlace)}
-          ${row('Nationality',p.nationality)}
-          ${row('Civil Status',p.civilStatus)}
-          ${row('Gender',p.gender)}
-          ${row('Religion',m.religion)}
+          ${kv('Surname',p.lastName)}${kv('First Name',p.firstName)}${kv('Middle Name',p.middleName)}
+          ${kv('Date of Birth',fmtD(p.dob))}${kv('Place of Birth',m.birthPlace)}
+          ${kv('Nationality',p.nationality)}${kv('Civil Status',p.civilStatus)}
+          ${kv('Gender',p.gender)}${kv('Religion',m.religion)}
         </table>
         <table class="kv">
-          ${row('Height',m.height)}
-          ${row('Weight',m.weight)}
-          ${row('BMI',m.bmi)}
-          ${row('Colour of Eyes',m.eyes)}
-          ${row('Colour of Hair',m.hair)}
-          ${row('Blood Type',m.blood)}
-          ${row('Shoe Size',m.shoe)}
-          ${row('Coverall Size',m.coverall)}
-          ${row('Last Rank Held',m.lastRank)}
+          ${kv('Height',m.height)}${kv('Weight',m.weight)}${kv('BMI',m.bmi)}
+          ${kv('Colour of Eyes',m.eyes)}${kv('Colour of Hair',m.hair)}
+          ${kv('Blood Type',m.blood)}${kv('Shoe Size',m.shoe)}${kv('Coverall Size',m.coverall)}
+          ${kv('Last Rank Held',m.lastRank)}
         </table>
       </div>
-      ${(() => {
-        const ids = [m.sss && 'SSS ' + m.sss, m.tin && 'TIN ' + m.tin,
-                     m.pagibig && 'Pag-IBIG ' + m.pagibig,
-                     m.philhealth && 'PhilHealth ' + m.philhealth,
-                     m.src && 'SRC ' + m.src].filter(Boolean).join(' · ');
-        const rows = [
-          m.nok            ? `<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>` : '',
-          ids              ? `<tr><th style="width:15.5%;">Government IDs</th><td>${ids}</td></tr>` : '',
-          m.children       ? `<tr><th style="width:15.5%;">Children</th><td>${m.children}</td></tr>` : '',
-          m.mailingAddress ? `<tr><th style="width:15.5%;">Mailing Address</th><td>${m.mailingAddress}</td></tr>` : ''
-        ].filter(Boolean).join('');
-        return rows ? `<table class="kv" style="margin-top:-1px;">${rows}</table>` : '';
-      })()}
+      <table class="kv" style="margin-top:-1px;">
+        ${kv('Nearest Relative / NOK',m.nok)}
+        ${kv('Children',m.children)}
+        ${(m.mailingAddress&&m.mailingAddress!==p.address)?kv('Mailing Address',m.mailingAddress):''}
+        ${(m.sss||m.tin)?`<tr><th>SSS No.</th><td>${m.sss||''}</td></tr><tr><th>TIN No.</th><td>${m.tin||''}</td></tr>`:''}
+        ${(m.pagibig||m.philhealth)?`<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td></tr><tr><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>`:''}
+        ${kv('SRC No.',m.src)}
+      </table>
     </div>
 
+    <!-- TRAVEL DOCUMENTS -->
     <div class="sec">
       <div class="sh"><span>Travel Documents</span>${docs.length?`<span class="cnt">${docs.length} on file</span>`:''}</div>
-      ${docs.length?`<table class="g">
+      ${docs.length?`<table class="g" style="table-layout:auto;">
         <thead><tr><th>Document</th><th>Number</th><th>Date Issued</th><th>Date Expiry</th><th>Place Issued</th></tr></thead>
         <tbody>${docs.map(x=>`<tr>
           <td style="font-weight:700;">${x.type||''}</td><td>${x.number||''}</td>
-          <td>${d(x.dateIssued)}</td>${expiryCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
+          <td>${fmtD(x.dateIssued)}</td>${exCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No travel documents on record.</div>`}
     </div>
 
+
+    <!-- CERTS -->
     <div class="sec">
       <div class="sh"><span>Trainings &amp; Certificates</span>${certs.length?`<span class="cnt">${certs.length} on file</span>`:''}</div>
-      ${certs.length?`<table class="g">
+      ${certs.length?`<table class="g" style="table-layout:auto;">
         <thead><tr><th>Course / Certificate</th><th>Number</th><th>Issued By</th><th>Date Issued</th><th>Valid Until</th></tr></thead>
         <tbody>${certs.map(c=>`<tr>
           <td style="font-weight:700;">${c.name||''}</td><td>${c.number||''}</td><td>${c.issuedBy||''}</td>
-          <td>${d(c.dateIssued)}</td>${expiryCell(c.validUntil)}
+          <td>${fmtD(c.dateIssued)}</td>${exCell(c.validUntil)}
         </tr>`).join('')}</tbody></table>
-        <div class="cert-note">Cells shaded red have lapsed; amber expires within 90 days.</div>`
+        <div class="cert-note">Cells shaded red have lapsed · amber expires within 90 days.</div>`
       :`<div class="none">No certificates on record.</div>`}
     </div>
 
+    <!-- VACCINATION -->
     ${vax.length?`<div class="sec">
       <div class="sh"><span>Vaccination</span><span class="cnt">${vax.length} on file</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>Vaccine</th><th>Date Given</th><th>Valid Until</th><th>Place Issued</th></tr></thead>
         <tbody>${vax.map(v=>`<tr>
-          <td class="pri">${v.name||''}</td><td>${d(v.dateGiven)}</td>${expiryCell(v.validUntil)}<td>${v.placeIssued||''}</td>
+          <td class="pri">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${exCell(v.validUntil)}<td>${v.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
+    <!-- HEALTH / MEDICAL -->
+    ${(m.healthFlag||m.medResult)?`<div class="sec">
+      <div class="sh"><span>Health &amp; Medical</span></div>
+      <table class="kv">
+        ${m.healthFlag?`<tr><th>Health Declaration</th><td>${m.healthFlag}${m.healthIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.healthIssued):''}${m.healthValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.healthValid):''}${m.healthClinic?' &nbsp;·&nbsp; '+m.healthClinic:''}</td></tr>`:''}
+        ${m.medResult?`<tr><th>Pre-Medical Exam</th><td>${m.medResult}${m.medIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.medIssued):''}${m.medValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.medValid):''}${m.medClinic?' &nbsp;·&nbsp; '+m.medClinic:''}</td></tr>`:''}
+      </table>
+    </div>`:''}
+
+
+    <!-- SEA SERVICE -->
     <div class="sec">
       <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
       ${sea.length?`<table class="g sea">
@@ -2946,16 +2997,17 @@ ${pc}
           <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean)
               .map((x,i)=>i?`<span style="color:#4a5b75;">${x}</span>`:`<strong>${x}</strong>`)
               .join('<br>')}</td>
-          <td class="c-on n">${d(v.signOn)}</td>
-          <td class="c-off n">${d(v.signOff)}</td>
+          <td class="c-on n">${fmtD(v.signOn)}</td>
+          <td class="c-off n">${fmtD(v.signOff)}</td>
           <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No sea service yet — first-time applicant.</div>`}
     </div>
 
+    <!-- EDUCATION -->
     ${edu.length?`<div class="sec">
       <div class="sh"><span>Educational Background</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>School / Institution</th><th>Course / Level</th><th>Period</th><th>Honours</th></tr></thead>
         <tbody>${edu.map(e=>`<tr>
           <td style="font-weight:700;">${e.school||''}</td><td>${e.degree||''}</td>
@@ -2963,6 +3015,7 @@ ${pc}
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
+    <!-- SKILLS -->
     ${(s.skills?.length||s.languages?.length)?`<div class="sec">
       <div class="sh"><span>Skills &amp; Languages</span></div>
       <div class="skl">
@@ -2971,9 +3024,10 @@ ${pc}
       </div>
     </div>`:''}
 
+    <!-- REFERENCES -->
     ${refs.length?`<div class="sec">
       <div class="sh"><span>Character References</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact</th></tr></thead>
         <tbody>${refs.map(r=>`<tr>
           <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
@@ -2982,14 +3036,15 @@ ${pc}
     </div>`:''}
 
     <div class="sign">
-      <div>I certify that the information given above is true and correct<br>to the best of my knowledge and belief.</div>
-      <div class="sigline">${fullName(p)}<br>
-        <span style="font-weight:600;font-size:7.5px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
+      <div style="font-size:7.5px;color:#4a5b75;line-height:1.6;">I certify that the information given above is true and correct to the best of my knowledge and belief.</div>
+      <div class="sigline">${nm}<br>
+        <span style="font-weight:600;font-size:7px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
       </div>
     </div>
 
-  </div>
-</div></div></body></html>`;}
+  </div><!-- /body -->
+</div><!-- /sea-doc -->
+</body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 17 — Seafarer (Simple / Agency Form)
@@ -2998,40 +3053,36 @@ ${pc}
 // undesigned — it's meant to look like the agency's own form, which is exactly
 // why applicants ask for it. T16 is the polished alternative.
 // ══════════════════════════════════════════════════════════════════════════════
+
 function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const m = s.seaman || {};
   const docs  = (m.documents    || []).filter(d=>d.type||d.number);
   const certs = (m.certificates || []).filter(c=>c.name);
   const vax   = (m.vaccinations || []).filter(v=>v.name);
   const sea   = (m.seaService   || []).filter(v=>v.vessel);
+  const nm    = fullName(p);
 
-  const d = v => {
+  const fmtD = v => {
     if(!v) return '';
-    const t = new Date(v);
-    if(isNaN(t)) return v;
+    const t = new Date(v); if(isNaN(t)) return v;
     return String(t.getDate()).padStart(2,'0')+'-'+
       ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+
       '-'+t.getFullYear();
   };
   const ex = v => {
     if(!v) return '<td></td>';
-    const t=new Date(v);
-    if(isNaN(t)) return `<td>${v}</td>`;
+    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
     const days=(t-Date.now())/864e5;
-    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${d(v)}</td>`;
+    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${fmtD(v)}</td>`;
   };
-
-  // Blank rows keep the ruled-form look when a section is short — an agency
-  // form has empty lines to write on, and a half-filled table reads as unfinished.
   const pad = (rows, want, cols) => {
     let out = rows;
     for(let i=rows.length; i<want; i++) out += '<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>';
     return out;
   };
 
-  // Personal info is a fixed two-up grid of label/value pairs, left and right.
   const L = [['Surname',p.lastName],['First Name',p.firstName],['Middle Name',p.middleName],
-             ['Date of Birth',d(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
+             ['Date of Birth',fmtD(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
              ['Civil Status',p.civilStatus],['Religion',m.religion]];
   const R = [['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
              ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
@@ -3041,31 +3092,51 @@ function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
       <th>${R[i]?R[i][0]:''}</th><td>${R[i]?(R[i][1]||''):''}</td>
     </tr>`).join('');
 
+  const extraRows = [
+    m.highestLicense ? `<tr><th>Highest License</th><td colspan="3">${m.highestLicense}</td></tr>` : '',
+    (m.sss||m.tin) ? `<tr><th>SSS No.</th><td>${m.sss||''}</td><th>TIN No.</th><td>${m.tin||''}</td></tr>` : '',
+    (m.pagibig||m.philhealth) ? `<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>` : '',
+    (m.src||m.phone2) ? `<tr><th>SRC No.</th><td>${m.src||''}</td><th>Alt. Phone</th><td>${m.phone2||''}</td></tr>` : '',
+    m.nok ? `<tr><th>Nearest Relative</th><td colspan="3">${m.nok}</td></tr>` : '',
+    m.children ? `<tr><th>Children</th><td colspan="3">${m.children}</td></tr>` : '',
+    (m.mailingAddress&&m.mailingAddress!==p.address) ? `<tr><th>Mailing Address</th><td colspan="3">${m.mailingAddress}</td></tr>` : '',
+    (m.healthFlag||m.medResult) ? `<tr><th>Health Decl.</th><td>${m.healthFlag||''}${m.healthValid?' (valid '+fmtD(m.healthValid)+')':''}</td><th>Pre-Medical</th><td>${m.medResult||''}${m.medValid?' (valid '+fmtD(m.medValid)+')':''}</td></tr>` : '',
+  ].filter(Boolean).join('');
+
+
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;}
-  .page.pg{display:block;background:white;min-height:297mm;}
-
-  .top{display:flex;gap:14px;align-items:flex-start;padding:16px 18px 12px;}
-  .top .ph{width:78px;height:94px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
-  .top h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;
-          color:#111827;line-height:1.15;}
-  .apply{font-size:9.5px;color:#6b7280;margin-bottom:7px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;background:white;}
+  .sea-doc{width:210mm;margin:0 auto;background:white;}
+  .sec{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px;}
+  .top{display:flex;gap:14px;align-items:flex-start;padding:14px 18px 10px;}
+  .top .ph{width:76px;height:92px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
+  .top h1{font-size:19px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;color:#111827;line-height:1.15;}
+  .apply{font-size:9px;color:#6b7280;margin-bottom:6px;}
   .apply b{color:#1f2937;font-weight:700;}
-  .ct{font-size:8.5px;color:#374151;line-height:1.75;}
+  .ct{font-size:8px;color:#374151;line-height:1.7;}
   .ct span{display:block;}
-
   .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
-        font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
-        color:#1f3864;padding:3px 0;}
-  .obj{font-size:8.5px;line-height:1.7;color:#374151;padding:0 18px 10px;text-align:justify;}
+        font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+        color:#1f3864;padding:3px 0;page-break-after:avoid;break-after:avoid;}
   .wrap{padding:0 18px;}
-  .wrap.last{padding-bottom:16px;}
+  table.f{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;table-layout:fixed;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.5px 4px;text-align:left;vertical-align:top;
+                         overflow-wrap:break-word;word-break:normal;}
+  table.f thead th{background:#e8eef7;font-weight:800;font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
+  table.f thead{display:table-header-group;}
+  table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
+  table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
+  table.p{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;}
+  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.5px 5px;text-align:left;}
+  table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
+  table.p td{width:34%;font-weight:600;}
+  .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
 
-  table.f{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
-  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.8px 5px;text-align:left;vertical-align:top;}
+  /* Sea service column widths — the one table wide enough to need them set. */
   table.f .c-vessel{width:15%;}  table.f .c-rank  {width:7%;}
   table.f .c-type  {width:8%;}   table.f .c-grt   {width:6.5%;}
   table.f .c-dwt   {width:5.5%;} table.f .c-kw    {width:7%;}
@@ -3075,85 +3146,102 @@ ${pc}
   table.f td.n{white-space:nowrap;}
   table.f td.sm{font-size:6.5px;line-height:1.35;}
   table.f thead th{word-break:normal;white-space:nowrap;}
-  table.f thead th{background:#e8eef7;font-weight:800;font-size:7.5px;letter-spacing:.4px;
-                   text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
-  table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
-  table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
-
-  /* Personal-information grid: label cells shaded, value cells open */
-  table.p{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
-  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.8px 6px;text-align:left;}
-  table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
-  table.p td{width:34%;font-weight:600;}
-
-  .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
-  .cert{font-size:7px;color:#9aa3b2;margin:-5px 0 9px;}
-  .foot{padding:14px 18px 0;font-size:7.5px;color:#4b5563;line-height:1.7;}
-  .sig{margin-top:26px;text-align:right;padding-right:18px;}
-  .sig .nm{font-weight:800;font-size:9px;color:#111827;text-transform:uppercase;
-           border-top:1px solid #6b7280;display:inline-block;padding:3px 34px 0;}
-  .sig .rl{font-size:7.5px;color:#6b7280;margin-top:2px;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+  .cert{font-size:6.5px;color:#9aa3b2;margin:-5px 0 8px;}
+  .foot{padding:12px 18px 0;font-size:7px;color:#4b5563;line-height:1.7;}
+  .sig{margin-top:22px;text-align:right;padding-right:18px;}
+  .sig .nm{font-weight:800;font-size:8.5px;color:#111827;text-transform:uppercase;border-top:1px solid #6b7280;display:inline-block;padding:3px 32px 0;}
+  .sig .rl{font-size:7px;color:#6b7280;margin-top:2px;}
+  .pg-break{page-break-before:always;break-before:page;}
+  @media screen{
+    body{background:#555;padding:30px 0 60px;}
+    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);}
+    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;}
+  }
+  @media print{
+    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .no-print{display:none!important;}
+    /* Margins on @page so they repeat per sheet — see the note in T16.
+       Untick "Headers and footers" in the print dialog. */
+    @page{margin:12mm;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:0!important;}
+  }
+</style></head><body>${pb}
+<div class="sea-doc">
 
   <div class="top">
     <div class="ph">${ph}</div>
     <div style="flex:1;min-width:0;">
-      <h1>${fullName(p)}</h1>
+      <h1>${nm}</h1>
       <div class="apply">Applying for <b>${m.rank||p.jobTitle||'—'}</b></div>
       <div class="ct">
-        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
+        ${p.phone?`<span>📱 ${p.phone}${m.phone2?' / '+m.phone2:''}</span>`:''}
         ${p.email?`<span>✉ ${p.email}</span>`:''}
         ${p.address?`<span>📍 ${p.address}</span>`:''}
+        ${m.highestLicense?`<span>🏅 ${m.highestLicense}</span>`:''}
       </div>
     </div>
   </div>
 
   ${s.profileSummary?`<div class="band" style="margin:0 18px;">Objective</div>
-    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:7px 9px;margin-bottom:9px;">
-      <div style="font-size:8.5px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
+    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:6px 9px;margin-bottom:8px;">
+      <div style="font-size:8px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
     </div></div>`:''}
 
-  <div class="wrap">
+  <div class="wrap sec">
     <div class="band">Personal Information</div>
     <table class="p">${pairs}</table>
+    ${extraRows?`<table class="p" style="margin-top:-1px;">${extraRows}</table>`:''}
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Educational Background</div>
     <table class="f">
-      <thead><tr><th style="width:18%;">Level</th><th>Name of School</th><th style="width:18%;">Date Graduated</th><th style="width:26%;">Course</th></tr></thead>
+      <thead><tr><th style="width:16%;">Level</th><th>Name of School</th><th style="width:16%;">Graduated</th><th style="width:28%;">Course</th></tr></thead>
       <tbody>${pad(edu.map(e=>`<tr>
         <td class="lbl">${e.degree&&/college|tertiary|bachelor|bs |ba /i.test(e.degree)?'Tertiary':''}</td>
-        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 3, 4)}
+        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 2, 4)}
       </tbody>
     </table>
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Travel Documents</div>
     <table class="f">
-      <thead><tr><th style="width:26%;">Document</th><th>Number</th><th style="width:17%;">Date Issued</th><th style="width:17%;">Expiry Date</th><th style="width:18%;">Place Issued</th></tr></thead>
+      <thead><tr><th style="width:24%;">Document</th><th>Number</th><th style="width:15%;">Date Issued</th><th style="width:15%;">Expiry</th><th style="width:18%;">Place Issued</th></tr></thead>
       <tbody>${pad(docs.map(x=>`<tr>
         <td class="lbl">${x.type||''}</td><td>${x.number||''}</td>
-        <td>${d(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
+        <td>${fmtD(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
       </tbody>
     </table>
+  </div>
 
+
+  <div class="wrap sec">
     <div class="band">Vaccination</div>
     <table class="f">
-      <thead><tr><th style="width:28%;">Type</th><th style="width:20%;">Date Vaccinated</th><th style="width:20%;">Valid Until</th><th>Place Issued</th></tr></thead>
+      <thead><tr><th style="width:28%;">Type</th><th style="width:18%;">Date Vaccinated</th><th style="width:18%;">Valid Until</th><th>Place Issued</th></tr></thead>
       <tbody>${pad(vax.map(v=>`<tr>
-        <td class="lbl">${v.name||''}</td><td>${d(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
+        <td class="lbl">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
       </tbody>
     </table>
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Certificates &amp; Trainings</div>
     <table class="f">
-      <thead><tr><th>Name</th><th style="width:18%;">Number</th><th style="width:18%;">Date Issued</th><th style="width:18%;">Expiry Date</th></tr></thead>
+      <thead><tr><th>Name</th><th style="width:16%;">Number</th><th style="width:16%;">Date Issued</th><th style="width:16%;">Expiry Date</th></tr></thead>
       <tbody>${pad(certs.map(c=>`<tr>
         <td class="lbl" style="font-weight:600;color:#1f2937;background:white;">${c.name||''}</td>
-        <td>${c.number||''}</td><td>${d(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
+        <td>${c.number||''}</td><td>${fmtD(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
       </tbody>
     </table>
-    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · shaded amber expires within 90 days.</div>`:''}
+    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · amber expires within 90 days.</div>`:''}
+  </div>
 
-    <div class="band">Sea Service</div>
+
+  <div class="wrap sec">
+    <div class="band">Sea Service Record</div>
     <table class="f">
       <colgroup>
         <col class="c-vessel"><col class="c-rank"><col class="c-type">
@@ -3164,7 +3252,7 @@ ${pc}
       <thead><tr>
         <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
         <th>KW</th><th>Engine Type</th><th>Agency / Principal</th>
-        <th>Joined</th><th>Signed Off</th><th>Reason</th>
+        <th>Joined</th><th>Sign Off</th><th>Reason</th>
       </tr></thead>
       <tbody>${pad(sea.map(v=>`<tr>
         <td class="c-vessel" style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-size:6.5px;font-weight:400;">IMO ${v.imoNo}</span>`:''}</td>
@@ -3175,13 +3263,15 @@ ${pc}
         <td class="c-kw n">${v.kw||''}</td>
         <td class="c-engine sm">${v.engineType||''}</td>
         <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean).join('<br>')}</td>
-        <td class="c-on n">${d(v.signOn)}</td>
-        <td class="c-off n">${d(v.signOff)}</td>
+        <td class="c-on n">${fmtD(v.signOn)}</td>
+        <td class="c-off n">${fmtD(v.signOff)}</td>
         <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
         </tr>`).join(''), 4, 11)}
       </tbody>
     </table>
+  </div>
 
+  ${refs.length?`<div class="wrap sec">
     <div class="band">Character Reference</div>
     <table class="f">
       <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact No. / Email</th></tr></thead>
@@ -3190,16 +3280,17 @@ ${pc}
         <td>${r.company||''}</td><td>${r.contact||''}</td></tr>`).join(''), 2, 4)}
       </tbody>
     </table>
-  </div>
+  </div>`:''}
 
-  <div class="foot">I hereby certify that the information provided in this resume is true and correct
-    to the best of my knowledge and belief.</div>
+  <div class="foot">I hereby certify that the information provided in this resume is true and correct to the best of my knowledge and belief.</div>
   <div class="sig">
-    <div class="nm">${fullName(p)}</div>
+    <div class="nm">${nm}</div>
     <div class="rl">Applicant</div>
   </div>
 
-</div></div></body></html>`;}
+</div><!-- /sea-doc -->
+</body></html>`;}
+
 </script>
 <script>
 /* ══════════════════════════════════════════════════════════════════════════

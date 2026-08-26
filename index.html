@@ -8529,7 +8529,6 @@ ${pc}
   @media screen{
     body{background:#555;padding:30px 0 60px;}
     .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);margin:0 auto;}
-    .pgwrap>thead,.pgwrap>tfoot{display:none;}
     /* admin page-break shows as a visible rule on screen */
     .pg-break{border-top:3px dashed #ef4444;margin:4px 0;page-break-before:always;break-before:page;}
   }
@@ -8538,28 +8537,18 @@ ${pc}
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .no-print{display:none!important;}
-    /* Chrome prints its date/title/URL into the TOP margin and the page number
-       into the BOTTOM one. Zeroing just those two leaves it nowhere to draw
-       them, with no dependence on the print dialog. Side margins stay on @page.
-       The top and bottom space every sheet still needs then comes from the
-       spacer table below, whose thead/tfoot the browser repeats per page —
-       container padding cannot do that, it only applies once. */
-    @page{margin:0 12mm;size:A4 portrait;}
+    /* Margins belong on @page so they repeat on every sheet — a container's
+       padding only applies once, which left page 2 on the paper edge.
+       The browser also prints its date, title and file path into this margin.
+       No CSS can suppress that: untick "Headers and footers" in the print
+       dialog. Chrome remembers the setting. */
+    @page{margin:12mm;size:A4 portrait;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
              padding:0!important;}
-    .pgwrap{width:100%;border-collapse:collapse;}
-    .pgwrap>thead>tr>th,.pgwrap>tfoot>tr>td{
-      height:12mm;border:none;padding:0;background:none;}
-    .pgwrap>tbody>tr>td{padding:0;border:none;vertical-align:top;}
     /* thead already repeats via display:table-header-group */
   }
 </style></head><body>${pb}
 <div class="sea-doc">
-<!-- The thead and tfoot are empty spacers. Browsers repeat them on every
-     printed page, which is the only way to get a top and bottom margin on
-     pages 2+ while @page's own top/bottom margins are zero. -->
-<table class="pgwrap"><thead><tr><th></th></tr></thead>
-<tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
 
   <!-- PAGE 1 HEADER -->
   <div class="hdr">
@@ -8727,7 +8716,6 @@ ${pc}
     </div>
 
   </div><!-- /body -->
-</td></tr></tbody></table>
 </div><!-- /sea-doc -->
 </body></html>`;}
 
@@ -8839,28 +8827,19 @@ ${pc}
   @media screen{
     body{background:#555;padding:30px 0 60px;}
     .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);}
-    .pgwrap>thead,.pgwrap>tfoot{display:none;}
     .pg-break{border-top:3px dashed #ef4444;margin:4px 0;}
   }
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .no-print{display:none!important;}
-    /* Top and bottom margins zeroed so the browser has nowhere to print its
-       header and footer — see the note in T16. Per-page space comes from the
-       repeating spacer table. */
-    @page{margin:0 12mm;size:A4 portrait;}
+    /* Margins on @page so they repeat per sheet — see the note in T16.
+       Untick "Headers and footers" in the print dialog. */
+    @page{margin:12mm;size:A4 portrait;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
              padding:0!important;}
-    .pgwrap{width:100%;border-collapse:collapse;}
-    .pgwrap>thead>tr>th,.pgwrap>tfoot>tr>td{
-      height:12mm;border:none;padding:0;background:none;}
-    .pgwrap>tbody>tr>td{padding:0;border:none;vertical-align:top;}
   }
 </style></head><body>${pb}
 <div class="sea-doc">
-<!-- Empty repeating spacers — see the note in T16. -->
-<table class="pgwrap"><thead><tr><th></th></tr></thead>
-<tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
 
   <div class="top">
     <div class="ph">${ph}</div>
@@ -8981,7 +8960,6 @@ ${pc}
     <div class="rl">Applicant</div>
   </div>
 
-</td></tr></tbody></table>
 </div><!-- /sea-doc -->
 </body></html>`;}
 
