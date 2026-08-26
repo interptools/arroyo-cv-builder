@@ -998,15 +998,15 @@
       <div class="scan-status" id="scanStatusForm"></div>
     </div>
 
-    <!-- CGIS / AGENCY RECORD SCANNER -->
-    <div class="cgis-card">
-      <img id="cgisPreview" class="cgis-preview" alt="CGIS Preview">
+    <!-- RESUME / RECORD SCANNER -->
+    <div class="cgis-card" id="resumeScanCard">
+      <img id="cgisPreview" class="cgis-preview" alt="Preview">
       <div class="cgis-card-text">
-        <h3>🚢 Have a CGIS / Agency Record?</h3>
-        <p>Scan photos <strong style="color:#6ee7b7;">or paste copied text</strong> — from Google Lens, PDF copy, or any OCR app. Auto-fills all seafarer details in seconds.</p>
+        <h3>📄 Have an Existing Resume or Record?</h3>
+        <p>Scan photos <strong style="color:#6ee7b7;">or paste copied text</strong> — from any resume, CGIS, or agency record. Auto-fills all details in seconds.</p>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
-        <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()">
+        <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()" id="scanPhotosBtn">
           📋 Scan Photos (1–6)
         </button>
         <button class="cgis-upload-btn" onclick="toggleCgisPaste()" id="cgisPasteToggleBtn"
@@ -1016,16 +1016,16 @@
       </div>
       <input type="file" id="cgisScanInput" accept="image/*" multiple style="display:none" onchange="scanCGIS(this)">
 
-      <!-- Paste text panel — hidden by default -->
+      <!-- Paste text panel -->
       <div id="cgisPastePanel" style="display:none;width:100%;margin-top:4px;">
         <textarea id="cgisPasteText" rows="7"
-          placeholder="Paste your CGIS or resume text here — from Google Lens, PDF copy, or any OCR app. Include everything: personal info, documents, certificates, sea service records."
+          placeholder="Paste your resume or CGIS text here — from Google Lens, PDF copy, or any OCR app. Works for all CV types: regular resume, seafarer CGIS, fresh grad, etc."
           style="width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid rgba(52,211,153,0.5);background:rgba(0,0,0,0.3);color:#e0f7ef;font-size:12.5px;line-height:1.65;font-family:Inter,sans-serif;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
         <div style="display:flex;gap:8px;margin-top:8px;">
-          <button onclick="parseCGISText()" class="cgis-upload-btn" style="flex:1;">
+          <button onclick="parseResumeText()" class="cgis-upload-btn" style="flex:1;">
             ✨ Auto-fill from Text
           </button>
-          <button onclick="document.getElementById('cgisPasteText').value=''" 
+          <button onclick="document.getElementById('cgisPasteText').value=''"
             style="padding:10px 14px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;">
             Clear
           </button>
@@ -4593,12 +4593,14 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
 
   // ── Certificates ──────────────────────────────────────────────────────────
   if (data.certificates?.length) {
+    console.log('[fillCGISData] certificates:', JSON.stringify(data.certificates));
     document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
     certCount = 0;
     data.certificates.filter(c => c.name).forEach(cert => {
       addCertEntry();
-      const e = document.getElementById(`cert-${certCount}`); if (!e) return;
+      const e = document.getElementById(`cert-${certCount}`); if (!e) { console.warn('[fill] cert element not found:', certCount); return; }
       const inp = e.querySelectorAll('input');
+      console.log(`[fill] cert-${certCount}: name="${cert.name}" number="${cert.number}" issued="${cert.dateIssued}" inp.length=${inp.length}`);
       if (inp[0]) inp[0].value = cert.name      || '';
       if (inp[1]) inp[1].value = cert.number    || '';
       if (inp[2]) inp[2].value = cert.issuedBy  || '';
@@ -4624,16 +4626,18 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
 
   // ── Sea Service ───────────────────────────────────────────────────────────
   if (data.seaService?.length) {
+    console.log('[fillCGISData] seaService:', JSON.stringify(data.seaService));
     document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
     seaCount = 0;
     data.seaService.filter(v => v.vessel || v.signOn).forEach(v => {
       addSeaEntry();
-      const e = document.getElementById(`sea-${seaCount}`); if (!e) return;
+      const e = document.getElementById(`sea-${seaCount}`); if (!e) { console.warn('[fill] sea element not found:', seaCount); return; }
       const inp = e.querySelectorAll('input');
       const sel = e.querySelector('select');
+      console.log(`[fill] sea-${seaCount}: vessel="${v.vessel}" inp.length=${inp.length} signOn="${v.signOn}"`);
       if (inp[0])  inp[0].value  = v.vessel     || '';
       if (inp[1])  inp[1].value  = v.imoNo      || '';
-      if (inp[2])  inp[2].value  = resolveRank(v.rank) || ''; // rank is a text input — expand abbrev
+      if (inp[2])  inp[2].value  = resolveRank(v.rank) || '';
       if (inp[3])  inp[3].value  = v.vesselType || '';
       if (inp[4])  inp[4].value  = v.grt        || '';
       if (inp[5])  inp[5].value  = v.dwt        || '';
@@ -4643,7 +4647,6 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
       if (inp[9])  inp[9].value  = v.agency     || '';
       if (inp[10]) inp[10].value = v.principal  || '';
       if (inp[11]) inp[11].value = v.amosup     || '';
-      // signOffReason — fuzzy match the select
       if (sel && v.signOffReason) setSelect(sel, v.signOffReason);
       if (inp[12]) inp[12].value = toYMD(v.signOn)  || '';
       if (inp[13]) inp[13].value = toYMD(v.signOff) || '';
@@ -4658,28 +4661,32 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
   const label = scanLabel || '✅ Done';
   statusEl.className = 'cgis-status success';
   statusEl.style.display = 'block';
-  statusEl.innerHTML = `${label} — ${filled} section${filled===1?'':'s'} filled. Review each field before submitting.${extraNote}`;
+
+  // Build a visible summary of what was extracted
+  const certNames = (data.certificates||[]).filter(c=>c.name).map(c=>c.name);
+  const seaVessels = (data.seaService||[]).filter(v=>v.vessel).map(v=>v.vessel);
+  const workJobs = (data.workExperience||[]).filter(w=>w.company).map(w=>w.company);
+  const debugLines = [];
+  if (data.fullName)          debugLines.push(`👤 ${data.fullName}`);
+  if (certNames.length)       debugLines.push(`📜 ${certNames.length} cert${certNames.length>1?'s':''}: ${certNames.slice(0,2).join(', ')}${certNames.length>2?' …':''}`);
+  if (seaVessels.length)      debugLines.push(`🚢 ${seaVessels.length} vessel${seaVessels.length>1?'s':''}: ${seaVessels.slice(0,2).join(', ')}${seaVessels.length>2?' …':''}`);
+  if (workJobs.length)        debugLines.push(`💼 ${workJobs.length} job${workJobs.length>1?'s':''}: ${workJobs.slice(0,2).join(', ')}${workJobs.length>2?' …':''}`);
+  if ((data.vaccinations||[]).filter(v=>v.name).length) debugLines.push(`💉 ${data.vaccinations.filter(v=>v.name).length} vaccine${data.vaccinations.filter(v=>v.name).length>1?'s':''}`);
+  if ((data.documents||[]).filter(d=>d.type||d.number).length) debugLines.push(`🛂 ${data.documents.filter(d=>d.type||d.number).length} document${data.documents.filter(d=>d.type||d.number).length>1?'s':''}`);
+
+  statusEl.innerHTML = `${label} — ${filled} section${filled===1?'':'s'} filled. Review each field before submitting.${extraNote}
+    ${debugLines.length ? `<div style="margin-top:6px;font-size:11px;opacity:.8;line-height:1.7;">${debugLines.join('<br>')}</div>` : ''}`;
 
   showNotif(`✅ Auto-fill complete — ${filled} sections filled. Please review.`);
   setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
   return filled;
 }
 
-// ─── CGIS PASTE TEXT PARSER ───────────────────────────────────────────────────
-// Accepts raw text (from OCR, PDF copy, Google Lens) and extracts seafarer
-// data using the same JSON schema and field-fill logic as the image scanner.
+// ─── GENERAL RESUME / RECORD TEXT PARSER ─────────────────────────────────────
+// Detects CV type from pasted text, then runs focused passes to fill the form.
+// Works for: regular resume (college/highschool), fresh grad (OJT), seafarer CGIS.
 
-function toggleCgisPaste() {
-  const panel = document.getElementById('cgisPastePanel');
-  const btn   = document.getElementById('cgisPasteToggleBtn');
-  const open  = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.style.background = open
-    ? 'rgba(52,211,153,0.35)' : 'rgba(52,211,153,0.18)';
-  if (open) document.getElementById('cgisPasteText').focus();
-}
-
-async function parseCGISText() {
+async function parseResumeText() {
   const rawText = (document.getElementById('cgisPasteText')?.value || '').trim();
   const status  = document.getElementById('cgisStatus');
 
@@ -4692,7 +4699,7 @@ async function parseCGISText() {
 
   status.className = 'cgis-status loading';
   status.style.display = 'block';
-  status.innerHTML = '⏳ Reading text — extracting seafarer details…';
+  status.innerHTML = '⏳ Detecting CV type and extracting details…';
 
   async function callGemini(promptText, maxTok, timeoutMs) {
     const ctrl = new AbortController();
@@ -4714,40 +4721,28 @@ async function parseCGISText() {
     if (d.error) throw new Error(d.error.message || 'API error');
     let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (typeof txt !== 'string') txt = JSON.stringify(txt);
-    console.log('[parseCGISText] raw:', txt.slice(0, 600));
+    console.log('[parseResumeText] raw:', txt.slice(0, 400));
     return txt;
   }
 
-  // ── Pass 1: Personal / scalar fields ──────────────────────────────────────
-  const pass1 = `You extract Philippine seafarer CGIS data. Return ONLY valid JSON, no markdown, no explanation.
+  // ── Detect CV type from text keywords ─────────────────────────────────────
+  const up = rawText.toUpperCase();
+  const isSeaman = /SEAMAN|SEAFARER|CGIS|SIRB|SEA SERVICE|WORK EXPERIENCE.*VESSEL|VESSEL.*IMO|MANNING|AMOSUP|SIGN.?ON|SIGN.?OFF|WIPER|BOSUN|OILER|CHIEF ENGINEER|DECK OFFICER|ABLE SEAMAN/.test(up);
+  const isFresh  = !isSeaman && /OJT|PRACTICUM|INTERNSHIP|ON.?THE.?JOB|TRAINEE|INTERN/.test(up);
+  const detectedType = isSeaman ? 'seaman' : isFresh ? 'fresh' : 'college';
 
-RULES:
-- All dates → YYYY-MM-DD (handle "17 May 1992", "DD/MM/YYYY", "MM/DD/YYYY")
-- "Name:" or first line = fullName
-- "Birthdate:" or "Date of Birth:" = dob
-- "Birthplace:" = birthPlace
-- "Current Address:" = address; "Mailing Address:" = mailingAddress
-- "Civil Status:" = civilStatus
-- "Position:" or "Rank:" = position
-- "Height:" = height; "Weight:" = weight; "Blood Type:" = bloodType
-- "Color of Eyes:" = eyeColor; "Color of Hair:" or "Hair Color:" = hairColor
-- "Religion:" = religion; "Shoe Size:" = shoeSize; "Coverall Size:" = coverallSize
-- CONTACT INFOS table: find the row where Contact Person contains "Crew" → that Mobile = phone
-  find the row where Contact Person contains family title (MOTHER/FATHER/SPOUSE/WIFE/etc.) → that Mobile = phone2
-  Email row = email
-- "SSS No.:" = sss; "TIN:" = tin; "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig; "SRC:" = src
-- "Highest License Held:" = highestLicense (skip if value is "—" or blank)
-- "Next of Kin:" = nok
-- HEALTH DESCRIPTION section: "Issued:" = healthIssued; "Validity:" = healthValid; "Clinic:" = healthClinic
-  Flag/issuing body if present = healthFlag
-- PRE MEDICAL section: "Results:" or result value (e.g. "Fit For Sea Duty") = medResult
-  "Issued:" = medIssued; "Validity:" = medValid; "Clinic:" = medClinic
-- CREW VACCINES table columns: Vaccine | Issued | Validity | Clinic
-  → vaccinations array: name=Vaccine, dateGiven=Issued, validUntil=Validity, placeIssued=Clinic
-  Skip rows where Vaccine name is blank/empty
-- EDUCATION section: School | Degree | Year Graduated → education array
+  // Switch form to detected type
+  const radio = document.querySelector(`input[name="eduLevel"][value="${detectedType}"]`);
+  if (radio && !radio.checked) { radio.checked = true; handleEduChange(); }
 
-Return JSON:
+  status.innerHTML = `⏳ Detected: ${isSeaman?'⚓ Seafarer':isFresh?'🎓 Fresh Grad':'📋 Regular Resume'} — extracting details…`;
+
+  try {
+    if (isSeaman) {
+      // ── Seafarer: two-pass (same as CGIS scanner) ───────────────────────
+      const pass1 = `Extract Philippine seafarer CGIS data. Return ONLY valid JSON, no markdown.
+Dates → YYYY-MM-DD (handle DD/MM/YYYY, "17 May 1992"). Extract whatever is present, leave rest as "".
+
 {"fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
 "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
 "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
@@ -4756,83 +4751,245 @@ Return JSON:
 "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
 "medResult":"","medIssued":"","medValid":"","medClinic":"",
 "education":[{"school":"","degree":"","yearGrad":""}],
+"documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
 "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]}
 
-TEXT:
----
-${rawText.slice(0, 9000)}
----`;
+Rules:
+- CONTACT table: row where Contact Person = "Crew" → phone; family row (MOTHER/FATHER/SPOUSE) → phone2; Email = email
+- "Birthdate:" = dob; "Color of Eyes:" = eyeColor; "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig
+- HEALTH DESCRIPTION: Issued=healthIssued, Validity=healthValid, Clinic=healthClinic
+- PRE MEDICAL: result value (e.g. "Fit For Sea Duty")=medResult, Issued=medIssued, Validity=medValid, Clinic=medClinic
+- CREW VACCINES table: Vaccine=name, Issued=dateGiven, Validity=validUntil, Clinic=placeIssued. Skip blank Vaccine rows.
+- BOOKS table (Country|Book Type|Number|Issued|Validity): type=Book Type; prefix country for foreign (e.g. "Liberia Passport")
+- OTHER DOCUMENTS/ID table: label in first col = type (OFW, SID, NBI, etc.)
+- VISAs table (Country|Type|No.|Issued|Validity): type = Country+" "+Type (e.g. "Australian MCV")
+TEXT:\n---\n${rawText.slice(0, 9000)}\n---`;
 
-  // ── Pass 2: Documents, Certificates, Sea Service ───────────────────────────
-  const pass2 = `You extract Philippine seafarer CGIS table data. Return ONLY valid JSON, no markdown.
+      const pass2 = `Extract Philippine seafarer CGIS table data. Return ONLY valid JSON, no markdown.
+Dates → YYYY-MM-DD.
 
-RULES for DOCUMENTS (all go into documents array, type + number + dates):
-- BOOKS table: columns are Country | Book Type | Number | Issued | Validity
-  type = Book Type value (e.g. "Seafarer Identification and Record Book – Flag", "Passport")
-  If Book Type is blank, infer from context: SIRB = "Seaman's Book (SIRB)"
-  Add country prefix if foreign: "Liberia Passport", "Philippines SIRB"
-- OTHER DOCUMENTS / ID table: first column may be blank or have a label (OFW, SID, NBI, Passport)
-  Use that label as type; if blank use "Document"
-- VISAs table: columns Country | Type | No. | Issued | Validity
-  type = Country + " " + Type (e.g. "Australian MCV", "US C1/D Visa")
-- PASAPORT section if present: type = "Passport"
-- Medical Examination certificate: type = "Medical Examination Certificate", number from Number column
-
-RULES for CERTIFICATES (merge BOTH tables into one certificates array):
-- QUALIFICATIONS CERTIFICATE table: License Capacity = name; Issuing Ofc = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- TRAINING / UPGRADING table: Course Title = name; Issuing Office = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- Extract EVERY row from both tables. Skip blank rows.
-- Dates → YYYY-MM-DD
-
-RULES for SEA SERVICE (WORK EXPERIENCES table):
-- "Date of Serv. (From)" = signOn; "Date of Serv. (To)" = signOff (blank if not present)
-- "Pos" = rank; "Vessel / IMO No." → split on "/" or last space before number: vessel name + imoNo
-  If IMO is blank or missing, imoNo = ""
-- "Type" = vesselType; "GRT" = grt; "DWT" = dwt; "BHP" = kw; "Engine" = engineType
-- "Agencies" = agency; "Principal" = principal; "AMOSUP CBA" = amosup
-- "Reason for Sign-off" = signOffReason; skip "N/A" values → use ""
-- Extract ALL rows including partial ones (no signOff date is fine)
-- Dates → YYYY-MM-DD
-
-Return JSON:
-{"documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-"certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
+{"certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
 "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"","engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"","signOn":"","signOff":""}]}
 
-TEXT:
----
-${rawText.slice(0, 14000)}
----`;
+Certificates — merge BOTH tables:
+- QUALIFICATIONS CERTIFICATE: License Capacity=name, Issuing Ofc=issuedBy, Number=number, Issued=dateIssued, Validity=validUntil
+- TRAINING/UPGRADING: Course Title=name, Issuing Office=issuedBy, Number=number, Issued=dateIssued, Validity=validUntil
+- Extract EVERY row from both. Skip blank rows.
 
-  try {
-    status.innerHTML = '⏳ Reading text — Pass 1: personal info &amp; Pass 2: tables (running together)…';
+Sea service (WORK EXPERIENCES):
+- "Date of Serv. (From)"=signOn; "Date of Serv. (To)"=signOff (blank if missing)
+- Pos=rank; "Vessel / IMO No." → split on "/": vessel name + imoNo
+- Type=vesselType; GRT=grt; DWT=dwt; BHP=kw; Engine=engineType
+- Agencies=agency; Principal=principal; AMOSUP CBA=amosup (""if N/A); Reason for Sign-off=signOffReason (""if N/A)
+TEXT:\n---\n${rawText.slice(0, 14000)}\n---`;
 
-    const [txt1, txt2] = await Promise.all([
-      callGemini(pass1, 3500, 45000),
-      callGemini(pass2, 6000, 50000)
-    ]);
+      status.innerHTML = '⏳ Seafarer: reading personal info &amp; tables in parallel…';
+      const [txt1, txt2] = await Promise.all([
+        callGemini(pass1, 3500, 45000),
+        callGemini(pass2, 6000, 50000)
+      ]);
+      const d1 = extractFirstJSON(txt1) ? JSON.parse(extractFirstJSON(txt1)) : {};
+      const d2 = extractFirstJSON(txt2) ? JSON.parse(extractFirstJSON(txt2)) : {};
+      if (!Object.keys(d1).length && !Object.keys(d2).length)
+        throw new Error('Could not extract data — try pasting more complete CGIS text.');
+      const merged = { ...d1, ...d2 };
+      console.log('[parseResumeText] seafarer merged:', JSON.stringify(merged).slice(0, 800));
+      fillCGISData(merged, status, '✅ Seafarer CV filled from text');
 
-    const js1 = extractFirstJSON(txt1);
-    const js2 = extractFirstJSON(txt2);
+    } else {
+      // ── Regular / Fresh grad: single comprehensive pass ─────────────────
+      const ojtSection = isFresh ? `
+"ojt":[{"company":"","department":"","role":"","hours":"","dateStart":"","dateEnd":"","location":"","supervisor":"","supervisorTitle":"","tools":"","tasks":""}],` : '';
 
-    if (!js1 && !js2) throw new Error('Could not extract data. Try pasting more complete CGIS text.');
+      const workSection = !isFresh ? `
+"workExperience":[{"company":"","position":"","dateStart":"","dateEnd":"","location":"","responsibilities":""}],` : '';
 
-    const d1 = js1 ? JSON.parse(js1) : {};
-    const d2 = js2 ? JSON.parse(js2) : {};
-    const data = { ...d1, ...d2 };
+      const prompt = `Extract resume/CV data. Return ONLY valid JSON, no markdown. Extract whatever is present, leave rest as "".
 
-    fillCGISData(data, status, '✅ Parsed from text');
+{"fullName":"","dob":"","birthPlace":"","civilStatus":"","gender":"","address":"","phone":"","email":"",
+"jobTitle":"","nationality":"Filipino","social":"","linkedin":"",
+"aboutMe":"","profileSummary":"","hobbies":"","awards":"",
+"education":[{"school":"","degree":"","yearStart":"","yearGrad":"","honors":""}],${workSection}${ojtSection}
+"skills":[],"languages":[],
+"references":[{"name":"","position":"","company":"","contact":""}]}
+
+Rules:
+- fullName: from "Name:" or header; split into first/middle/last yourself if needed (return full name here)
+- dob: "Date of Birth:", "Birthday:" → YYYY-MM-DD
+- jobTitle: "Applying for:", "Position:", "Objective:" target role
+- aboutMe: "About Me", "Summary", "Objective", "Profile" section text
+- skills: extract as array of strings from Skills section
+- languages: extract as array from Languages section
+- education: each school → one entry; honors = "With Honors", "Cum Laude", etc.
+${!isFresh ? `- workExperience: each job → one entry; responsibilities = all bullet points joined with newline` : ''}
+${isFresh ? `- ojt: each internship/OJT → one entry; tasks = all duties listed; supervisor name+title if present` : ''}
+- references: "Character References" or "References" section
+- Dates (dateStart, dateEnd): keep as written (e.g. "June 2020", "March 2023")
+- Leave array empty [] if section not in text. Leave string "" if field not found.
+
+TEXT:\n---\n${rawText.slice(0, 12000)}\n---`;
+
+      status.innerHTML = '⏳ Reading resume…';
+      const txt = await callGemini(prompt, 5000, 45000);
+      const jsonStr = extractFirstJSON(txt);
+      if (!jsonStr) throw new Error('Could not extract data — make sure the text is a readable resume.');
+      const data = JSON.parse(jsonStr);
+      console.log('[parseResumeText] resume data:', JSON.stringify(data).slice(0, 800));
+      // Fill the form fields for regular/fresh CV
+      fillResumeData(data, detectedType, status);
+    }
 
   } catch (err) {
-    console.error('Paste parse error:', err);
+    console.error('parseResumeText error:', err);
     status.className = 'cgis-status error';
     const isTimeout = err.name === 'AbortError' || (err.message||'').includes('abort');
     status.innerHTML = (isTimeout
       ? '⏱️ Timed out — try pasting less text, or retry.'
       : `❌ ${err.message || 'Could not parse the text.'}`) +
-      `<br><small style="opacity:.7">Tip: paste the full CGIS text for best results.</small><br>
-      <button onclick="parseCGISText()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`;
+      `<br><small style="opacity:.7">Tip: paste as much of the resume as you can for best results.</small><br>
+      <button onclick="parseResumeText()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`;
   }
+}
+
+// Keep backward-compat alias
+function parseCGISText() { parseResumeText(); }
+
+// ─── REGULAR / FRESH GRAD FORM FILL ───────────────────────────────────────────
+function fillResumeData(data, cvType, statusEl) {
+  const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
+  const setDate = (id, val) => { if (!val) return; const el = document.getElementById(id); if (el) { const d = toYMD(val); if (d) el.value = d; } };
+
+  // ── Personal ──────────────────────────────────────────────────────────────
+  if (data.fullName) {
+    const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
+    const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
+    set('firstName', pts[0] || '');
+    if (pts.length >= 3) {
+      let s = pts.length - 1;
+      while (s > 1 && PAR.has(pts[s-1].toLowerCase())) s--;
+      set('lastName', pts.slice(s).join(' '));
+      set('middleName', pts.slice(1, s).join(' '));
+    } else { set('lastName', pts.slice(1).join(' ') || ''); }
+  }
+  setDate('dob', data.dob);
+  set('address', data.address); set('phone', data.phone); set('email', data.email);
+  set('jobTitle', data.jobTitle); set('nationality', data.nationality || 'Filipino');
+  set('social', data.social); set('linkedin', data.linkedin);
+  set('aboutMe', data.aboutMe); set('hobbies', data.hobbies); set('awards', data.awards);
+
+  if (data.civilStatus) {
+    const cs = document.getElementById('civilStatus');
+    if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
+  }
+  if (data.gender) {
+    const gs = document.getElementById('gender');
+    if (gs) { const m = [...gs.options].find(o => o.value.toLowerCase() === data.gender.toLowerCase()); if (m) gs.value = m.value; }
+  }
+
+  // ── Skills & Languages (tag inputs) ──────────────────────────────────────
+  if (data.skills?.length) {
+    document.getElementById('skillTags').innerHTML = '';
+    const si = document.getElementById('skillInput');
+    data.skills.forEach(s => { if (si && s) { si.value = s; addTag('skill'); } });
+  }
+  if (data.languages?.length) {
+    document.getElementById('langTags').innerHTML = '';
+    const li = document.getElementById('langInput');
+    data.languages.forEach(l => { if (li && l) { li.value = l; addTag('lang'); } });
+  }
+
+  // ── Education ─────────────────────────────────────────────────────────────
+  if (data.education?.length) {
+    document.querySelectorAll('#eduEntries .exp-entry').forEach(el => el.remove());
+    eduCount = 0;
+    data.education.filter(e => e.school || e.degree).forEach(edu => {
+      addEduEntry();
+      const e = document.getElementById(`edu-${eduCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[0]) inp[0].value = edu.school    || '';
+      if (inp[1]) inp[1].value = edu.degree    || '';
+      if (inp[2]) inp[2].value = edu.yearStart || '';
+      if (inp[3]) inp[3].value = edu.yearGrad  || '';
+      if (inp[4]) inp[4].value = edu.honors    || '';
+    });
+  }
+
+  // ── Work Experience (college / highschool) ────────────────────────────────
+  if (cvType !== 'fresh' && data.workExperience?.length) {
+    document.querySelectorAll('#workEntries .exp-entry').forEach(el => el.remove());
+    workCount = 0;
+    data.workExperience.filter(w => w.company || w.position).forEach(w => {
+      addWorkEntry();
+      const e = document.getElementById(`work-${workCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      const ta  = e.querySelector('textarea');
+      if (inp[0]) inp[0].value = w.company  || '';
+      if (inp[1]) inp[1].value = w.position || '';
+      if (inp[2]) inp[2].value = w.dateStart || '';
+      if (inp[3]) inp[3].value = w.dateEnd   || '';
+      if (inp[4]) inp[4].value = w.location  || '';
+      if (ta)     ta.value     = w.responsibilities || '';
+    });
+  }
+
+  // ── OJT / Practicum (fresh grad) ─────────────────────────────────────────
+  if (cvType === 'fresh' && data.ojt?.length) {
+    document.querySelectorAll('#ojtEntries .exp-entry').forEach(el => el.remove());
+    ojtCount = 0;
+    data.ojt.filter(o => o.company || o.role).forEach(o => {
+      addOjtEntry();
+      const e = document.getElementById(`ojt-${ojtCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      const ta  = e.querySelector('textarea');
+      if (inp[0]) inp[0].value = o.company         || '';
+      if (inp[1]) inp[1].value = o.department       || '';
+      if (inp[2]) inp[2].value = o.role             || '';
+      if (inp[3]) inp[3].value = o.hours            || '';
+      if (inp[4]) inp[4].value = o.dateStart        || '';
+      if (inp[5]) inp[5].value = o.dateEnd          || '';
+      if (inp[6]) inp[6].value = o.location         || '';
+      if (inp[7]) inp[7].value = o.supervisor       || '';
+      if (inp[8]) inp[8].value = o.supervisorTitle  || '';
+      if (inp[9]) inp[9].value = o.tools            || '';
+      if (ta)     ta.value     = o.tasks            || '';
+    });
+  }
+
+  // ── References ────────────────────────────────────────────────────────────
+  if (data.references?.length) {
+    document.querySelectorAll('#refEntries .exp-entry').forEach(el => el.remove());
+    refCount = 0;
+    data.references.filter(r => r.name).forEach(r => {
+      addRefEntry();
+      const e = document.getElementById(`ref-${refCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[0]) inp[0].value = r.name     || '';
+      if (inp[1]) inp[1].value = r.position || '';
+      if (inp[2]) inp[2].value = r.company  || '';
+      if (inp[3]) inp[3].value = r.contact  || '';
+    });
+  }
+
+  // ── Summary ───────────────────────────────────────────────────────────────
+  const filled = [data.fullName, data.dob, data.address,
+    data.education?.length, data.workExperience?.length || data.ojt?.length,
+    data.skills?.length, data.references?.length].filter(Boolean).length;
+
+  statusEl.className = 'cgis-status success';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = `✅ Resume filled — ${filled} section${filled===1?'':'s'} extracted. Review each field before submitting.`;
+  showNotif(`✅ Auto-fill complete — ${filled} sections filled. Please review.`);
+  setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
+}
+
+function toggleCgisPaste() {
+  const panel = document.getElementById('cgisPastePanel');
+  const btn   = document.getElementById('cgisPasteToggleBtn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.style.background = open
+    ? 'rgba(52,211,153,0.35)' : 'rgba(52,211,153,0.18)';
+  if (open) document.getElementById('cgisPasteText').focus();
 }
 
 // ─── CGIS SCANNER ─────────────────────────────────────────────────────────────
