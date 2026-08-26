@@ -3939,6 +3939,231 @@ function openCVPrintWindow(sub){
 }
 
 // ── BUILD CV HTML ─────────────────────────────────────────────────────────────
+// Toolbar injected into admin's CV print window. Self-contained on purpose:
+// it is written into a separate document via document.write, so it cannot
+// reach anything in the dashboard and needs no state from it.
+// Seafarer-only controls hide themselves when the layout has no sea table.
+const ADMIN_CV_TOOLBAR = `
+<style>
+  .acv-bar{position:fixed;top:0;left:0;right:0;z-index:99999;background:#0b2545;
+    border-bottom:2px solid #ffd166;padding:8px 14px;display:flex;gap:8px;
+    align-items:center;flex-wrap:wrap;font-family:Inter,Arial,sans-serif}
+  .acv-bar button{font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+    border-radius:7px;padding:8px 14px;border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.08);color:#fff}
+  .acv-bar button:hover{background:rgba(255,255,255,.16)}
+  .acv-bar button.on{background:#ffd166;color:#0b2545;border-color:#ffd166}
+  .acv-bar button.go{background:#34d399;color:#04352a;border-color:#34d399}
+  .acv-bar .sp{display:inline-flex;align-items:center;border:1px solid rgba(255,255,255,.22);
+    border-radius:7px;overflow:hidden}
+  .acv-bar .sp button{border:none;border-radius:0}
+  .acv-bar .z{color:#ffd166;font-size:12px;font-weight:700;padding:0 9px;
+    min-width:44px;text-align:center}
+  .acv-bar .hint{color:rgba(255,255,255,.5);font-size:11px;margin-left:auto}
+  body{padding-top:52px!important}
+
+  [contenteditable="true"]:hover{background:rgba(52,211,153,.16);
+    outline:1px dashed rgba(52,211,153,.65)}
+  [contenteditable="true"]:focus{background:rgba(255,209,102,.28);outline:2px solid #d9a400}
+  body.acv-locked [contenteditable]:hover{background:none;outline:none}
+  .acv-x{position:absolute;right:2px;top:2px;width:17px;height:17px;line-height:15px;
+    text-align:center;border-radius:50%;border:none;background:#ef4444;color:#fff;
+    font-size:11px;font-weight:800;cursor:pointer;opacity:0}
+  tr:hover .acv-x{opacity:1}
+  body:not(.acv-locked) .acv-x{opacity:.85}
+  body.acv-locked .acv-x{display:none}
+  .acv-toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    background:#0b2545;color:#ffd166;border:1px solid #ffd166;border-radius:9px;
+    padding:9px 18px;font-size:12.5px;font-weight:700;z-index:99999;opacity:0;
+    pointer-events:none;transition:opacity .2s;font-family:Inter,Arial,sans-serif}
+  .acv-toast.show{opacity:1}
+  #acvCols{display:none;position:fixed;top:50px;left:14px;z-index:99998;background:#fff;
+    border:1px solid #cbd5e1;border-radius:10px;padding:12px 15px;font-size:12.5px;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);font-family:Inter,Arial,sans-serif;max-width:260px}
+
+  @media print{
+    .acv-bar,.acv-toast,.acv-x,#acvCols{display:none!important}
+    body{padding-top:0!important}
+    [contenteditable]{background:none!important;outline:none!important}
+  }
+</style>
+
+<div class="acv-bar">
+  <button id="acvEdit" onclick="acvEdit()">Turn on editing</button>
+  <button id="acvExp" onclick="acvExpiry()">Hide expiry colours</button>
+  <button id="acvColsBtn" onclick="acvToggleCols()">Columns\u2026</button>
+  <span class="sp">
+    <button onclick="acvZoom(-5)" title="Smaller">A\u2212</button>
+    <span class="z" id="acvZ">100%</span>
+    <button onclick="acvZoom(5)" title="Larger">A+</button>
+    <button onclick="acvSetZoom(100)" style="font-size:11px">Reset</button>
+  </span>
+  <button class="go" onclick="acvPrint()">Print / Save PDF</button>
+  <button onclick="window.close()">Close</button>
+  <span class="hint">A4 \u00b7 Margins <b>Default</b> \u00b7 Background graphics <b>on</b></span>
+</div>
+
+<div id="acvCols">
+  <div style="font-weight:800;color:#0b2545;margin-bottom:3px">Sea service columns</div>
+  <div style="color:#64748b;font-size:11px;line-height:1.5;margin-bottom:8px">
+    Untick what the agency does not need \u2014 the rest widen to fill the row.</div>
+  <div id="acvColList"></div>
+  <button onclick="acvToggleCols()" style="margin-top:9px;width:100%;padding:7px;border:none;
+    border-radius:6px;background:#0b2545;color:#ffd166;font-family:inherit;font-size:12px;
+    font-weight:700;cursor:pointer">Done</button>
+</div>
+
+<div class="acv-toast" id="acvToast"></div>
+
+<script>
+(function(){
+  var editing=false, expOn=true, zoom=100, hidden=[];
+  var SEA=[['c-vessel','Vessel / IMO',15],['c-rank','Rank',7],['c-type','Type',8],
+    ['c-grt','GRT',6.5],['c-dwt','DWT',5.5],['c-kw','KW / BHP',7],
+    ['c-engine','Engine type',11],['c-agency','Agency / Principal',14],
+    ['c-on','Sign on',8],['c-off','Sign off',8],['c-reason','Reason',10]];
+
+  document.body.classList.add('acv-locked');
+
+  function toast(m){var t=document.getElementById('acvToast');t.textContent=m;
+    t.classList.add('show');clearTimeout(t._t);
+    t._t=setTimeout(function(){t.classList.remove('show');},2200);}
+
+  // Only leaf cells and headings, so a stray paste cannot replace a whole table.
+  function nodes(){
+    return [].slice.call(document.querySelectorAll(
+      'td, .obj, h1, .hc, .rank-badge, .apply, .ct span, .skl span, ' +
+      '.sigline, .nm, .foot, .kv td'))
+      .filter(function(el){ return !el.querySelector('table'); });
+  }
+
+  window.acvEdit=function(){
+    editing=!editing;
+    document.body.classList.toggle('acv-locked',!editing);
+    nodes().forEach(function(el){el.contentEditable=editing?'true':'false';});
+    var b=document.getElementById('acvEdit');
+    b.textContent=editing?'Done editing':'Turn on editing';
+    b.classList.toggle('on',editing);
+    if(editing) rowX();
+    toast(editing?'Click any text to change it. \\u00d7 removes a row.'
+                 :'Changes stay in this window \\u2014 print before closing.');
+  };
+
+  function rowX(){
+    [].slice.call(document.querySelectorAll('tbody tr')).forEach(function(tr){
+      if(tr.querySelector('.acv-x')) return;
+      var c=tr.lastElementChild; if(!c) return;
+      c.style.position='relative';
+      var b=document.createElement('button');
+      b.className='acv-x'; b.textContent='\\u00d7'; b.title='Delete this row';
+      b.onclick=function(e){e.stopPropagation();tr.parentNode.removeChild(tr);};
+      c.appendChild(b);
+    });
+  }
+
+  // Removing the class outright, rather than overriding the colour, so a lapsed
+  // row renders exactly like a normal one including the alternating stripe.
+  window.acvExpiry=function(){
+    expOn=!expOn;
+    [].slice.call(document.querySelectorAll('td')).forEach(function(td){
+      if(expOn){
+        if(td.getAttribute('data-x')){td.className=td.getAttribute('data-x');
+          td.removeAttribute('data-x');}
+      } else if(/(^|\\s)(exp|soon|x|w)(\\s|$)/.test(td.className)){
+        td.setAttribute('data-x',td.className);
+        td.className=td.className.replace(/(^|\\s)(exp|soon|x|w)(?=\\s|$)/g,' ').trim();
+      }
+    });
+    [].slice.call(document.querySelectorAll('.cert-note,.cert')).forEach(function(el){
+      el.style.display=expOn?'':'none';});
+    var b=document.getElementById('acvExp');
+    b.textContent=expOn?'Hide expiry colours':'Show expiry colours';
+    b.classList.toggle('on',!expOn);
+  };
+
+  window.acvToggleCols=function(){
+    var p=document.getElementById('acvCols');
+    var open=p.style.display==='none'||!p.style.display;
+    p.style.display=open?'block':'none';
+    document.getElementById('acvColsBtn').classList.toggle('on',open);
+    if(open) drawCols();
+  };
+
+  function drawCols(){
+    var box=document.getElementById('acvColList'); box.innerHTML='';
+    SEA.forEach(function(c){
+      var row=document.createElement('label');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer';
+      var cb=document.createElement('input');
+      cb.type='checkbox'; cb.checked=hidden.indexOf(c[0])<0;
+      cb.style.cssText='width:15px;height:15px;accent-color:#0b2545;cursor:pointer';
+      cb.onchange=function(){setCol(c[0],cb.checked);};
+      var sp=document.createElement('span'); sp.style.color='#1e293b'; sp.textContent=c[1];
+      row.appendChild(cb); row.appendChild(sp); box.appendChild(row);
+    });
+  }
+
+  function setCol(cls,show){
+    if(show) hidden=hidden.filter(function(x){return x!==cls;});
+    else if(hidden.indexOf(cls)<0) hidden.push(cls);
+    applyCols();
+  }
+
+  function applyCols(){
+    [].slice.call(document.querySelectorAll('table')).forEach(function(tbl){
+      var cols=[].slice.call(tbl.querySelectorAll('colgroup col'));
+      if(!cols.length||cols[0].className.indexOf('c-')!==0) return;
+      var live=SEA.filter(function(c){return hidden.indexOf(c[0])<0;});
+      var total=live.reduce(function(n,c){return n+c[2];},0)||1;
+      cols.forEach(function(col,i){
+        var cls=col.className.trim(), off=hidden.indexOf(cls)>=0;
+        col.style.display=off?'none':'';
+        var def=8;
+        SEA.forEach(function(c){if(c[0]===cls) def=c[2];});
+        if(!off) col.style.width=(def/total*100).toFixed(2)+'%';
+        var th=tbl.querySelectorAll('thead th')[i];
+        if(th) th.style.display=off?'none':'';
+      });
+      [].slice.call(tbl.querySelectorAll('tbody tr')).forEach(function(tr){
+        SEA.forEach(function(c){
+          var cell=tr.querySelector('td.'+c[0]);
+          if(cell) cell.style.display=hidden.indexOf(c[0])>=0?'none':'';
+        });
+      });
+    });
+  }
+
+  // Scaling the layout, not just the type: font-size alone re-wraps the wide
+  // tables and the page count jumps about.
+  window.acvSetZoom=function(z){
+    zoom=Math.max(70,Math.min(130,Math.round(z)));
+    [].slice.call(document.querySelectorAll('.sea-doc,.page')).forEach(function(el){
+      el.style.zoom=(zoom/100).toFixed(2);});
+    document.getElementById('acvZ').textContent=zoom+'%';
+  };
+  window.acvZoom=function(step){
+    var was=zoom; acvSetZoom(zoom+step);
+    if(zoom===was) toast('That is the limit.');
+    else toast(zoom+'% \\u2014 check the page count before printing.');
+  };
+
+  window.acvPrint=function(){
+    if(editing) nodes().forEach(function(el){el.contentEditable='false';});
+    toast('Untick "Headers and footers" in the dialog.');
+    setTimeout(function(){window.print();},900);
+  };
+  window.addEventListener('afterprint',function(){
+    if(editing) nodes().forEach(function(el){el.contentEditable='true';});
+  });
+
+  // A non-seafarer layout has no sea table, so those controls would do nothing.
+  if(!document.querySelector('colgroup col.c-vessel'))
+    document.getElementById('acvColsBtn').style.display='none';
+  if(!document.querySelector('td.exp,td.soon,td.x,td.w'))
+    document.getElementById('acvExp').style.display='none';
+})();
+<\/script>`;
+
 function buildCVHtml(s,tmpl,mode){
   // Shallow copy so the display formatting below never overwrites the ISO date
   // stored on the submission record.
@@ -4013,14 +4238,7 @@ function buildCVHtml(s,tmpl,mode){
     company: esc(r.company), contact: esc(r.contact)
   }));
 
-  const printBar=mode==='print'
-    ?`<div class="no-print" style="position:fixed;top:0;left:0;right:0;background:#1a2744;padding:10px 24px;display:flex;gap:12px;align-items:center;z-index:9999;">
-        <span style="color:white;font-family:Inter,sans-serif;font-size:14px;font-weight:700;">Arroyo CV Builder</span>
-        <button onclick="window.print()" style="background:#c8a84b;color:#1a2744;border:none;padding:9px 24px;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:Inter,sans-serif;">🖨 Print / Save as PDF</button>
-        <button onclick="window.close()" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:Inter,sans-serif;">✕ Close</button>
-        <span style="color:rgba(255,255,255,.5);font-size:11px;">Set: Paper=A4 · Margins=None · Background graphics=ON</span>
-      </div>`
-    :``;
+  const printBar = mode === 'print' ? ADMIN_CV_TOOLBAR : '';
 
   const printCSS=`<style>
     *{box-sizing:border-box;}
@@ -6905,8 +7123,7 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const vax   = (m.vaccinations|| []).filter(v=>v.name);
   const sea   = (m.seaService  || []).filter(v=>v.vessel);
 
-  // Dates arrive as ISO from <input type=date>; agencies read DD-MMM-YYYY.
-  const d = v => {
+  const fmtD = v => {
     if(!v) return '';
     const t = new Date(v);
     if(isNaN(t)) return v;
@@ -6914,172 +7131,273 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
       ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]+
       '-'+t.getFullYear();
   };
-
-  // Certificates and documents lapse. Flagging what's expired or close to it is
-  // the single most useful thing this layout can do for the person reading it.
-  const expiryCell = v => {
+  const exCell = v => {
     if(!v) return '<td></td>';
-    const t=new Date(v);
-    if(isNaN(t)) return `<td>${v}</td>`;
+    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
     const days=(t-Date.now())/864e5;
-    const cls = days<0 ? ' class="exp"' : days<90 ? ' class="soon"' : '';
-    return `<td${cls}>${d(v)}</td>`;
+    return `<td${days<0?' class="exp"':days<90?' class="soon"':''}>${fmtD(v)}</td>`;
   };
+  const kv = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+  const nm  = fullName(p);
 
-  const row = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
+  // ── continuation mini-header shown on pages 2+ ──────────────────────────────
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  body{font-family:'Inter',Arial,sans-serif;color:#14213d;}
-  /* The shared page CSS sets .page{display:flex} for the two-column designs.
-     This one stacks, so it has to opt out or the header becomes a sidebar. */
-  .page.pg{display:block;background:white;min-height:297mm;}
-  .hdr{background:#0b2545;color:white;padding:15px 18px;display:flex;gap:15px;align-items:center;
-       border-bottom:3px solid #ffd166;}
-  .hdr .ph{width:80px;height:96px;flex-shrink:0;border:2px solid #ffd166;background:rgba(255,255,255,.1);overflow:hidden;}
-  .hdr .who{flex:1;min-width:0;}
-  .hdr h1{font-size:23px;font-weight:900;letter-spacing:.4px;margin:0 0 5px;text-transform:uppercase;line-height:1.08;}
-  .rank{display:inline-block;background:#ffd166;color:#0b2545;font-size:11px;font-weight:900;
-        padding:3px 11px;text-transform:uppercase;letter-spacing:.8px;}
-  .hc{font-size:9px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6;}
-  .hc b{color:#ffd166;font-weight:700;}
-  .brand{text-align:right;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:1.6px;
-         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.7;}
+  /* ── reset ── */
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',Arial,sans-serif;color:#14213d;background:white;}
 
-  .body{padding:13px 18px 16px;}
-  .sec{margin-bottom:11px;}
-  .sh{background:#0b2545;color:#ffd166;font-size:9px;font-weight:800;letter-spacing:1.6px;
-      text-transform:uppercase;padding:4px 9px;margin-bottom:0;display:flex;justify-content:space-between;}
+  /* ── multi-page layout ── */
+  /* On screen: show one A4-wide column, natural scroll */
+  .sea-doc{width:210mm;margin:0 auto;background:white;}
+
+  /* Each section never splits across a page */
+  .sec{margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}
+
+  /* ── main header (page 1 only) ── */
+  .hdr{background:#0b2545;color:white;padding:14px 18px;display:flex;gap:14px;align-items:center;
+       border-bottom:3px solid #ffd166;}
+  .hdr .ph{width:78px;height:94px;flex-shrink:0;border:2px solid #ffd166;
+            background:rgba(255,255,255,.1);overflow:hidden;}
+  .hdr .who{flex:1;min-width:0;}
+  .hdr h1{font-size:21px;font-weight:900;letter-spacing:.3px;margin:0 0 4px;
+          text-transform:uppercase;line-height:1.1;}
+  .rank-badge{display:inline-block;background:#ffd166;color:#0b2545;font-size:10px;
+              font-weight:900;padding:2px 10px;text-transform:uppercase;letter-spacing:.8px;}
+  .hc{font-size:8.5px;color:rgba(255,255,255,.8);margin-top:7px;line-height:1.65;}
+  .hc b{color:#ffd166;font-weight:700;}
+
+  /* ── continuation header (pages 2+) ── */
+
+  /* ── body ── */
+  .body{padding:11px 18px 14px;}
+
+  /* ── section heading ── */
+  .sh{background:#0b2545;color:#ffd166;font-size:8.5px;font-weight:800;letter-spacing:1.5px;
+      text-transform:uppercase;padding:4px 9px;display:flex;justify-content:space-between;
+      page-break-after:avoid;break-after:avoid;}
   .sh .cnt{color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;}
 
-  table.g{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto;}
-  table.g th,table.g td{border:1px solid #c3cddc;padding:3.5px 6px;text-align:left;vertical-align:top;}
-  table.g thead th{background:#0b2545;color:#ffd166;font-size:7.5px;font-weight:800;letter-spacing:.6px;
-                   text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
+  /* ── data tables ── */
+  table.g{width:100%;border-collapse:collapse;font-size:7.8px;table-layout:fixed;}
+  table.g th,table.g td{border:1px solid #c3cddc;padding:3px 5px;text-align:left;vertical-align:top;
+                         overflow-wrap:break-word;word-break:normal;}
+  table.g thead th{background:#0b2545;color:#ffd166;font-size:7px;font-weight:800;
+                   letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
   table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
   table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
   table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
   table.g td.pri{font-weight:800;color:#0b2545;}
 
-  /* Two-column key/value grid used for personal particulars */
-  table.kv{width:100%;border-collapse:collapse;font-size:8.5px;}
-  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3.5px 7px;text-align:left;}
-  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:38%;white-space:nowrap;}
+  /* Sea service is the widest table on the sheet, so its columns are sized
+     explicitly rather than left to the browser. Change a value here and the
+     header and every row move together. */
+  table.sea .c-vessel{width:15%;}  table.sea .c-rank  {width:7%;}
+  table.sea .c-type  {width:8%;}   table.sea .c-grt   {width:6.5%;}
+  table.sea .c-dwt   {width:5.5%;} table.sea .c-kw    {width:7%;}
+  table.sea .c-engine{width:11%;}  table.sea .c-agency{width:14%;}
+  table.sea .c-on    {width:8%;}   table.sea .c-off   {width:8%;}
+  table.sea .c-reason{width:10%;}
+  /* Figures and dates must never be split across lines. */
+  table.g td.n{white-space:nowrap;}
+  table.g td.sm{font-size:7px;line-height:1.35;}
+  table.g thead th{word-break:normal;white-space:nowrap;}
+  /* thead repeats on each printed page so columns stay labelled */
+  table.g thead{display:table-header-group;}
+
+  /* ── key/value grids ── */
+  table.kv{width:100%;border-collapse:collapse;font-size:8px;}
+  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3px 6px;text-align:left;}
+  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:34%;white-space:nowrap;}
   table.kv td{font-weight:700;color:#14213d;}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 9px;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 8px;}
 
-  .obj{font-size:9px;line-height:1.75;color:#2c3a52;padding:8px 11px;border:1px solid #c3cddc;border-top:none;
-       background:#fafbfe;text-align:justify;}
-  .none{font-size:8.5px;color:#96a0b2;font-style:italic;padding:6px 10px;border:1px solid #c3cddc;border-top:none;}
-  .sign{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;
-        font-size:8px;color:#4a5b75;line-height:1.6;}
-  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:215px;text-align:center;font-weight:900;
-           color:#0b2545;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;}
-  .cert-note{font-size:7px;color:#96a0b2;margin-top:4px;line-height:1.5;}
-  .skl{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;border:1px solid #c3cddc;border-top:none;}
-  .skl span{font-size:8px;font-weight:700;background:#eef2f8;color:#0b2545;padding:2.5px 8px;
-            border:1px solid #c3cddc;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+  /* ── misc ── */
+  .obj{font-size:8.5px;line-height:1.75;color:#2c3a52;padding:7px 10px;border:1px solid #c3cddc;
+       border-top:none;background:#fafbfe;text-align:justify;}
+  .none{font-size:8px;color:#96a0b2;font-style:italic;padding:5px 9px;border:1px solid #c3cddc;border-top:none;}
+  .cert-note{font-size:6.5px;color:#96a0b2;margin-top:3px;line-height:1.5;}
+  .skl{display:flex;flex-wrap:wrap;gap:3px;padding:6px 9px;border:1px solid #c3cddc;border-top:none;}
+  .skl span{font-size:7.5px;font-weight:700;background:#eef2f8;color:#0b2545;
+            padding:2px 7px;border:1px solid #c3cddc;}
+  .sign{margin-top:18px;display:flex;justify-content:space-between;align-items:flex-end;
+        font-size:7.5px;color:#4a5b75;line-height:1.6;}
+  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:200px;text-align:center;
+           font-weight:900;color:#0b2545;font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
 
+  /* ── manual page-break (admin-inserted) ── */
+  .pg-break{page-break-before:always;break-before:page;}
+
+  /* ── screen preview ── */
+  @media screen{
+    body{background:#555;padding:30px 0 60px;}
+    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);margin:0 auto;}
+    .pgwrap>thead,.pgwrap>tfoot{display:none;}
+    /* admin page-break shows as a visible rule on screen */
+    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;page-break-before:always;break-before:page;}
+  }
+
+  /* ── print ── */
+  @media print{
+    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .no-print{display:none!important;}
+    /* Chrome prints its date/title/URL into the TOP margin and the page number
+       into the BOTTOM one. Zeroing just those two leaves it nowhere to draw
+       them, with no dependence on the print dialog. Side margins stay on @page.
+       The top and bottom space every sheet still needs then comes from the
+       spacer table below, whose thead/tfoot the browser repeats per page —
+       container padding cannot do that, it only applies once. */
+    @page{margin:0 12mm;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:0!important;}
+    .pgwrap{width:100%;border-collapse:collapse;}
+    .pgwrap>thead>tr>th,.pgwrap>tfoot>tr>td{
+      height:12mm;border:none;padding:0;background:none;}
+    .pgwrap>tbody>tr>td{padding:0;border:none;vertical-align:top;}
+    /* thead already repeats via display:table-header-group */
+  }
+</style></head><body>${pb}
+<div class="sea-doc">
+<!-- The thead and tfoot are empty spacers. Browsers repeat them on every
+     printed page, which is the only way to get a top and bottom margin on
+     pages 2+ while @page's own top/bottom margins are zero. -->
+<table class="pgwrap"><thead><tr><th></th></tr></thead>
+<tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
+
+  <!-- PAGE 1 HEADER -->
   <div class="hdr">
     <div class="ph">${ph}</div>
     <div class="who">
-      <h1>${fullName(p)}</h1>
-      ${m.rank?`<span class="rank">⚓ ${m.rank}</span>`:''}
+      <h1>${nm}</h1>
+      ${m.rank?`<span class="rank-badge">⚓ ${m.rank}</span>`:''}
       <div class="hc">
         ${p.address?p.address+'<br>':''}
-        ${p.phone?`<b>T</b> ${p.phone}`:''}${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
-        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+        ${p.phone?`<b>T</b> ${p.phone}`:''}${m.phone2?` &nbsp;/&nbsp; ${m.phone2}`:''}
+        ${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
+        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}
+        ${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
+        ${m.highestLicense?`<br><b>Highest License</b> ${m.highestLicense}`:''}
       </div>
     </div>
-    <div class="brand">Seafarer<br>Résumé</div>
   </div>
 
   <div class="body">
 
     ${s.profileSummary?`<div class="sec"><div class="sh"><span>Objective</span></div><div class="obj">${s.profileSummary}</div></div>`:''}
 
+    <!-- PERSONAL PARTICULARS -->
     <div class="sec">
       <div class="sh"><span>Personal Particulars</span></div>
       <div class="split">
         <table class="kv">
-          ${row('Surname',p.lastName)}
-          ${row('First Name',p.firstName)}
-          ${row('Middle Name',p.middleName)}
-          ${row('Date of Birth',d(p.dob))}
-          ${row('Place of Birth',m.birthPlace)}
-          ${row('Nationality',p.nationality)}
-          ${row('Civil Status',p.civilStatus)}
-          ${row('Gender',p.gender)}
-          ${row('Religion',m.religion)}
+          ${kv('Surname',p.lastName)}${kv('First Name',p.firstName)}${kv('Middle Name',p.middleName)}
+          ${kv('Date of Birth',fmtD(p.dob))}${kv('Place of Birth',m.birthPlace)}
+          ${kv('Nationality',p.nationality)}${kv('Civil Status',p.civilStatus)}
+          ${kv('Gender',p.gender)}${kv('Religion',m.religion)}
         </table>
         <table class="kv">
-          ${row('Height',m.height)}
-          ${row('Weight',m.weight)}
-          ${row('BMI',m.bmi)}
-          ${row('Colour of Eyes',m.eyes)}
-          ${row('Colour of Hair',m.hair)}
-          ${row('Blood Type',m.blood)}
-          ${row('Shoe Size',m.shoe)}
-          ${row('Coverall Size',m.coverall)}
-          ${row('Last Rank Held',m.lastRank)}
+          ${kv('Height',m.height)}${kv('Weight',m.weight)}${kv('BMI',m.bmi)}
+          ${kv('Colour of Eyes',m.eyes)}${kv('Colour of Hair',m.hair)}
+          ${kv('Blood Type',m.blood)}${kv('Shoe Size',m.shoe)}${kv('Coverall Size',m.coverall)}
+          ${kv('Last Rank Held',m.lastRank)}
         </table>
       </div>
-      ${(m.nok||([m.sss,m.tin,m.pagibig,m.philhealth].filter(Boolean).join(' / ')))?`<table class="kv" style="margin-top:-1px;">
-        ${m.nok?`<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>`:''}
-        ${([m.sss,m.tin,m.pagibig,m.philhealth].filter(Boolean).join(' / '))?`<tr><th style="width:15.5%;">Government IDs</th><td>${([m.sss,m.tin,m.pagibig,m.philhealth].filter(Boolean).join(' / '))}</td></tr>`:''}
-      </table>`:''}
+      <table class="kv" style="margin-top:-1px;">
+        ${kv('Nearest Relative / NOK',m.nok)}
+        ${kv('Children',m.children)}
+        ${(m.mailingAddress&&m.mailingAddress!==p.address)?kv('Mailing Address',m.mailingAddress):''}
+        ${(m.sss||m.tin)?`<tr><th>SSS No.</th><td>${m.sss||''}</td></tr><tr><th>TIN No.</th><td>${m.tin||''}</td></tr>`:''}
+        ${(m.pagibig||m.philhealth)?`<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td></tr><tr><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>`:''}
+        ${kv('SRC No.',m.src)}
+      </table>
     </div>
 
+    <!-- TRAVEL DOCUMENTS -->
     <div class="sec">
       <div class="sh"><span>Travel Documents</span>${docs.length?`<span class="cnt">${docs.length} on file</span>`:''}</div>
-      ${docs.length?`<table class="g">
+      ${docs.length?`<table class="g" style="table-layout:auto;">
         <thead><tr><th>Document</th><th>Number</th><th>Date Issued</th><th>Date Expiry</th><th>Place Issued</th></tr></thead>
         <tbody>${docs.map(x=>`<tr>
           <td style="font-weight:700;">${x.type||''}</td><td>${x.number||''}</td>
-          <td>${d(x.dateIssued)}</td>${expiryCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
+          <td>${fmtD(x.dateIssued)}</td>${exCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No travel documents on record.</div>`}
     </div>
 
+
+    <!-- CERTS -->
     <div class="sec">
       <div class="sh"><span>Trainings &amp; Certificates</span>${certs.length?`<span class="cnt">${certs.length} on file</span>`:''}</div>
-      ${certs.length?`<table class="g">
+      ${certs.length?`<table class="g" style="table-layout:auto;">
         <thead><tr><th>Course / Certificate</th><th>Number</th><th>Issued By</th><th>Date Issued</th><th>Valid Until</th></tr></thead>
         <tbody>${certs.map(c=>`<tr>
           <td style="font-weight:700;">${c.name||''}</td><td>${c.number||''}</td><td>${c.issuedBy||''}</td>
-          <td>${d(c.dateIssued)}</td>${expiryCell(c.validUntil)}
+          <td>${fmtD(c.dateIssued)}</td>${exCell(c.validUntil)}
         </tr>`).join('')}</tbody></table>
-        <div class="cert-note">Cells shaded red have lapsed; amber expires within 90 days.</div>`
+        <div class="cert-note">Cells shaded red have lapsed · amber expires within 90 days.</div>`
       :`<div class="none">No certificates on record.</div>`}
     </div>
 
+    <!-- VACCINATION -->
     ${vax.length?`<div class="sec">
       <div class="sh"><span>Vaccination</span><span class="cnt">${vax.length} on file</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>Vaccine</th><th>Date Given</th><th>Valid Until</th><th>Place Issued</th></tr></thead>
         <tbody>${vax.map(v=>`<tr>
-          <td class="pri">${v.name||''}</td><td>${d(v.dateGiven)}</td>${expiryCell(v.validUntil)}<td>${v.placeIssued||''}</td>
+          <td class="pri">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${exCell(v.validUntil)}<td>${v.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
+    <!-- HEALTH / MEDICAL -->
+    ${(m.healthFlag||m.medResult)?`<div class="sec">
+      <div class="sh"><span>Health &amp; Medical</span></div>
+      <table class="kv">
+        ${m.healthFlag?`<tr><th>Health Declaration</th><td>${m.healthFlag}${m.healthIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.healthIssued):''}${m.healthValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.healthValid):''}${m.healthClinic?' &nbsp;·&nbsp; '+m.healthClinic:''}</td></tr>`:''}
+        ${m.medResult?`<tr><th>Pre-Medical Exam</th><td>${m.medResult}${m.medIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.medIssued):''}${m.medValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.medValid):''}${m.medClinic?' &nbsp;·&nbsp; '+m.medClinic:''}</td></tr>`:''}
+      </table>
+    </div>`:''}
+
+
+    <!-- SEA SERVICE -->
     <div class="sec">
       <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
-      ${sea.length?`<table class="g">
-        <thead><tr><th>Vessel</th><th>Rank</th><th>Type</th><th>GRT</th><th>KW/HP</th><th>Company</th><th>Sign On</th><th>Sign Off</th><th>Trade Area</th></tr></thead>
+      ${sea.length?`<table class="g sea">
+        <colgroup>
+          <col class="c-vessel"><col class="c-rank"><col class="c-type">
+          <col class="c-grt"><col class="c-dwt"><col class="c-kw">
+          <col class="c-engine"><col class="c-agency">
+          <col class="c-on"><col class="c-off"><col class="c-reason">
+        </colgroup>
+        <thead><tr>
+          <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
+          <th>KW/BHP</th><th>Engine Type</th><th>Agency / Principal</th>
+          <th>Sign On</th><th>Sign Off</th><th>Reason</th>
+        </tr></thead>
         <tbody>${sea.map(v=>`<tr>
-          <td style="font-weight:700;">${v.vessel||''}</td><td>${v.rank||''}</td><td>${v.vesselType||''}</td>
-          <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${v.company||''}</td>
-          <td>${d(v.signOn)}</td><td>${d(v.signOff)}</td><td>${v.tradeArea||''}</td>
+          <td class="c-vessel" style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-weight:400;font-size:6.5px;color:#4a5b75;">IMO ${v.imoNo}</span>`:''}</td>
+          <td class="c-rank">${v.rank||''}</td>
+          <td class="c-type">${v.vesselType||''}</td>
+          <td class="c-grt n">${v.grt||''}</td>
+          <td class="c-dwt n">${v.dwt||''}</td>
+          <td class="c-kw n">${v.kw||''}</td>
+          <td class="c-engine sm">${v.engineType||''}</td>
+          <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean)
+              .map((x,i)=>i?`<span style="color:#4a5b75;">${x}</span>`:`<strong>${x}</strong>`)
+              .join('<br>')}</td>
+          <td class="c-on n">${fmtD(v.signOn)}</td>
+          <td class="c-off n">${fmtD(v.signOff)}</td>
+          <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No sea service yet — first-time applicant.</div>`}
     </div>
 
+    <!-- EDUCATION -->
     ${edu.length?`<div class="sec">
       <div class="sh"><span>Educational Background</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>School / Institution</th><th>Course / Level</th><th>Period</th><th>Honours</th></tr></thead>
         <tbody>${edu.map(e=>`<tr>
           <td style="font-weight:700;">${e.school||''}</td><td>${e.degree||''}</td>
@@ -7087,6 +7405,7 @@ ${pc}
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
+    <!-- SKILLS -->
     ${(s.skills?.length||s.languages?.length)?`<div class="sec">
       <div class="sh"><span>Skills &amp; Languages</span></div>
       <div class="skl">
@@ -7095,9 +7414,10 @@ ${pc}
       </div>
     </div>`:''}
 
+    <!-- REFERENCES -->
     ${refs.length?`<div class="sec">
       <div class="sh"><span>Character References</span></div>
-      <table class="g">
+      <table class="g" style="table-layout:auto;">
         <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact</th></tr></thead>
         <tbody>${refs.map(r=>`<tr>
           <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
@@ -7106,14 +7426,16 @@ ${pc}
     </div>`:''}
 
     <div class="sign">
-      <div>I certify that the information given above is true and correct<br>to the best of my knowledge and belief.</div>
-      <div class="sigline">${fullName(p)}<br>
-        <span style="font-weight:600;font-size:7.5px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
+      <div style="font-size:7.5px;color:#4a5b75;line-height:1.6;">I certify that the information given above is true and correct to the best of my knowledge and belief.</div>
+      <div class="sigline">${nm}<br>
+        <span style="font-weight:600;font-size:7px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
       </div>
     </div>
 
-  </div>
-</div></div></body></html>`;}
+  </div><!-- /body -->
+</td></tr></tbody></table>
+</div><!-- /sea-doc -->
+</body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 17 — Seafarer (Simple / Agency Form)
@@ -7122,40 +7444,36 @@ ${pc}
 // undesigned — it's meant to look like the agency's own form, which is exactly
 // why applicants ask for it. T16 is the polished alternative.
 // ══════════════════════════════════════════════════════════════════════════════
+
 function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const m = s.seaman || {};
   const docs  = (m.documents    || []).filter(d=>d.type||d.number);
   const certs = (m.certificates || []).filter(c=>c.name);
   const vax   = (m.vaccinations || []).filter(v=>v.name);
   const sea   = (m.seaService   || []).filter(v=>v.vessel);
+  const nm    = fullName(p);
 
-  const d = v => {
+  const fmtD = v => {
     if(!v) return '';
-    const t = new Date(v);
-    if(isNaN(t)) return v;
+    const t = new Date(v); if(isNaN(t)) return v;
     return String(t.getDate()).padStart(2,'0')+'-'+
       ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+
       '-'+t.getFullYear();
   };
   const ex = v => {
     if(!v) return '<td></td>';
-    const t=new Date(v);
-    if(isNaN(t)) return `<td>${v}</td>`;
+    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
     const days=(t-Date.now())/864e5;
-    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${d(v)}</td>`;
+    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${fmtD(v)}</td>`;
   };
-
-  // Blank rows keep the ruled-form look when a section is short — an agency
-  // form has empty lines to write on, and a half-filled table reads as unfinished.
   const pad = (rows, want, cols) => {
     let out = rows;
     for(let i=rows.length; i<want; i++) out += '<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>';
     return out;
   };
 
-  // Personal info is a fixed two-up grid of label/value pairs, left and right.
   const L = [['Surname',p.lastName],['First Name',p.firstName],['Middle Name',p.middleName],
-             ['Date of Birth',d(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
+             ['Date of Birth',fmtD(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
              ['Civil Status',p.civilStatus],['Religion',m.religion]];
   const R = [['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
              ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
@@ -7165,119 +7483,195 @@ function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
       <th>${R[i]?R[i][0]:''}</th><td>${R[i]?(R[i][1]||''):''}</td>
     </tr>`).join('');
 
+  const extraRows = [
+    m.highestLicense ? `<tr><th>Highest License</th><td colspan="3">${m.highestLicense}</td></tr>` : '',
+    (m.sss||m.tin) ? `<tr><th>SSS No.</th><td>${m.sss||''}</td><th>TIN No.</th><td>${m.tin||''}</td></tr>` : '',
+    (m.pagibig||m.philhealth) ? `<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>` : '',
+    (m.src||m.phone2) ? `<tr><th>SRC No.</th><td>${m.src||''}</td><th>Alt. Phone</th><td>${m.phone2||''}</td></tr>` : '',
+    m.nok ? `<tr><th>Nearest Relative</th><td colspan="3">${m.nok}</td></tr>` : '',
+    m.children ? `<tr><th>Children</th><td colspan="3">${m.children}</td></tr>` : '',
+    (m.mailingAddress&&m.mailingAddress!==p.address) ? `<tr><th>Mailing Address</th><td colspan="3">${m.mailingAddress}</td></tr>` : '',
+    (m.healthFlag||m.medResult) ? `<tr><th>Health Decl.</th><td>${m.healthFlag||''}${m.healthValid?' (valid '+fmtD(m.healthValid)+')':''}</td><th>Pre-Medical</th><td>${m.medResult||''}${m.medValid?' (valid '+fmtD(m.medValid)+')':''}</td></tr>` : '',
+  ].filter(Boolean).join('');
+
+
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;}
-  .page.pg{display:block;background:white;min-height:297mm;}
-
-  .top{display:flex;gap:14px;align-items:flex-start;padding:16px 18px 12px;}
-  .top .ph{width:78px;height:94px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
-  .top h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;
-          color:#111827;line-height:1.15;}
-  .apply{font-size:9.5px;color:#6b7280;margin-bottom:7px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;background:white;}
+  .sea-doc{width:210mm;margin:0 auto;background:white;}
+  .sec{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px;}
+  .top{display:flex;gap:14px;align-items:flex-start;padding:14px 18px 10px;}
+  .top .ph{width:76px;height:92px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
+  .top h1{font-size:19px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;color:#111827;line-height:1.15;}
+  .apply{font-size:9px;color:#6b7280;margin-bottom:6px;}
   .apply b{color:#1f2937;font-weight:700;}
-  .ct{font-size:8.5px;color:#374151;line-height:1.75;}
+  .ct{font-size:8px;color:#374151;line-height:1.7;}
   .ct span{display:block;}
-
   .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
-        font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
-        color:#1f3864;padding:3px 0;}
-  .obj{font-size:8.5px;line-height:1.7;color:#374151;padding:0 18px 10px;text-align:justify;}
+        font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+        color:#1f3864;padding:3px 0;page-break-after:avoid;break-after:avoid;}
   .wrap{padding:0 18px;}
-  .wrap.last{padding-bottom:16px;}
-
-  table.f{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
-  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.8px 5px;text-align:left;vertical-align:top;}
-  table.f thead th{background:#e8eef7;font-weight:800;font-size:7.5px;letter-spacing:.4px;
-                   text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
+  table.f{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;table-layout:fixed;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.5px 4px;text-align:left;vertical-align:top;
+                         overflow-wrap:break-word;word-break:normal;}
+  table.f thead th{background:#e8eef7;font-weight:800;font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
+  table.f thead{display:table-header-group;}
   table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
   table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
-
-  /* Personal-information grid: label cells shaded, value cells open */
-  table.p{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
-  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.8px 6px;text-align:left;}
+  table.p{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;}
+  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.5px 5px;text-align:left;}
   table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
   table.p td{width:34%;font-weight:600;}
-
   .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
-  .cert{font-size:7px;color:#9aa3b2;margin:-5px 0 9px;}
-  .foot{padding:14px 18px 0;font-size:7.5px;color:#4b5563;line-height:1.7;}
-  .sig{margin-top:26px;text-align:right;padding-right:18px;}
-  .sig .nm{font-weight:800;font-size:9px;color:#111827;text-transform:uppercase;
-           border-top:1px solid #6b7280;display:inline-block;padding:3px 34px 0;}
-  .sig .rl{font-size:7.5px;color:#6b7280;margin-top:2px;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
+
+  /* Sea service column widths — the one table wide enough to need them set. */
+  table.f .c-vessel{width:15%;}  table.f .c-rank  {width:7%;}
+  table.f .c-type  {width:8%;}   table.f .c-grt   {width:6.5%;}
+  table.f .c-dwt   {width:5.5%;} table.f .c-kw    {width:7%;}
+  table.f .c-engine{width:11%;}  table.f .c-agency{width:14%;}
+  table.f .c-on    {width:8%;}   table.f .c-off   {width:8%;}
+  table.f .c-reason{width:10%;}
+  table.f td.n{white-space:nowrap;}
+  table.f td.sm{font-size:6.5px;line-height:1.35;}
+  table.f thead th{word-break:normal;white-space:nowrap;}
+  .cert{font-size:6.5px;color:#9aa3b2;margin:-5px 0 8px;}
+  .foot{padding:12px 18px 0;font-size:7px;color:#4b5563;line-height:1.7;}
+  .sig{margin-top:22px;text-align:right;padding-right:18px;}
+  .sig .nm{font-weight:800;font-size:8.5px;color:#111827;text-transform:uppercase;border-top:1px solid #6b7280;display:inline-block;padding:3px 32px 0;}
+  .sig .rl{font-size:7px;color:#6b7280;margin-top:2px;}
+  .pg-break{page-break-before:always;break-before:page;}
+  @media screen{
+    body{background:#555;padding:30px 0 60px;}
+    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);}
+    .pgwrap>thead,.pgwrap>tfoot{display:none;}
+    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;}
+  }
+  @media print{
+    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .no-print{display:none!important;}
+    /* Top and bottom margins zeroed so the browser has nowhere to print its
+       header and footer — see the note in T16. Per-page space comes from the
+       repeating spacer table. */
+    @page{margin:0 12mm;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:0!important;}
+    .pgwrap{width:100%;border-collapse:collapse;}
+    .pgwrap>thead>tr>th,.pgwrap>tfoot>tr>td{
+      height:12mm;border:none;padding:0;background:none;}
+    .pgwrap>tbody>tr>td{padding:0;border:none;vertical-align:top;}
+  }
+</style></head><body>${pb}
+<div class="sea-doc">
+<!-- Empty repeating spacers — see the note in T16. -->
+<table class="pgwrap"><thead><tr><th></th></tr></thead>
+<tfoot><tr><td></td></tr></tfoot><tbody><tr><td>
 
   <div class="top">
     <div class="ph">${ph}</div>
     <div style="flex:1;min-width:0;">
-      <h1>${fullName(p)}</h1>
+      <h1>${nm}</h1>
       <div class="apply">Applying for <b>${m.rank||p.jobTitle||'—'}</b></div>
       <div class="ct">
-        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
+        ${p.phone?`<span>📱 ${p.phone}${m.phone2?' / '+m.phone2:''}</span>`:''}
         ${p.email?`<span>✉ ${p.email}</span>`:''}
         ${p.address?`<span>📍 ${p.address}</span>`:''}
+        ${m.highestLicense?`<span>🏅 ${m.highestLicense}</span>`:''}
       </div>
     </div>
   </div>
 
   ${s.profileSummary?`<div class="band" style="margin:0 18px;">Objective</div>
-    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:7px 9px;margin-bottom:9px;">
-      <div style="font-size:8.5px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
+    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:6px 9px;margin-bottom:8px;">
+      <div style="font-size:8px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
     </div></div>`:''}
 
-  <div class="wrap">
+  <div class="wrap sec">
     <div class="band">Personal Information</div>
     <table class="p">${pairs}</table>
+    ${extraRows?`<table class="p" style="margin-top:-1px;">${extraRows}</table>`:''}
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Educational Background</div>
     <table class="f">
-      <thead><tr><th style="width:18%;">Level</th><th>Name of School</th><th style="width:18%;">Date Graduated</th><th style="width:26%;">Course</th></tr></thead>
+      <thead><tr><th style="width:16%;">Level</th><th>Name of School</th><th style="width:16%;">Graduated</th><th style="width:28%;">Course</th></tr></thead>
       <tbody>${pad(edu.map(e=>`<tr>
         <td class="lbl">${e.degree&&/college|tertiary|bachelor|bs |ba /i.test(e.degree)?'Tertiary':''}</td>
-        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 3, 4)}
+        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 2, 4)}
       </tbody>
     </table>
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Travel Documents</div>
     <table class="f">
-      <thead><tr><th style="width:26%;">Document</th><th>Number</th><th style="width:17%;">Date Issued</th><th style="width:17%;">Expiry Date</th><th style="width:18%;">Place Issued</th></tr></thead>
+      <thead><tr><th style="width:24%;">Document</th><th>Number</th><th style="width:15%;">Date Issued</th><th style="width:15%;">Expiry</th><th style="width:18%;">Place Issued</th></tr></thead>
       <tbody>${pad(docs.map(x=>`<tr>
         <td class="lbl">${x.type||''}</td><td>${x.number||''}</td>
-        <td>${d(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
+        <td>${fmtD(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
       </tbody>
     </table>
+  </div>
 
+
+  <div class="wrap sec">
     <div class="band">Vaccination</div>
     <table class="f">
-      <thead><tr><th style="width:28%;">Type</th><th style="width:20%;">Date Vaccinated</th><th style="width:20%;">Valid Until</th><th>Place Issued</th></tr></thead>
+      <thead><tr><th style="width:28%;">Type</th><th style="width:18%;">Date Vaccinated</th><th style="width:18%;">Valid Until</th><th>Place Issued</th></tr></thead>
       <tbody>${pad(vax.map(v=>`<tr>
-        <td class="lbl">${v.name||''}</td><td>${d(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
+        <td class="lbl">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
       </tbody>
     </table>
+  </div>
 
+  <div class="wrap sec">
     <div class="band">Certificates &amp; Trainings</div>
     <table class="f">
-      <thead><tr><th>Name</th><th style="width:18%;">Number</th><th style="width:18%;">Date Issued</th><th style="width:18%;">Expiry Date</th></tr></thead>
+      <thead><tr><th>Name</th><th style="width:16%;">Number</th><th style="width:16%;">Date Issued</th><th style="width:16%;">Expiry Date</th></tr></thead>
       <tbody>${pad(certs.map(c=>`<tr>
         <td class="lbl" style="font-weight:600;color:#1f2937;background:white;">${c.name||''}</td>
-        <td>${c.number||''}</td><td>${d(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
+        <td>${c.number||''}</td><td>${fmtD(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
       </tbody>
     </table>
-    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · shaded amber expires within 90 days.</div>`:''}
+    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · amber expires within 90 days.</div>`:''}
+  </div>
 
-    <div class="band">Sea Service</div>
+
+  <div class="wrap sec">
+    <div class="band">Sea Service Record</div>
     <table class="f">
-      <thead><tr><th>Rank</th><th>Name of Vessel</th><th>Type of Vessel</th><th>GRT</th><th>KW</th><th>Joined</th><th>Signed Off</th><th>Trade Area</th></tr></thead>
+      <colgroup>
+        <col class="c-vessel"><col class="c-rank"><col class="c-type">
+        <col class="c-grt"><col class="c-dwt"><col class="c-kw">
+        <col class="c-engine"><col class="c-agency">
+        <col class="c-on"><col class="c-off"><col class="c-reason">
+      </colgroup>
+      <thead><tr>
+        <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
+        <th>KW</th><th>Engine Type</th><th>Agency / Principal</th>
+        <th>Joined</th><th>Sign Off</th><th>Reason</th>
+      </tr></thead>
       <tbody>${pad(sea.map(v=>`<tr>
-        <td>${v.rank||''}</td><td style="font-weight:700;">${v.vessel||''}</td><td>${v.vesselType||''}</td>
-        <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${d(v.signOn)}</td><td>${d(v.signOff)}</td>
-        <td>${v.tradeArea||''}</td></tr>`).join(''), 4, 8)}
+        <td class="c-vessel" style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-size:6.5px;font-weight:400;">IMO ${v.imoNo}</span>`:''}</td>
+        <td class="c-rank">${v.rank||''}</td>
+        <td class="c-type">${v.vesselType||''}</td>
+        <td class="c-grt n">${v.grt||''}</td>
+        <td class="c-dwt n">${v.dwt||''}</td>
+        <td class="c-kw n">${v.kw||''}</td>
+        <td class="c-engine sm">${v.engineType||''}</td>
+        <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean).join('<br>')}</td>
+        <td class="c-on n">${fmtD(v.signOn)}</td>
+        <td class="c-off n">${fmtD(v.signOff)}</td>
+        <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
+        </tr>`).join(''), 4, 11)}
       </tbody>
     </table>
+  </div>
 
+  ${refs.length?`<div class="wrap sec">
     <div class="band">Character Reference</div>
     <table class="f">
       <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact No. / Email</th></tr></thead>
@@ -7286,16 +7680,18 @@ ${pc}
         <td>${r.company||''}</td><td>${r.contact||''}</td></tr>`).join(''), 2, 4)}
       </tbody>
     </table>
-  </div>
+  </div>`:''}
 
-  <div class="foot">I hereby certify that the information provided in this resume is true and correct
-    to the best of my knowledge and belief.</div>
+  <div class="foot">I hereby certify that the information provided in this resume is true and correct to the best of my knowledge and belief.</div>
   <div class="sig">
-    <div class="nm">${fullName(p)}</div>
+    <div class="nm">${nm}</div>
     <div class="rl">Applicant</div>
   </div>
 
-</div></div></body></html>`;}
+</td></tr></tbody></table>
+</div><!-- /sea-doc -->
+</body></html>`;}
+
 
 
 
