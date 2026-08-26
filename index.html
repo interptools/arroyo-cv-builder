@@ -405,19 +405,6 @@
   .scan-status.error { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
   .scan-preview { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(201,168,76,0.5); display: none; flex-shrink: 0; }
 
-  /* CGIS SCANNER */
-  .cgis-card { background: linear-gradient(135deg, #0d3b2e 0%, #1a5c44 100%); border-radius: 16px; padding: 20px 22px; margin-bottom: 18px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border: 1.5px solid rgba(52,211,153,0.35); }
-  .cgis-card-text { flex: 1; min-width: 200px; }
-  .cgis-card-text h3 { font-family: 'Inter', sans-serif; color: #6ee7b7; font-size: 17px; font-weight: 800; margin-bottom: 4px; }
-  .cgis-card-text p { color: rgba(255,255,255,0.65); font-size: 12px; line-height: 1.5; }
-  .cgis-upload-btn { background: #34d399; color: #064e3b; border: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: background .15s; display: flex; align-items: center; gap: 8px; }
-  .cgis-upload-btn:hover { background: #6ee7b7; }
-  .cgis-status { margin-top: 14px; width: 100%; padding: 12px 14px; border-radius: 10px; font-size: 12px; line-height: 1.6; display: none; }
-  .cgis-status.loading { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.2); }
-  .cgis-status.success { background: rgba(52,211,153,0.15); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.35); }
-  .cgis-status.error { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
-  .cgis-preview { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 2px solid rgba(52,211,153,0.5); display: none; flex-shrink: 0; }
-
   /* ── START SCREEN ───────────────────────────────────────────────────────── */
   .start-card {
     background: var(--white); border-radius: 18px; padding: 40px 28px 32px;
@@ -998,43 +985,6 @@
       <div class="scan-status" id="scanStatusForm"></div>
     </div>
 
-    <!-- RESUME / RECORD SCANNER -->
-    <div class="cgis-card" id="resumeScanCard">
-      <img id="cgisPreview" class="cgis-preview" alt="Preview">
-      <div class="cgis-card-text">
-        <h3>📄 Have an Existing Resume or Record?</h3>
-        <p>Scan photos <strong style="color:#6ee7b7;">or paste copied text</strong> — from any resume, CGIS, or agency record. Auto-fills all details in seconds.</p>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
-        <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()" id="scanPhotosBtn">
-          📋 Scan Photos (1–6)
-        </button>
-        <button class="cgis-upload-btn" onclick="toggleCgisPaste()" id="cgisPasteToggleBtn"
-          style="background:rgba(52,211,153,0.18);color:#6ee7b7;border:1.5px solid rgba(52,211,153,0.5);">
-          📄 Paste Text
-        </button>
-      </div>
-      <input type="file" id="cgisScanInput" accept="image/*" multiple style="display:none" onchange="scanCGIS(this)">
-
-      <!-- Paste text panel -->
-      <div id="cgisPastePanel" style="display:none;width:100%;margin-top:4px;">
-        <textarea id="cgisPasteText" rows="7"
-          placeholder="Paste your resume or CGIS text here — from Google Lens, PDF copy, or any OCR app. Works for all CV types: regular resume, seafarer CGIS, fresh grad, etc."
-          style="width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid rgba(52,211,153,0.5);background:rgba(0,0,0,0.3);color:#e0f7ef;font-size:12.5px;line-height:1.65;font-family:Inter,sans-serif;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <button onclick="parseResumeText()" class="cgis-upload-btn" style="flex:1;">
-            ✨ Auto-fill from Text
-          </button>
-          <button onclick="document.getElementById('cgisPasteText').value=''"
-            style="padding:10px 14px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;">
-            Clear
-          </button>
-        </div>
-      </div>
-
-      <div class="cgis-status" id="cgisStatus"></div>
-    </div>
-
     <!-- EDUCATION TYPE -->
     <div class="card">
       <div class="card-header">
@@ -1327,35 +1277,13 @@
           <div class="field"><label>Religion</label><input type="text" id="sm-religion" placeholder="e.g. Roman Catholic"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Place of Birth</label><input type="text" id="sm-birthPlace" placeholder="e.g. Bislig, Surigao del Sur"></div>
-          <div class="field"><label>Highest License / COC Held</label><input type="text" id="sm-highestLicense" placeholder="e.g. COC as Able Seafarer Engine"></div>
+          <div class="field"><label>Place of Birth</label><input type="text" id="sm-birthPlace" placeholder="e.g. Cebu City"></div>
+          <div class="field"><label>SSS / TIN / PhilHealth No.</label><input type="text" id="sm-govIds" placeholder="Optional — SSS, TIN, PhilHealth, Pag-IBIG"></div>
         </div>
-        <div class="field-row triple">
-          <div class="field"><label>SSS No.</label><input type="text" id="sm-sss" placeholder="e.g. 09-4056054-5"></div>
-          <div class="field"><label>TIN No.</label><input type="text" id="sm-tin" placeholder="e.g. 123-456-789"></div>
-          <div class="field"><label>Pag-IBIG No.</label><input type="text" id="sm-pagibig" placeholder="e.g. 121211982297"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>PhilHealth No.</label><input type="text" id="sm-philhealth" placeholder="e.g. 160255918157"></div>
-          <div class="field"><label>SRC No.</label><input type="text" id="sm-src" placeholder="e.g. 2019011901042"></div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Alternative Phone / Viber</label><input type="tel" id="sm-phone2" placeholder="e.g. 09XX-XXX-XXXX"></div>
+        <div class="field-row full">
           <div class="field">
             <label>Nearest Relative / Next of Kin</label>
             <input type="text" id="sm-nok" placeholder="Name · Relationship · Contact number">
-          </div>
-        </div>
-        <div class="field-row full">
-          <div class="field">
-            <label>Mailing Address <span class="field-hint" style="display:inline;margin-left:4px;">(if different from home address)</span></label>
-            <input type="text" id="sm-mailingAddress" placeholder="Leave blank if same as home address">
-          </div>
-        </div>
-        <div class="field-row full">
-          <div class="field">
-            <label>Children (name and date of birth)</label>
-            <input type="text" id="sm-children" placeholder="e.g. Joe Vergil C. Gamutan — 26/03/2023">
           </div>
         </div>
       </div>
@@ -1403,37 +1331,6 @@
       <div class="card-body">
         <div id="vaxEntries"></div>
         <button class="add-btn" onclick="addVaxEntry()">＋ Add Vaccination</button>
-      </div>
-    </div>
-
-    <!-- HEALTH / MEDICAL -->
-    <div class="card hidden seaman-only" id="seamanHealthCard">
-      <div class="card-header">
-        <div class="card-icon">🏥</div>
-        <div>
-          <h2>Health &amp; Medical</h2>
-          <p>Health declaration and pre-medical exam details</p>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="section-divider"><span>Health Declaration</span></div>
-        <div class="field-row triple">
-          <div class="field"><label>Flag / Issuing Body</label><input type="text" id="sm-healthFlag" placeholder="e.g. Bahamas"></div>
-          <div class="field"><label>Date Issued</label><input type="date" id="sm-healthIssued"></div>
-          <div class="field"><label>Valid Until</label><input type="date" id="sm-healthValid"></div>
-        </div>
-        <div class="field-row full">
-          <div class="field"><label>Clinic</label><input type="text" id="sm-healthClinic" placeholder="e.g. HMI"></div>
-        </div>
-        <div class="section-divider" style="margin-top:8px;"><span>Pre-Medical Examination</span></div>
-        <div class="field-row triple">
-          <div class="field"><label>Result</label><input type="text" id="sm-medResult" placeholder="e.g. Fit For Sea Duty"></div>
-          <div class="field"><label>Date Issued</label><input type="date" id="sm-medIssued"></div>
-          <div class="field"><label>Valid Until</label><input type="date" id="sm-medValid"></div>
-        </div>
-        <div class="field-row full">
-          <div class="field"><label>Clinic</label><input type="text" id="sm-medClinic" placeholder="e.g. Health Metrics, Inc."></div>
-        </div>
       </div>
     </div>
 
@@ -2221,23 +2118,6 @@
           <div id="confirm-ref" style="font-size:17px;font-weight:900;color:#fff;letter-spacing:1px;">—</div>
           <div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:4px;">Save this — you can check your status any time on the home page.</div>
         </div>
-
-        <!-- ✅ REVIEW LINK — customer can open, check, and correct their details -->
-        <div id="reviewLinkBox" style="display:none;background:linear-gradient(135deg,#0d3b2e,#1a5c44);border:1.5px solid rgba(52,211,153,0.4);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-            <span style="font-size:22px;">🔍</span>
-            <div>
-              <div style="font-size:13px;font-weight:800;color:#6ee7b7;">Review & Correct Your Details</div>
-              <div style="font-size:11.5px;color:rgba(255,255,255,.6);margin-top:2px;">Open this link to check what we received and fix anything wrong</div>
-            </div>
-          </div>
-          <div style="background:rgba(0,0,0,.25);border-radius:7px;padding:9px 12px;word-break:break-all;font-size:11px;color:#a7f3d0;font-family:monospace;margin-bottom:10px;" id="reviewLinkText"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button onclick="copyReviewLink()" style="flex:1;min-width:120px;padding:9px 12px;background:#34d399;color:#064e3b;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">📋 Copy Link</button>
-            <button onclick="openReviewLink()" style="flex:1;min-width:120px;padding:9px 12px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">🔗 Open Now</button>
-          </div>
-          <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:8px;">💡 Share this link with us or open it yourself to verify everything is correct before we start working on your CV.</div>
-        </div>
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
           <span style="color:#6b7280">Professional CV / Resume</span>
           <span id="sum-base-price" style="font-weight:600;color:#1a2744">₱50</span>
@@ -2290,168 +2170,6 @@
       <button class="new-submission-btn" onclick="resetForm()">Submit Another Form</button>
     </div>
   </div>
-
-  <!-- ══════════════════════════════════════════════════════════════════════
-       CUSTOMER REVIEW PAGE  (?review=TOKEN)
-       Opened via the link sent after submission. Shows all submitted data
-       in an editable form. Customer confirms or corrects, then re-submits.
-       ══════════════════════════════════════════════════════════════════════ -->
-  <div class="page" id="reviewPage">
-    <div style="background:linear-gradient(135deg,#0d3b2e,#1a5c44);border-radius:14px;padding:18px 20px;margin-bottom:20px;border:1.5px solid rgba(52,211,153,0.35);">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-        <span style="font-size:28px;">🔍</span>
-        <div>
-          <div style="color:#6ee7b7;font-size:17px;font-weight:800;">Review Your Submitted Details</div>
-          <div style="color:rgba(255,255,255,.6);font-size:12px;margin-top:2px;">Check every section — edit anything wrong, then click Confirm at the bottom.</div>
-        </div>
-      </div>
-      <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:9px 13px;font-size:12px;color:rgba(255,255,255,.7);line-height:1.6;">
-        📌 Ref: <strong id="rv-ref" style="color:#6ee7b7;">—</strong> &nbsp;·&nbsp; Submitted: <span id="rv-date">—</span>
-      </div>
-      <div id="rv-edited-note" style="display:none;background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.35);border-radius:7px;padding:8px 12px;margin-top:10px;font-size:12px;color:#6ee7b7;">
-        ✅ You have already confirmed your details. You can still make further corrections below.
-      </div>
-    </div>
-
-    <!-- STATUS MESSAGE while loading -->
-    <div id="rv-loading" style="text-align:center;padding:40px 20px;color:var(--gray);font-size:14px;">
-      ⏳ Loading your submission…
-    </div>
-
-    <!-- The editable review form (hidden until data loads) -->
-    <div id="rv-form" style="display:none;">
-
-      <!-- PERSONAL INFO -->
-      <div class="card">
-        <div class="card-header"><div class="card-icon">👤</div>
-          <div><h2>Personal Information</h2><p>Name, contact, and basic details</p></div>
-        </div>
-        <div class="card-body">
-          <div class="field-row triple">
-            <div class="field"><label>First Name <span class="req">*</span></label><input type="text" id="rv-firstName" placeholder="First name"></div>
-            <div class="field"><label>Middle Name</label><input type="text" id="rv-middleName" placeholder="Middle name"></div>
-            <div class="field"><label>Last Name <span class="req">*</span></label><input type="text" id="rv-lastName" placeholder="Last name"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Position / Job Title</label><input type="text" id="rv-jobTitle" placeholder="e.g. Wiper, OS, AB Seaman"></div>
-            <div class="field"><label>Nationality</label><input type="text" id="rv-nationality" placeholder="e.g. Filipino"></div>
-          </div>
-          <div class="field-row triple">
-            <div class="field"><label>Date of Birth</label><input type="date" id="rv-dob"></div>
-            <div class="field"><label>Civil Status</label>
-              <select id="rv-civilStatus"><option value="">Select…</option><option>Single</option><option>Married</option><option>Widowed</option><option>Separated</option></select>
-            </div>
-            <div class="field"><label>Gender</label>
-              <select id="rv-gender"><option value="">Select…</option><option>Male</option><option>Female</option><option>Prefer not to say</option></select>
-            </div>
-          </div>
-          <div class="field-row full"><div class="field"><label>Home Address <span class="req">*</span></label><input type="text" id="rv-address" placeholder="Street, Barangay, City, Province"></div></div>
-          <div class="field-row">
-            <div class="field"><label>Phone Number <span class="req">*</span></label><input type="tel" id="rv-phone" placeholder="09XX-XXX-XXXX"></div>
-            <div class="field"><label>Email Address <span class="req">*</span></label><input type="email" id="rv-email" placeholder="juan@email.com"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- EDUCATION -->
-      <div class="card">
-        <div class="card-header"><div class="card-icon">🎓</div>
-          <div><h2>Education</h2><p>Check school name, degree, and year</p></div>
-        </div>
-        <div class="card-body"><div id="rv-eduList"></div></div>
-      </div>
-
-      <!-- SEAFARER SECTIONS (shown if seaman) -->
-      <div id="rv-seamanSections" style="display:none;">
-
-        <!-- TRAVEL DOCUMENTS -->
-        <div class="card">
-          <div class="card-header"><div class="card-icon">📘</div>
-            <div><h2>Travel Documents</h2><p>Passport, SIRB, SID, visas — check numbers and dates</p></div>
-          </div>
-          <div class="card-body"><div id="rv-docList"></div></div>
-        </div>
-
-        <!-- CERTIFICATES -->
-        <div class="card">
-          <div class="card-header"><div class="card-icon">📜</div>
-            <div><h2>Certificates & Trainings</h2><p>STCW and other certificates</p></div>
-          </div>
-          <div class="card-body"><div id="rv-certList"></div></div>
-        </div>
-
-        <!-- VACCINATIONS -->
-        <div class="card">
-          <div class="card-header"><div class="card-icon">💉</div>
-            <div><h2>Vaccinations</h2><p>Yellow Fever, COVID, etc.</p></div>
-          </div>
-          <div class="card-body"><div id="rv-vaxList"></div></div>
-        </div>
-
-        <!-- SEA SERVICE -->
-        <div class="card">
-          <div class="card-header"><div class="card-icon">🚢</div>
-            <div><h2>Sea Service Record</h2><p>Vessel names, ranks, sign-on and sign-off dates</p></div>
-          </div>
-          <div class="card-body"><div id="rv-seaList"></div></div>
-        </div>
-
-      </div><!-- /seamanSections -->
-
-      <!-- WORK EXPERIENCE (non-seaman) -->
-      <div id="rv-workSection" style="display:none;">
-        <div class="card">
-          <div class="card-header"><div class="card-icon">💼</div>
-            <div><h2>Work Experience</h2><p>Company, position, dates</p></div>
-          </div>
-          <div class="card-body"><div id="rv-workList"></div></div>
-        </div>
-      </div>
-
-      <!-- ADDITIONAL NOTES -->
-      <div class="card">
-        <div class="card-header"><div class="card-icon">✏️</div>
-          <div><h2>Additional Notes</h2><p>Anything else you want to tell us</p></div>
-        </div>
-        <div class="card-body">
-          <div class="field-row full">
-            <div class="field"><label>About You / Notes for Us</label>
-              <textarea id="rv-aboutMe" rows="3" placeholder="Any corrections or notes for us…"></textarea>
-            </div>
-          </div>
-          <div class="field-row full">
-            <div class="field"><label>Special Instructions</label>
-              <input type="text" id="rv-specialInstructions" placeholder="e.g. Keep it to one page, highlight sea service…">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CONFIRM BUTTON -->
-      <div style="background:linear-gradient(135deg,#0d3b2e,#1a5c44);border-radius:14px;padding:20px;border:1.5px solid rgba(52,211,153,0.35);margin-bottom:20px;">
-        <div style="font-size:14px;font-weight:700;color:#6ee7b7;margin-bottom:6px;">✅ Everything looks correct?</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:14px;">Click Confirm to let us know your details are accurate. If you made any changes above, those will be saved too.</div>
-        <button onclick="submitReview()" id="rv-confirmBtn" style="width:100%;padding:14px;background:#34d399;color:#064e3b;border:none;border-radius:10px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;">
-          <span id="rv-confirmLabel">✅ Confirm — Details are Correct</span>
-          <span id="rv-confirmSpinner" class="spinner hidden" style="border-color:rgba(6,78,59,.3);border-top-color:#064e3b;"></span>
-        </button>
-      </div>
-    </div><!-- /rv-form -->
-
-    <!-- SUCCESS STATE after confirming -->
-    <div id="rv-success" style="display:none;">
-      <div class="confirm-card">
-        <div class="confirm-icon">✅</div>
-        <h2>Details Confirmed!</h2>
-        <p>Thank you — we've received your confirmation. We'll start working on your CV right away. If you made any corrections, those have been saved.</p>
-        <div class="contact-box" style="margin-top:20px;">
-          <h3>📞 Contact Details</h3>
-          <div class="contact-item"><div class="ci-icon">📱</div><div><div class="ci-label">Phone / GCash</div><div class="ci-value">09063964052 — Reymar Arroyo</div></div></div>
-          <div class="contact-item"><div class="ci-icon">✉️</div><div><div class="ci-label">Email</div><div class="ci-value">areymar36@gmail.com</div></div></div>
-        </div>
-      </div>
-    </div>
-  </div><!-- /reviewPage -->
 
 </main>
 
@@ -2990,11 +2708,7 @@ const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nation
   'rl-justcause','rl-reason','rl-tone','rl-notes',
   // Seafarer scalars — harmless on other formats, the elements simply won't exist
   'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
-  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-highestLicense',
-  'sm-sss','sm-tin','sm-pagibig','sm-philhealth','sm-src',
-  'sm-phone2','sm-nok','sm-mailingAddress','sm-children',
-  'sm-healthFlag','sm-healthIssued','sm-healthValid','sm-healthClinic',
-  'sm-medResult','sm-medIssued','sm-medValid','sm-medClinic'];
+  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok'];
 
 let draftTimer = null;
 
@@ -4401,816 +4115,6 @@ Rules:
   }
 }
 // ─────────────────────────────────────────────────────────────
-// CGIS SCANNER — reads Crew General Information Sheets from
-// manning agencies (Jebsen PTC, DOLE, etc.) and auto-fills
-// the Seafarer sections: personal info, documents, certs,
-// vaccinations, and sea service record.
-// ─────────────────────────────────────────────────────────────
-// ─── SHARED CGIS FORM-FILL HELPER ────────────────────────────────────────────
-// Called by both the image scanner and the paste-text parser after getting data.
-// Returns the number of sections filled so the caller can show a summary.
-function fillCGISData(data, statusEl, scanLabel, extraNote='') {
-  // Switch to seafarer form first
-  const seamanRadio = document.querySelector('input[name="eduLevel"][value="seaman"]');
-  if (seamanRadio && !seamanRadio.checked) { seamanRadio.checked = true; handleEduChange(); }
-
-  // ── Date normaliser ──────────────────────────────────────────────────────
-  // Browser date inputs require strict YYYY-MM-DD. AI can return many formats.
-  function toYMD(v) {
-    if (!v || typeof v !== 'string') return '';
-    v = v.trim();
-    // Already correct
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-    // Strip time component
-    if (v.includes('T')) v = v.split('T')[0];
-    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-    // DD/MM/YYYY or DD-MM-YYYY
-    let m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
-    // MM/YYYY or MM-YYYY → use day 01
-    m = v.match(/^(\d{1,2})[\/\-](\d{4})$/);
-    if (m) return `${m[2]}-${m[1].padStart(2,'0')}-01`;
-    // "17 May 1992" or "May 17, 1992"
-    const MONTHS = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
-                    jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
-    m = v.match(/^(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})$/);
-    if (m) { const mo = MONTHS[m[2].toLowerCase().slice(0,3)]; return mo ? `${m[3]}-${mo}-${m[1].padStart(2,'0')}` : ''; }
-    m = v.match(/^([A-Za-z]{3})\w*\s+(\d{1,2}),?\s+(\d{4})$/);
-    if (m) { const mo = MONTHS[m[1].toLowerCase().slice(0,3)]; return mo ? `${m[3]}-${mo}-${m[2].padStart(2,'0')}` : ''; }
-    return ''; // unrecognised — leave blank rather than set wrong value
-  }
-
-  // ── Rank abbreviation map ────────────────────────────────────────────────
-  const RANK_MAP = {
-    'MAS':'Master','MST':'Master','CAPT':'Master','CAPTAIN':'Master',
-    'C/O':'Chief Officer','CHO':'Chief Officer','CHIEFMATE':'Chief Officer','CHIEF MATE':'Chief Officer',
-    '2/O':'Second Officer','2O':'Second Officer','2ND MATE':'Second Officer',
-    '3/O':'Third Officer','3O':'Third Officer','3RD MATE':'Third Officer',
-    'D/C':'Deck Cadet','DC':'Deck Cadet','DECK CADET':'Deck Cadet',
-    'BSN':'Bosun','BOSUN':'Bosun',
-    'AB':'Able Seaman (AB)','ABS':'Able Seaman (AB)','ABLE SEAMAN':'Able Seaman (AB)',
-    'OS':'Ordinary Seaman (OS)','ORD SEAMAN':'Ordinary Seaman (OS)','ORDINARY SEAMAN':'Ordinary Seaman (OS)',
-    'DF':'Deck Fitter','DECK FITTER':'Deck Fitter',
-    'C/E':'Chief Engineer','CE':'Chief Engineer','CHIEF ENGINEER':'Chief Engineer',
-    '2/E':'Second Engineer','2E':'Second Engineer','SECOND ENGINEER':'Second Engineer',
-    '3/E':'Third Engineer','3E':'Third Engineer','THIRD ENGINEER':'Third Engineer',
-    '4/E':'Fourth Engineer','4E':'Fourth Engineer','FOURTH ENGINEER':'Fourth Engineer',
-    'E/C':'Engine Cadet','EC':'Engine Cadet','ENGINE CADET':'Engine Cadet',
-    'ETO':'Electrician / ETO','ELEC':'Electrician / ETO','ELECTRICIAN':'Electrician / ETO',
-    'FTR':'Fitter','FITTER':'Fitter',
-    'OLR':'Oiler','OILER':'Oiler',
-    'WPR':'Wiper','WIPER':'Wiper',
-    'MTM':'Motorman','MM':'Motorman','MOTORMAN':'Motorman',
-    'CCK':'Chief Cook','CH COOK':'Chief Cook','CHIEF COOK':'Chief Cook',
-    '2CK':'Second Cook','SECOND COOK':'Second Cook',
-    'MSM':'Messman','MESSMAN':'Messman',
-    'STW':'Steward','STEW':'Steward','STEWARD':'Steward',
-  };
-
-  function resolveRank(raw) {
-    if (!raw) return '';
-    const up = raw.trim().toUpperCase().replace(/\s+/g,' ');
-    if (RANK_MAP[up]) return RANK_MAP[up];
-    // Try partial: if raw matches start of any key
-    for (const [k,v] of Object.entries(RANK_MAP)) {
-      if (up.startsWith(k) || k.startsWith(up)) return v;
-    }
-    return raw; // return as-is if no match — it goes into the text input
-  }
-
-  // ── Select matcher — case-insensitive fuzzy ──────────────────────────────
-  function setSelect(el, raw) {
-    if (!el || !raw) return;
-    const up = raw.trim().toUpperCase().replace(/[\s\/]+/g,' ');
-    // Exact value match first
-    for (const opt of el.options) {
-      if (opt.value.toUpperCase() === raw.trim().toUpperCase()) { el.value = opt.value; return; }
-    }
-    // Normalised text match
-    for (const opt of el.options) {
-      if (opt.text.toUpperCase().replace(/[\s\/]+/g,' ') === up) { el.value = opt.value; return; }
-    }
-    // Partial/contains match
-    for (const opt of el.options) {
-      const ot = opt.text.toUpperCase().replace(/[\s\/]+/g,' ');
-      if (ot.includes(up) || up.includes(ot)) { el.value = opt.value; return; }
-    }
-    // Not found — add as custom option so value is preserved
-    const no = new Option(raw, raw);
-    el.add(no); el.value = raw;
-  }
-
-  // ── Plain text setter ────────────────────────────────────────────────────
-  const set = (id, val) => {
-    if (!val && val !== 0) return;
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = val;
-  };
-
-  // ── Date setter — normalises before setting ──────────────────────────────
-  const setDate = (id, val) => {
-    const d = toYMD(val);
-    if (d) set(id, d);
-  };
-
-  // ── Personal ─────────────────────────────────────────────────────────────
-  if (data.fullName) {
-    const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
-    const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
-    set('firstName', pts[0] || '');
-    if (pts.length >= 3) {
-      let s = pts.length - 1;
-      while (s > 1 && PAR.has(pts[s-1].toLowerCase())) s--;
-      set('lastName', pts.slice(s).join(' '));
-      set('middleName', pts.slice(1, s).join(' '));
-    } else { set('lastName', pts.slice(1).join(' ') || ''); }
-  }
-  setDate('dob', data.dob);
-  set('address', data.address);
-  set('phone', data.phone); set('email', data.email);
-  set('jobTitle', data.position); set('nationality', data.nationality || 'Filipino');
-
-  // Civil status — case-insensitive select match
-  if (data.civilStatus) setSelect(document.getElementById('civilStatus'), data.civilStatus);
-
-  // Gender — case-insensitive select match
-  if (data.gender) setSelect(document.getElementById('gender'), data.gender);
-
-  set('sm-birthPlace', data.birthPlace); set('sm-height', data.height);
-  set('sm-weight', data.weight); set('sm-blood', data.bloodType);
-  set('sm-eyes', data.eyeColor); set('sm-hair', data.hairColor);
-  set('sm-religion', data.religion); set('sm-shoe', data.shoeSize);
-  set('sm-coverall', data.coverallSize); set('sm-sss', data.sss);
-  set('sm-tin', data.tin); set('sm-pagibig', data.pagibig);
-  set('sm-philhealth', data.philhealth); set('sm-src', data.src);
-  set('sm-highestLicense', data.highestLicense); set('sm-phone2', data.phone2);
-  set('sm-nok', data.nok); set('sm-mailingAddress', data.mailingAddress);
-  set('sm-children', data.children);
-
-  // sm-rank: use RANK_MAP then fuzzy match the select
-  if (data.position) {
-    const rankEl = document.getElementById('sm-rank');
-    if (rankEl) setSelect(rankEl, resolveRank(data.position));
-  }
-
-  // Health & Medical — all date inputs
-  set('sm-healthFlag', data.healthFlag);
-  setDate('sm-healthIssued', data.healthIssued);
-  setDate('sm-healthValid', data.healthValid);
-  set('sm-healthClinic', data.healthClinic);
-  set('sm-medResult', data.medResult);
-  setDate('sm-medIssued', data.medIssued);
-  setDate('sm-medValid', data.medValid);
-  set('sm-medClinic', data.medClinic);
-
-  // ── Education ─────────────────────────────────────────────────────────────
-  if (data.education?.length) {
-    while (document.querySelectorAll('#eduEntries .exp-entry').length < data.education.length) addEduEntry();
-    data.education.forEach((edu, i) => {
-      const e = document.getElementById(`edu-${i+1}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = edu.school   || '';
-      if (inp[1]) inp[1].value = edu.degree   || '';
-      if (inp[2]) inp[2].value = edu.yearGrad || '';
-    });
-  }
-
-  // ── Travel Documents ──────────────────────────────────────────────────────
-  if (data.documents?.length) {
-    document.querySelectorAll('#docEntries .exp-entry').forEach(el => el.remove());
-    docCount = 0;
-    data.documents.filter(d => d.type || d.number).forEach(doc => {
-      addDocEntry(doc.type || '');
-      const e = document.getElementById(`doc-${docCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      if (inp[1]) inp[1].value = doc.number   || '';
-      if (inp[2]) inp[2].value = toYMD(doc.dateIssued)  || '';
-      if (inp[3]) inp[3].value = toYMD(doc.dateExpiry)  || '';
-      if (inp[4]) inp[4].value = doc.placeIssued || '';
-    });
-  }
-
-  // ── Certificates ──────────────────────────────────────────────────────────
-  if (data.certificates?.length) {
-    console.log('[fillCGISData] certificates:', JSON.stringify(data.certificates));
-    document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
-    certCount = 0;
-    data.certificates.filter(c => c.name).forEach(cert => {
-      addCertEntry();
-      const e = document.getElementById(`cert-${certCount}`); if (!e) { console.warn('[fill] cert element not found:', certCount); return; }
-      const inp = e.querySelectorAll('input');
-      console.log(`[fill] cert-${certCount}: name="${cert.name}" number="${cert.number}" issued="${cert.dateIssued}" inp.length=${inp.length}`);
-      if (inp[0]) inp[0].value = cert.name      || '';
-      if (inp[1]) inp[1].value = cert.number    || '';
-      if (inp[2]) inp[2].value = cert.issuedBy  || '';
-      if (inp[3]) inp[3].value = toYMD(cert.dateIssued) || '';
-      if (inp[4]) inp[4].value = toYMD(cert.validUntil) || '';
-    });
-  }
-
-  // ── Vaccinations ──────────────────────────────────────────────────────────
-  if (data.vaccinations?.length) {
-    document.querySelectorAll('#vaxEntries .exp-entry').forEach(el => el.remove());
-    vaxCount = 0;
-    data.vaccinations.filter(v => v.name).forEach(vax => {
-      addVaxEntry();
-      const e = document.getElementById(`vax-${vaxCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = vax.name        || '';
-      if (inp[1]) inp[1].value = vax.placeIssued || '';
-      if (inp[2]) inp[2].value = toYMD(vax.dateGiven)  || '';
-      if (inp[3]) inp[3].value = toYMD(vax.validUntil) || '';
-    });
-  }
-
-  // ── Sea Service ───────────────────────────────────────────────────────────
-  if (data.seaService?.length) {
-    console.log('[fillCGISData] seaService:', JSON.stringify(data.seaService));
-    document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
-    seaCount = 0;
-    data.seaService.filter(v => v.vessel || v.signOn).forEach(v => {
-      addSeaEntry();
-      const e = document.getElementById(`sea-${seaCount}`); if (!e) { console.warn('[fill] sea element not found:', seaCount); return; }
-      const inp = e.querySelectorAll('input');
-      const sel = e.querySelector('select');
-      console.log(`[fill] sea-${seaCount}: vessel="${v.vessel}" inp.length=${inp.length} signOn="${v.signOn}"`);
-      if (inp[0])  inp[0].value  = v.vessel     || '';
-      if (inp[1])  inp[1].value  = v.imoNo      || '';
-      if (inp[2])  inp[2].value  = resolveRank(v.rank) || '';
-      if (inp[3])  inp[3].value  = v.vesselType || '';
-      if (inp[4])  inp[4].value  = v.grt        || '';
-      if (inp[5])  inp[5].value  = v.dwt        || '';
-      if (inp[6])  inp[6].value  = v.kw         || '';
-      if (inp[7])  inp[7].value  = v.engineType || '';
-      if (inp[8])  inp[8].value  = v.tradeArea  || '';
-      if (inp[9])  inp[9].value  = v.agency     || '';
-      if (inp[10]) inp[10].value = v.principal  || '';
-      if (inp[11]) inp[11].value = v.amosup     || '';
-      if (sel && v.signOffReason) setSelect(sel, v.signOffReason);
-      if (inp[12]) inp[12].value = toYMD(v.signOn)  || '';
-      if (inp[13]) inp[13].value = toYMD(v.signOff) || '';
-    });
-  }
-
-  // ── Summary ───────────────────────────────────────────────────────────────
-  const filled = [data.fullName, data.dob, data.address, data.sss||data.tin,
-    data.documents?.length, data.certificates?.length, data.vaccinations?.length,
-    data.seaService?.length, data.education?.length].filter(Boolean).length;
-
-  const label = scanLabel || '✅ Done';
-  statusEl.className = 'cgis-status success';
-  statusEl.style.display = 'block';
-
-  // Build a visible summary of what was extracted
-  const certNames = (data.certificates||[]).filter(c=>c.name).map(c=>c.name);
-  const seaVessels = (data.seaService||[]).filter(v=>v.vessel).map(v=>v.vessel);
-  const workJobs = (data.workExperience||[]).filter(w=>w.company).map(w=>w.company);
-  const debugLines = [];
-  if (data.fullName)          debugLines.push(`👤 ${data.fullName}`);
-  if (certNames.length)       debugLines.push(`📜 ${certNames.length} cert${certNames.length>1?'s':''}: ${certNames.slice(0,2).join(', ')}${certNames.length>2?' …':''}`);
-  if (seaVessels.length)      debugLines.push(`🚢 ${seaVessels.length} vessel${seaVessels.length>1?'s':''}: ${seaVessels.slice(0,2).join(', ')}${seaVessels.length>2?' …':''}`);
-  if (workJobs.length)        debugLines.push(`💼 ${workJobs.length} job${workJobs.length>1?'s':''}: ${workJobs.slice(0,2).join(', ')}${workJobs.length>2?' …':''}`);
-  if ((data.vaccinations||[]).filter(v=>v.name).length) debugLines.push(`💉 ${data.vaccinations.filter(v=>v.name).length} vaccine${data.vaccinations.filter(v=>v.name).length>1?'s':''}`);
-  if ((data.documents||[]).filter(d=>d.type||d.number).length) debugLines.push(`🛂 ${data.documents.filter(d=>d.type||d.number).length} document${data.documents.filter(d=>d.type||d.number).length>1?'s':''}`);
-
-  statusEl.innerHTML = `${label} — ${filled} section${filled===1?'':'s'} filled. Review each field before submitting.${extraNote}
-    ${debugLines.length ? `<div style="margin-top:6px;font-size:11px;opacity:.8;line-height:1.7;">${debugLines.join('<br>')}</div>` : ''}`;
-
-  showNotif(`✅ Auto-fill complete — ${filled} sections filled. Please review.`);
-  setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
-  return filled;
-}
-
-// ─── GENERAL RESUME / RECORD TEXT PARSER ─────────────────────────────────────
-// Detects CV type from pasted text, then runs focused passes to fill the form.
-// Works for: regular resume (college/highschool), fresh grad (OJT), seafarer CGIS.
-
-async function parseResumeText() {
-  const rawText = (document.getElementById('cgisPasteText')?.value || '').trim();
-  const status  = document.getElementById('cgisStatus');
-
-  if (!rawText || rawText.length < 10) {
-    status.className = 'cgis-status error';
-    status.style.display = 'block';
-    status.innerHTML = '❌ Please paste some text first.';
-    return;
-  }
-
-  status.className = 'cgis-status loading';
-  status.style.display = 'block';
-  status.innerHTML = '⏳ Detecting CV type and extracting details…';
-
-  async function callGemini(promptText, maxTok, timeoutMs) {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
-    let res;
-    try {
-      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { temperature: 0.0, maxOutputTokens: maxTok }
-        })
-      });
-    } finally { clearTimeout(tid); }
-    if (!res.ok) throw new Error('API error ' + res.status);
-    const d = await res.json();
-    if (d.error) throw new Error(d.error.message || 'API error');
-    let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (typeof txt !== 'string') txt = JSON.stringify(txt);
-    console.log('[parseResumeText] raw:', txt.slice(0, 400));
-    return txt;
-  }
-
-  // ── Detect CV type from text keywords ─────────────────────────────────────
-  const up = rawText.toUpperCase();
-  const isSeaman = /SEAMAN|SEAFARER|CGIS|SIRB|SEA SERVICE|WORK EXPERIENCE.*VESSEL|VESSEL.*IMO|MANNING|AMOSUP|SIGN.?ON|SIGN.?OFF|WIPER|BOSUN|OILER|CHIEF ENGINEER|DECK OFFICER|ABLE SEAMAN/.test(up);
-  const isFresh  = !isSeaman && /OJT|PRACTICUM|INTERNSHIP|ON.?THE.?JOB|TRAINEE|INTERN/.test(up);
-  const detectedType = isSeaman ? 'seaman' : isFresh ? 'fresh' : 'college';
-
-  // Switch form to detected type
-  const radio = document.querySelector(`input[name="eduLevel"][value="${detectedType}"]`);
-  if (radio && !radio.checked) { radio.checked = true; handleEduChange(); }
-
-  status.innerHTML = `⏳ Detected: ${isSeaman?'⚓ Seafarer':isFresh?'🎓 Fresh Grad':'📋 Regular Resume'} — extracting details…`;
-
-  try {
-    if (isSeaman) {
-      // ── Seafarer: two-pass (same as CGIS scanner) ───────────────────────
-      const pass1 = `Extract Philippine seafarer CGIS data. Return ONLY valid JSON, no markdown.
-Dates → YYYY-MM-DD (handle DD/MM/YYYY, "17 May 1992"). Extract whatever is present, leave rest as "".
-
-{"fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
-"phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
-"height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
-"shoeSize":"","coverallSize":"","sss":"","tin":"","pagibig":"","philhealth":"","src":"",
-"highestLicense":"","nok":"","children":"",
-"healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
-"medResult":"","medIssued":"","medValid":"","medClinic":"",
-"education":[{"school":"","degree":"","yearGrad":""}],
-"documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-"vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]}
-
-Rules:
-- CONTACT table: row where Contact Person = "Crew" → phone; family row (MOTHER/FATHER/SPOUSE) → phone2; Email = email
-- "Birthdate:" = dob; "Color of Eyes:" = eyeColor; "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig
-- HEALTH DESCRIPTION: Issued=healthIssued, Validity=healthValid, Clinic=healthClinic
-- PRE MEDICAL: result value (e.g. "Fit For Sea Duty")=medResult, Issued=medIssued, Validity=medValid, Clinic=medClinic
-- CREW VACCINES table: Vaccine=name, Issued=dateGiven, Validity=validUntil, Clinic=placeIssued. Skip blank Vaccine rows.
-- BOOKS table (Country|Book Type|Number|Issued|Validity): type=Book Type; prefix country for foreign (e.g. "Liberia Passport")
-- OTHER DOCUMENTS/ID table: label in first col = type (OFW, SID, NBI, etc.)
-- VISAs table (Country|Type|No.|Issued|Validity): type = Country+" "+Type (e.g. "Australian MCV")
-TEXT:\n---\n${rawText.slice(0, 9000)}\n---`;
-
-      const pass2 = `Extract Philippine seafarer CGIS table data. Return ONLY valid JSON, no markdown.
-Dates → YYYY-MM-DD.
-
-{"certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-"seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"","engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"","signOn":"","signOff":""}]}
-
-Certificates — merge BOTH tables:
-- QUALIFICATIONS CERTIFICATE: License Capacity=name, Issuing Ofc=issuedBy, Number=number, Issued=dateIssued, Validity=validUntil
-- TRAINING/UPGRADING: Course Title=name, Issuing Office=issuedBy, Number=number, Issued=dateIssued, Validity=validUntil
-- Extract EVERY row from both. Skip blank rows.
-
-Sea service (WORK EXPERIENCES):
-- "Date of Serv. (From)"=signOn; "Date of Serv. (To)"=signOff (blank if missing)
-- Pos=rank; "Vessel / IMO No." → split on "/": vessel name + imoNo
-- Type=vesselType; GRT=grt; DWT=dwt; BHP=kw; Engine=engineType
-- Agencies=agency; Principal=principal; AMOSUP CBA=amosup (""if N/A); Reason for Sign-off=signOffReason (""if N/A)
-TEXT:\n---\n${rawText.slice(0, 14000)}\n---`;
-
-      status.innerHTML = '⏳ Seafarer: reading personal info &amp; tables in parallel…';
-      const [txt1, txt2] = await Promise.all([
-        callGemini(pass1, 3500, 45000),
-        callGemini(pass2, 6000, 50000)
-      ]);
-      const d1 = extractFirstJSON(txt1) ? JSON.parse(extractFirstJSON(txt1)) : {};
-      const d2 = extractFirstJSON(txt2) ? JSON.parse(extractFirstJSON(txt2)) : {};
-      if (!Object.keys(d1).length && !Object.keys(d2).length)
-        throw new Error('Could not extract data — try pasting more complete CGIS text.');
-      const merged = { ...d1, ...d2 };
-      console.log('[parseResumeText] seafarer merged:', JSON.stringify(merged).slice(0, 800));
-      fillCGISData(merged, status, '✅ Seafarer CV filled from text');
-
-    } else {
-      // ── Regular / Fresh grad: single comprehensive pass ─────────────────
-      const ojtSection = isFresh ? `
-"ojt":[{"company":"","department":"","role":"","hours":"","dateStart":"","dateEnd":"","location":"","supervisor":"","supervisorTitle":"","tools":"","tasks":""}],` : '';
-
-      const workSection = !isFresh ? `
-"workExperience":[{"company":"","position":"","dateStart":"","dateEnd":"","location":"","responsibilities":""}],` : '';
-
-      const prompt = `Extract resume/CV data. Return ONLY valid JSON, no markdown. Extract whatever is present, leave rest as "".
-
-{"fullName":"","dob":"","birthPlace":"","civilStatus":"","gender":"","address":"","phone":"","email":"",
-"jobTitle":"","nationality":"Filipino","social":"","linkedin":"",
-"aboutMe":"","profileSummary":"","hobbies":"","awards":"",
-"education":[{"school":"","degree":"","yearStart":"","yearGrad":"","honors":""}],${workSection}${ojtSection}
-"skills":[],"languages":[],
-"references":[{"name":"","position":"","company":"","contact":""}]}
-
-Rules:
-- fullName: from "Name:" or header; split into first/middle/last yourself if needed (return full name here)
-- dob: "Date of Birth:", "Birthday:" → YYYY-MM-DD
-- jobTitle: "Applying for:", "Position:", "Objective:" target role
-- aboutMe: "About Me", "Summary", "Objective", "Profile" section text
-- skills: extract as array of strings from Skills section
-- languages: extract as array from Languages section
-- education: each school → one entry; honors = "With Honors", "Cum Laude", etc.
-${!isFresh ? `- workExperience: each job → one entry; responsibilities = all bullet points joined with newline` : ''}
-${isFresh ? `- ojt: each internship/OJT → one entry; tasks = all duties listed; supervisor name+title if present` : ''}
-- references: "Character References" or "References" section
-- Dates (dateStart, dateEnd): keep as written (e.g. "June 2020", "March 2023")
-- Leave array empty [] if section not in text. Leave string "" if field not found.
-
-TEXT:\n---\n${rawText.slice(0, 12000)}\n---`;
-
-      status.innerHTML = '⏳ Reading resume…';
-      const txt = await callGemini(prompt, 5000, 45000);
-      const jsonStr = extractFirstJSON(txt);
-      if (!jsonStr) throw new Error('Could not extract data — make sure the text is a readable resume.');
-      const data = JSON.parse(jsonStr);
-      console.log('[parseResumeText] resume data:', JSON.stringify(data).slice(0, 800));
-      // Fill the form fields for regular/fresh CV
-      fillResumeData(data, detectedType, status);
-    }
-
-  } catch (err) {
-    console.error('parseResumeText error:', err);
-    status.className = 'cgis-status error';
-    const isTimeout = err.name === 'AbortError' || (err.message||'').includes('abort');
-    status.innerHTML = (isTimeout
-      ? '⏱️ Timed out — try pasting less text, or retry.'
-      : `❌ ${err.message || 'Could not parse the text.'}`) +
-      `<br><small style="opacity:.7">Tip: paste as much of the resume as you can for best results.</small><br>
-      <button onclick="parseResumeText()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`;
-  }
-}
-
-// Keep backward-compat alias
-function parseCGISText() { parseResumeText(); }
-
-// ─── REGULAR / FRESH GRAD FORM FILL ───────────────────────────────────────────
-function fillResumeData(data, cvType, statusEl) {
-  const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
-  const setDate = (id, val) => { if (!val) return; const el = document.getElementById(id); if (el) { const d = toYMD(val); if (d) el.value = d; } };
-
-  // ── Personal ──────────────────────────────────────────────────────────────
-  if (data.fullName) {
-    const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
-    const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
-    set('firstName', pts[0] || '');
-    if (pts.length >= 3) {
-      let s = pts.length - 1;
-      while (s > 1 && PAR.has(pts[s-1].toLowerCase())) s--;
-      set('lastName', pts.slice(s).join(' '));
-      set('middleName', pts.slice(1, s).join(' '));
-    } else { set('lastName', pts.slice(1).join(' ') || ''); }
-  }
-  setDate('dob', data.dob);
-  set('address', data.address); set('phone', data.phone); set('email', data.email);
-  set('jobTitle', data.jobTitle); set('nationality', data.nationality || 'Filipino');
-  set('social', data.social); set('linkedin', data.linkedin);
-  set('aboutMe', data.aboutMe); set('hobbies', data.hobbies); set('awards', data.awards);
-
-  if (data.civilStatus) {
-    const cs = document.getElementById('civilStatus');
-    if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
-  }
-  if (data.gender) {
-    const gs = document.getElementById('gender');
-    if (gs) { const m = [...gs.options].find(o => o.value.toLowerCase() === data.gender.toLowerCase()); if (m) gs.value = m.value; }
-  }
-
-  // ── Skills & Languages (tag inputs) ──────────────────────────────────────
-  if (data.skills?.length) {
-    document.getElementById('skillTags').innerHTML = '';
-    const si = document.getElementById('skillInput');
-    data.skills.forEach(s => { if (si && s) { si.value = s; addTag('skill'); } });
-  }
-  if (data.languages?.length) {
-    document.getElementById('langTags').innerHTML = '';
-    const li = document.getElementById('langInput');
-    data.languages.forEach(l => { if (li && l) { li.value = l; addTag('lang'); } });
-  }
-
-  // ── Education ─────────────────────────────────────────────────────────────
-  if (data.education?.length) {
-    document.querySelectorAll('#eduEntries .exp-entry').forEach(el => el.remove());
-    eduCount = 0;
-    data.education.filter(e => e.school || e.degree).forEach(edu => {
-      addEduEntry();
-      const e = document.getElementById(`edu-${eduCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = edu.school    || '';
-      if (inp[1]) inp[1].value = edu.degree    || '';
-      if (inp[2]) inp[2].value = edu.yearStart || '';
-      if (inp[3]) inp[3].value = edu.yearGrad  || '';
-      if (inp[4]) inp[4].value = edu.honors    || '';
-    });
-  }
-
-  // ── Work Experience (college / highschool) ────────────────────────────────
-  if (cvType !== 'fresh' && data.workExperience?.length) {
-    document.querySelectorAll('#workEntries .exp-entry').forEach(el => el.remove());
-    workCount = 0;
-    data.workExperience.filter(w => w.company || w.position).forEach(w => {
-      addWorkEntry();
-      const e = document.getElementById(`work-${workCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      const ta  = e.querySelector('textarea');
-      if (inp[0]) inp[0].value = w.company  || '';
-      if (inp[1]) inp[1].value = w.position || '';
-      if (inp[2]) inp[2].value = w.dateStart || '';
-      if (inp[3]) inp[3].value = w.dateEnd   || '';
-      if (inp[4]) inp[4].value = w.location  || '';
-      if (ta)     ta.value     = w.responsibilities || '';
-    });
-  }
-
-  // ── OJT / Practicum (fresh grad) ─────────────────────────────────────────
-  if (cvType === 'fresh' && data.ojt?.length) {
-    document.querySelectorAll('#ojtEntries .exp-entry').forEach(el => el.remove());
-    ojtCount = 0;
-    data.ojt.filter(o => o.company || o.role).forEach(o => {
-      addOjtEntry();
-      const e = document.getElementById(`ojt-${ojtCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      const ta  = e.querySelector('textarea');
-      if (inp[0]) inp[0].value = o.company         || '';
-      if (inp[1]) inp[1].value = o.department       || '';
-      if (inp[2]) inp[2].value = o.role             || '';
-      if (inp[3]) inp[3].value = o.hours            || '';
-      if (inp[4]) inp[4].value = o.dateStart        || '';
-      if (inp[5]) inp[5].value = o.dateEnd          || '';
-      if (inp[6]) inp[6].value = o.location         || '';
-      if (inp[7]) inp[7].value = o.supervisor       || '';
-      if (inp[8]) inp[8].value = o.supervisorTitle  || '';
-      if (inp[9]) inp[9].value = o.tools            || '';
-      if (ta)     ta.value     = o.tasks            || '';
-    });
-  }
-
-  // ── References ────────────────────────────────────────────────────────────
-  if (data.references?.length) {
-    document.querySelectorAll('#refEntries .exp-entry').forEach(el => el.remove());
-    refCount = 0;
-    data.references.filter(r => r.name).forEach(r => {
-      addRefEntry();
-      const e = document.getElementById(`ref-${refCount}`); if (!e) return;
-      const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = r.name     || '';
-      if (inp[1]) inp[1].value = r.position || '';
-      if (inp[2]) inp[2].value = r.company  || '';
-      if (inp[3]) inp[3].value = r.contact  || '';
-    });
-  }
-
-  // ── Summary ───────────────────────────────────────────────────────────────
-  const filled = [data.fullName, data.dob, data.address,
-    data.education?.length, data.workExperience?.length || data.ojt?.length,
-    data.skills?.length, data.references?.length].filter(Boolean).length;
-
-  statusEl.className = 'cgis-status success';
-  statusEl.style.display = 'block';
-  statusEl.innerHTML = `✅ Resume filled — ${filled} section${filled===1?'':'s'} extracted. Review each field before submitting.`;
-  showNotif(`✅ Auto-fill complete — ${filled} sections filled. Please review.`);
-  setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
-}
-
-function toggleCgisPaste() {
-  const panel = document.getElementById('cgisPastePanel');
-  const btn   = document.getElementById('cgisPasteToggleBtn');
-  const open  = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.style.background = open
-    ? 'rgba(52,211,153,0.35)' : 'rgba(52,211,153,0.18)';
-  if (open) document.getElementById('cgisPasteText').focus();
-}
-
-// ─── CGIS SCANNER ─────────────────────────────────────────────────────────────
-// Two-pass strategy: runs Pass 1 (personal/identity) and Pass 2 (tables) in
-// parallel on the same pages. Gemini handles each focused prompt fully instead
-// of skimming a large mixed document. Results are merged before filling.
-// ─────────────────────────────────────────────────────────────────────────────
-
-// Shared Gemini proxy call — returns parsed JSON or throws
-// Extract the FIRST complete, balanced JSON object from a string.
-// Handles cases where Gemini appends extra text, a second JSON block,
-// or markdown fences after the closing brace.
-function extractFirstJSON(raw) {
-  const clean = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
-  const start = clean.indexOf('{');
-  if (start < 0) return null;
-  let depth = 0, inStr = false, esc = false;
-  for (let i = start; i < clean.length; i++) {
-    const c = clean[i];
-    if (esc)        { esc = false; continue; }
-    if (c === '\\' && inStr) { esc = true; continue; }
-    if (c === '"')  { inStr = !inStr; continue; }
-    if (inStr)      continue;
-    if (c === '{')  depth++;
-    if (c === '}') { depth--; if (depth === 0) return clean.slice(start, i + 1); }
-  }
-  return null; // never closed
-}
-
-async function cgisGeminiCall(pages, prompt, maxTok, statusEl, passLabel) {
-  const parts = [{ text: prompt }];
-  pages.forEach((pg, i) => {
-    if (pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
-    parts.push({ inline_data: { mime_type: 'image/jpeg', data: pg.base64 } });
-  });
-
-  // Give generous time and tokens — truncation is what causes bad JSON
-  const timeoutMs = Math.min(30000 + (pages.length - 1) * 8000, 70000);
-
-  async function doFetch() {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
-    let res;
-    try {
-      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
-        })
-      });
-    } finally { clearTimeout(tid); }
-    if (!res.ok) throw new Error(`${passLabel} HTTP ${res.status}`);
-    const d = await res.json();
-    if (d.error) throw new Error(d.error.message || `${passLabel} API error`);
-    let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (typeof text !== 'string') text = JSON.stringify(text);
-    return text;
-  }
-
-  // Try up to 2 times — network blip or a truncated response on first attempt
-  let lastErr;
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    try {
-      const rawText = await doFetch();
-      const jsonStr = extractFirstJSON(rawText);
-      if (!jsonStr) throw new Error(`${passLabel}: no valid JSON object in response`);
-      return JSON.parse(jsonStr);
-    } catch (e) {
-      console.warn(`${passLabel} attempt ${attempt} failed:`, e.message);
-      lastErr = e;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
-    }
-  }
-  throw lastErr;
-}
-
-async function scanCGIS(input) {
-  if (!input.files || !input.files.length) return;
-
-  const status  = document.getElementById('cgisStatus');
-  const preview = document.getElementById('cgisPreview');
-
-  const MAX_PAGES = 6;
-  let files = Array.from(input.files);
-  let capped = false;
-  if (files.length > MAX_PAGES) { files = files.slice(0, MAX_PAGES); capped = true; }
-
-  if (files.some(f => !f.type.startsWith('image/'))) {
-    status.className = 'cgis-status error';
-    status.style.display = 'block';
-    status.innerHTML = '❌ Please upload photos or screenshots (JPG or PNG) only.';
-    input.value = ''; return;
-  }
-
-  status.className = 'cgis-status loading';
-  status.style.display = 'block';
-  status.innerHTML = `⏳ Preparing ${files.length} page${files.length > 1 ? 's' : ''}…`;
-
-  let pages = [];
-  try {
-    // Use higher quality for CGIS — small table text needs it
-    for (let i = 0; i < files.length; i++) {
-      status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
-      pages.push(await prepScanImage(files[i], 2000, 0.92));
-    }
-
-    // Thumbnail strip
-    if (preview) { preview.src = pages[0].dataUrl; preview.style.display = 'block'; }
-    let strip = document.getElementById('cgisPagesStrip');
-    if (!strip) {
-      strip = document.createElement('div');
-      strip.id = 'cgisPagesStrip';
-      strip.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;width:100%;';
-      status.parentNode.insertBefore(strip, status);
-    }
-    strip.innerHTML = pages.length > 1
-      ? pages.map((pg, i) =>
-          `<div style="position:relative;width:52px;height:68px;border-radius:5px;overflow:hidden;border:2px solid rgba(52,211,153,0.6);background:#fff;">
-            <img src="${pg.dataUrl}" style="width:100%;height:100%;object-fit:cover;">
-            <span style="position:absolute;bottom:0;right:0;background:rgba(13,59,46,.85);color:#6ee7b7;font-size:9px;font-weight:800;padding:1px 4px;border-radius:4px 0 0 0;">p${i+1}</span>
-          </div>`).join('')
-      : '';
-
-    const pageNote = pages.length > 1
-      ? `All ${pages.length} CGIS pages are shown in order. Combine data across pages.`
-      : 'Extract all data from this CGIS page.';
-
-    // ── PASS 1 — Personal info, identity, health, education, documents ─────
-    const pass1Prompt = `CGIS data extractor — Pass 1: personal details only.
-${pageNote}
-Dates → YYYY-MM-DD (handle "17 May 1992", "DD/MM/YYYY", "MM/DD/YYYY"). Return ONLY valid JSON, no markdown:
-{
-  "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
-  "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
-  "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
-  "shoeSize":"","coverallSize":"",
-  "sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
-  "nok":"","children":"",
-  "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
-  "medResult":"","medIssued":"","medValid":"","medClinic":"",
-  "education":[{"school":"","degree":"","yearGrad":""}],
-  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]
-}
-Notes:
-- fullName: from "Name:" label
-- CONTACT INFOS table: find row where Contact Person says "Crew" → that Mobile = phone.
-  Row where Contact Person has family title (MOTHER/FATHER/SPOUSE/WIFE) → that Mobile = phone2. Email = email.
-- "Birthdate:" or "Date of Birth:" = dob; "Birthplace:" = birthPlace
-- "Color of Eyes:" = eyeColor; "Color of Hair:" = hairColor
-- "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig; "SRC:" = src
-- Highest License Held: skip if value is "—" or blank
-- HEALTH DESCRIPTION section: Issued = healthIssued; Validity = healthValid; Clinic = healthClinic; flag/body = healthFlag
-- PRE MEDICAL section: result (e.g. "Fit For Sea Duty") = medResult; Issued = medIssued; Validity = medValid; Clinic = medClinic
-- CREW VACCINES table: Vaccine=name, Issued=dateGiven, Validity=validUntil, Clinic=placeIssued. Skip rows with blank Vaccine name.
-- BOOKS table: columns Country | Book Type | Number | Issued | Validity
-  type = Book Type (e.g. "Seafarer Identification and Record Book – Flag"). Add country prefix for foreign: "Liberia Passport".
-  dateIssued=Issued, dateExpiry=Validity
-- OTHER DOCUMENTS / ID table: label in first column = type (OFW, SID, NBI, Passport, etc.)
-- VISAs table: columns Country | Type | No. | Issued | Validity → type = Country+" "+Type (e.g. "Australian MCV")
-- Nearest Relative / Next of Kin → nok. Children section → children ("Name — DOB").
-- Leave empty if not visible. Never invent.`;
-
-    // ── PASS 2 — Certificates, training, sea service ────────────────────────
-    const pass2Prompt = `CGIS data extractor — Pass 2: certificates and sea service only.
-${pageNote}
-Dates → YYYY-MM-DD. Return ONLY valid JSON, no markdown:
-{
-  "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
-    "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
-    "signOn":"","signOff":""}]
-}
-Notes for certificates — merge BOTH tables:
-- QUALIFICATIONS CERTIFICATE table: License Capacity = name; Issuing Ofc = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- TRAINING / UPGRADING table: Course Title = name; Issuing Office = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- Extract EVERY row from both tables — do not skip any. Leave validUntil blank if not present.
-Notes for sea service (WORK EXPERIENCES table):
-- "Date of Serv. (From)" or "Date of Serv (From)" = signOn; "Date of Serv. (To)" = signOff (blank if missing)
-- "Pos" = rank; "Vessel / IMO No." → split: vessel name (before /) + imoNo (number after /)
-- "Type" = vesselType; "GRT" = grt; "DWT" = dwt; "BHP" = kw; "Engine" = engineType
-- "Agencies" = agency; "Principal" = principal; "AMOSUP CBA" = amosup (use "" if N/A)
-- "Reason for Sign-off" = signOffReason (use "" if N/A or blank)
-- Extract ALL rows including those with missing signOff.
-Leave empty if not visible. Never invent.`;
-
-    // ── Run both passes in parallel ────────────────────────────────────────
-    status.innerHTML = `⏳ Reading ${pages.length} page${pages.length>1?'s':''} — Pass 1: personal info &amp; Pass 2: tables (running together)…`;
-
-    const [p1, p2] = await Promise.all([
-      cgisGeminiCall(pages, pass1Prompt, 3500, status, 'Pass 1'),
-      cgisGeminiCall(pages, pass2Prompt, 6000, status, 'Pass 2')
-    ]);
-
-    // Merge
-    const data = { ...p1, ...p2 };
-
-    status.innerHTML = `⏳ Filling in form…`;
-
-    // ── Fill form using shared helper ─────────────────────────────────────
-    const cappedNote = capped ? ` <small style="opacity:.7">Only first ${MAX_PAGES} pages read.</small>` : '';
-    const filled = fillCGISData(data, status,
-      `✅ Scanned ${pages.length} page${pages.length>1?'s':''} in 2 passes`,
-      cappedNote);
-
-  } catch (err) {
-    console.error('CGIS scan error:', err);
-    status.className = 'cgis-status error';
-    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
-    status.innerHTML = (isTimeout
-      ? `⏱️ Timed out reading the CGIS. Try uploading fewer pages at once, or retry.`
-      : `❌ Could not read the CGIS. Make sure photos are clear and well-lit.`) +
-      `<br><small style="opacity:.7">(${err.message || 'Unknown error'})</small><br>
-      <button onclick="document.getElementById('cgisScanInput').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>`;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
 
 function handleEduChange() {
   const val = document.querySelector('input[name="eduLevel"]:checked').value;
@@ -5348,43 +4252,20 @@ function addSeaEntry() {  seaCount++;
     <div class="exp-entry-num">Vessel #${seaCount}</div>
     ${seaCount > 1 ? `<button class="remove-btn" onclick="removeEntry('sea-${seaCount}')">✕ Remove</button>` : ''}
     <div class="field-row">
-      <div class="field"><label>Name of Vessel</label><input type="text" placeholder="e.g. MV African Oriole"></div>
-      <div class="field"><label>IMO Number</label><input type="text" placeholder="e.g. 9733284"></div>
+      <div class="field"><label>Name of Vessel</label><input type="text" placeholder="e.g. MV Ocean Pride"></div>
+      <div class="field"><label>Rank on Board</label><input type="text" placeholder="e.g. Ordinary Seaman"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Rank on Board</label><input type="text" placeholder="e.g. Wiper"></div>
       <div class="field">
         <label>Type of Vessel</label>
         <input type="text" list="vesselTypeList" placeholder="e.g. Bulk Carrier">
       </div>
+      <div class="field"><label>Manning Agency / Company</label><input type="text" placeholder="e.g. ABC Shipping Inc."></div>
     </div>
     <div class="field-row triple">
-      <div class="field"><label>GRT / GT</label><input type="text" placeholder="e.g. 24,725"></div>
-      <div class="field"><label>DWT</label><input type="text" placeholder="e.g. 38,500"></div>
-      <div class="field"><label>Engine KW / BHP</label><input type="text" placeholder="e.g. 4,511 BHP"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Engine Type</label><input type="text" placeholder="e.g. MAN B&W 6S60MC-C8, Single screw"></div>
+      <div class="field"><label>GRT / GT</label><input type="text" placeholder="e.g. 35,000"></div>
+      <div class="field"><label>Engine KW / HP</label><input type="text" placeholder="e.g. 9,500 KW"></div>
       <div class="field"><label>Trade Area</label><input type="text" placeholder="e.g. Worldwide"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>Manning Agency</label><input type="text" placeholder="e.g. Jebsen PTC Maritime, Inc."></div>
-      <div class="field"><label>Principal / Shipowner</label><input type="text" placeholder="e.g. Dockendal Ship Management DMCCO"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>AMOSUP / CBA</label><input type="text" placeholder="e.g. AMOSUP-IMEC, N/A"></div>
-      <div class="field"><label>Reason for Sign-off</label>
-        <select>
-          <option value="">Select…</option>
-          <option>End of Contract</option>
-          <option>Sign Off / Finished Contract</option>
-          <option>Medical</option>
-          <option>Repatriation</option>
-          <option>Mutual Consent</option>
-          <option>Vessel Sold</option>
-          <option>Other</option>
-        </select>
-      </div>
     </div>
     <div class="field-row">
       <div class="field"><label>Sign On</label><input type="date"></div>
@@ -5717,57 +4598,17 @@ function collectFormData() {
       return out;
     };
 
-    // Sea service uses positional input reading — order must match addSeaEntry exactly:
-    // vessel, imoNo, rank, vesselType, grt, dwt, kw, engineType, tradeArea,
-    // company, principal, amosup, [signOffReason is a select — handled below], signOn, signOff
-    const seaRows = [];
-    document.querySelectorAll('#seaEntries .exp-entry').forEach(entry => {
-      const inp = entry.querySelectorAll('input');
-      const sel = entry.querySelector('select');
-      const row = {
-        vessel:        inp[0]?.value || '',
-        imoNo:         inp[1]?.value || '',
-        rank:          inp[2]?.value || '',
-        vesselType:    inp[3]?.value || '',
-        grt:           inp[4]?.value || '',
-        dwt:           inp[5]?.value || '',
-        kw:            inp[6]?.value || '',
-        engineType:    inp[7]?.value || '',
-        tradeArea:     inp[8]?.value || '',
-        company:       inp[9]?.value || '',
-        principal:     inp[10]?.value || '',
-        amosup:        inp[11]?.value || '',
-        signOffReason: sel?.value  || '',
-        signOn:        inp[12]?.value || '',
-        signOff:       inp[13]?.value || '',
-      };
-      if (Object.values(row).some(v => v)) seaRows.push(row);
-    });
-
     seaman = {
       rank: document.getElementById('sm-rank')?.value || '',
-      lastRank:       sv('sm-lastRank'),
-      height:         sv('sm-height'),  weight:   sv('sm-weight'),  bmi:      sv('sm-bmi'),
-      eyes:           sv('sm-eyes'),    hair:     sv('sm-hair'),    blood:    sv('sm-blood'),
-      shoe:           sv('sm-shoe'),    coverall: sv('sm-coverall'),religion: sv('sm-religion'),
-      birthPlace:     sv('sm-birthPlace'),
-      highestLicense: sv('sm-highestLicense'),
-      sss:            sv('sm-sss'),     tin:      sv('sm-tin'),     pagibig:  sv('sm-pagibig'),
-      philhealth:     sv('sm-philhealth'), src:   sv('sm-src'),
-      phone2:         sv('sm-phone2'),
-      nok:            sv('sm-nok'),
-      mailingAddress: sv('sm-mailingAddress'),
-      children:       sv('sm-children'),
-      // Health / medical
-      healthFlag:     sv('sm-healthFlag'),   healthIssued: sv('sm-healthIssued'),
-      healthValid:    sv('sm-healthValid'),  healthClinic: sv('sm-healthClinic'),
-      medResult:      sv('sm-medResult'),    medIssued:    sv('sm-medIssued'),
-      medValid:       sv('sm-medValid'),     medClinic:    sv('sm-medClinic'),
-      // Repeating sections
-      documents:    rows('#docEntries .exp-entry',  ['type','number','dateIssued','dateExpiry','placeIssued']),
+      lastRank: sv('sm-lastRank'),
+      height: sv('sm-height'), weight: sv('sm-weight'), bmi: sv('sm-bmi'),
+      eyes: sv('sm-eyes'), hair: sv('sm-hair'), blood: sv('sm-blood'),
+      shoe: sv('sm-shoe'), coverall: sv('sm-coverall'), religion: sv('sm-religion'),
+      birthPlace: sv('sm-birthPlace'), govIds: sv('sm-govIds'), nok: sv('sm-nok'),
+      documents:  rows('#docEntries .exp-entry',  ['type','number','dateIssued','dateExpiry','placeIssued']),
       certificates: rows('#certEntries .exp-entry', ['name','number','issuedBy','dateIssued','validUntil']),
-      vaccinations: rows('#vaxEntries .exp-entry',  ['name','placeIssued','dateGiven','validUntil']),
-      seaService:   seaRows
+      vaccinations: rows('#vaxEntries .exp-entry', ['name','placeIssued','dateGiven','validUntil']),
+      seaService: rows('#seaEntries .exp-entry',  ['vessel','rank','vesselType','company','grt','kw','tradeArea','signOn','signOff'])
     };
   }
 
@@ -5789,7 +4630,6 @@ function collectFormData() {
     // second and there is no server to hand out sequence numbers.
     id: 'ACV-' + Date.now().toString(36).toUpperCase().slice(-5)
         + '-' + Math.random().toString(36).toUpperCase().slice(2,5),
-    reviewToken: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2),
     submittedAt: new Date().toISOString(),
     status: 'New',
     // Payment starts unrecorded; the admin marks it when GCash confirms.
@@ -5963,23 +4803,12 @@ function compressPhoto(base64, budget) {
 }
 
 let lastRefNo = '';
-let lastReviewToken = '';
 
 function updateConfirmPage() {
   var total = cvOrderTotal();
   var refRow = document.getElementById('confirm-ref-row');
   var refEl  = document.getElementById('confirm-ref');
   if (refRow && refEl && lastRefNo) { refEl.textContent = lastRefNo; refRow.style.display = 'block'; }
-
-  // Show the customer review link
-  if (lastReviewToken) {
-    const base = window.location.href.split('?')[0].split('#')[0];
-    const link = base + '?review=' + lastReviewToken;
-    const box = document.getElementById('reviewLinkBox');
-    const txt = document.getElementById('reviewLinkText');
-    if (box && txt) { txt.textContent = link; box.style.display = 'block'; }
-    window._lastReviewLink = link;
-  }
   var clRow = document.getElementById('cl-summary-row');
   var rlRow = document.getElementById('rl-summary-row');
   var totalEl = document.getElementById('confirm-total');
@@ -6149,7 +4978,6 @@ async function submitForm() {
 
     // Surface the reference so the customer can track the order later
     lastRefNo = data.id || '';
-    lastReviewToken = data.reviewToken || '';
 
     // Guard against double-submits + clear the saved draft
     markSubmitted(data.personal.email);
@@ -7769,7 +6597,8 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const vax   = (m.vaccinations|| []).filter(v=>v.name);
   const sea   = (m.seaService  || []).filter(v=>v.vessel);
 
-  const fmtD = v => {
+  // Dates arrive as ISO from <input type=date>; agencies read DD-MMM-YYYY.
+  const d = v => {
     if(!v) return '';
     const t = new Date(v);
     if(isNaN(t)) return v;
@@ -7777,142 +6606,84 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
       ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]+
       '-'+t.getFullYear();
   };
-  const exCell = v => {
-    if(!v) return '<td></td>';
-    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
-    const days=(t-Date.now())/864e5;
-    return `<td${days<0?' class="exp"':days<90?' class="soon"':''}>${fmtD(v)}</td>`;
-  };
-  const kv = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
-  const nm  = fullName(p);
 
-  // ── continuation mini-header shown on pages 2+ ──────────────────────────────
-  const contHdr = `<div class="cont-hdr no-pg1">
-    <span class="cont-name">${nm}</span>
-    ${m.rank?`<span class="cont-rank">⚓ ${m.rank}</span>`:''}
-    <span class="cont-label">Seafarer Résumé — continued</span>
-  </div>`;
+  // Certificates and documents lapse. Flagging what's expired or close to it is
+  // the single most useful thing this layout can do for the person reading it.
+  const expiryCell = v => {
+    if(!v) return '<td></td>';
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
+    const days=(t-Date.now())/864e5;
+    const cls = days<0 ? ' class="exp"' : days<90 ? ' class="soon"' : '';
+    return `<td${cls}>${d(v)}</td>`;
+  };
+
+  const row = (l,v) => v ? `<tr><th>${l}</th><td>${v}</td></tr>` : '';
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  /* ── reset ── */
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',Arial,sans-serif;color:#14213d;background:white;}
-
-  /* ── multi-page layout ── */
-  /* On screen: show one A4-wide column, natural scroll */
-  .sea-doc{width:210mm;margin:0 auto;background:white;}
-
-  /* Each section never splits across a page */
-  .sec{margin-bottom:10px;page-break-inside:avoid;break-inside:avoid;}
-
-  /* ── main header (page 1 only) ── */
-  .hdr{background:#0b2545;color:white;padding:14px 18px;display:flex;gap:14px;align-items:center;
+  body{font-family:'Inter',Arial,sans-serif;color:#14213d;}
+  /* The shared page CSS sets .page{display:flex} for the two-column designs.
+     This one stacks, so it has to opt out or the header becomes a sidebar. */
+  .page.pg{display:block;background:white;min-height:297mm;}
+  .hdr{background:#0b2545;color:white;padding:15px 18px;display:flex;gap:15px;align-items:center;
        border-bottom:3px solid #ffd166;}
-  .hdr .ph{width:78px;height:94px;flex-shrink:0;border:2px solid #ffd166;
-            background:rgba(255,255,255,.1);overflow:hidden;}
+  .hdr .ph{width:80px;height:96px;flex-shrink:0;border:2px solid #ffd166;background:rgba(255,255,255,.1);overflow:hidden;}
   .hdr .who{flex:1;min-width:0;}
-  .hdr h1{font-size:21px;font-weight:900;letter-spacing:.3px;margin:0 0 4px;
-          text-transform:uppercase;line-height:1.1;}
-  .rank-badge{display:inline-block;background:#ffd166;color:#0b2545;font-size:10px;
-              font-weight:900;padding:2px 10px;text-transform:uppercase;letter-spacing:.8px;}
-  .hc{font-size:8.5px;color:rgba(255,255,255,.8);margin-top:7px;line-height:1.65;}
+  .hdr h1{font-size:23px;font-weight:900;letter-spacing:.4px;margin:0 0 5px;text-transform:uppercase;line-height:1.08;}
+  .rank{display:inline-block;background:#ffd166;color:#0b2545;font-size:11px;font-weight:900;
+        padding:3px 11px;text-transform:uppercase;letter-spacing:.8px;}
+  .hc{font-size:9px;color:rgba(255,255,255,.8);margin-top:8px;line-height:1.6;}
   .hc b{color:#ffd166;font-weight:700;}
-  .brand{text-align:right;font-size:7px;color:rgba(255,255,255,.35);letter-spacing:1.5px;
-         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.8;}
+  .brand{text-align:right;font-size:7.5px;color:rgba(255,255,255,.4);letter-spacing:1.6px;
+         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.7;}
 
-  /* ── continuation header (pages 2+) ── */
-  .cont-hdr{background:#0b2545;color:white;padding:6px 18px;display:flex;
-            gap:12px;align-items:center;border-bottom:2px solid #ffd166;}
-  .cont-name{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;color:#ffd166;}
-  .cont-rank{font-size:9px;font-weight:700;color:rgba(255,255,255,.7);}
-  .cont-label{font-size:8px;color:rgba(255,255,255,.4);margin-left:auto;letter-spacing:.5px;}
-
-  /* ── body ── */
-  .body{padding:11px 18px 14px;}
-
-  /* ── section heading ── */
-  .sh{background:#0b2545;color:#ffd166;font-size:8.5px;font-weight:800;letter-spacing:1.5px;
-      text-transform:uppercase;padding:4px 9px;display:flex;justify-content:space-between;
-      page-break-after:avoid;break-after:avoid;}
+  .body{padding:13px 18px 16px;}
+  .sec{margin-bottom:11px;}
+  .sh{background:#0b2545;color:#ffd166;font-size:9px;font-weight:800;letter-spacing:1.6px;
+      text-transform:uppercase;padding:4px 9px;margin-bottom:0;display:flex;justify-content:space-between;}
   .sh .cnt{color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.5px;}
 
-  /* ── data tables ── */
-  table.g{width:100%;border-collapse:collapse;font-size:7.8px;table-layout:fixed;}
-  table.g th,table.g td{border:1px solid #c3cddc;padding:3px 5px;text-align:left;vertical-align:top;
-                         word-break:break-word;}
-  table.g thead th{background:#0b2545;color:#ffd166;font-size:7px;font-weight:800;
-                   letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
+  table.g{width:100%;border-collapse:collapse;font-size:8.5px;table-layout:auto;}
+  table.g th,table.g td{border:1px solid #c3cddc;padding:3.5px 6px;text-align:left;vertical-align:top;}
+  table.g thead th{background:#0b2545;color:#ffd166;font-size:7.5px;font-weight:800;letter-spacing:.6px;
+                   text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
   table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
   table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
   table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
   table.g td.pri{font-weight:800;color:#0b2545;}
-  /* thead repeats on each printed page so columns stay labelled */
-  table.g thead{display:table-header-group;}
 
-  /* ── key/value grids ── */
-  table.kv{width:100%;border-collapse:collapse;font-size:8px;}
-  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3px 6px;text-align:left;}
-  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:34%;white-space:nowrap;}
+  /* Two-column key/value grid used for personal particulars */
+  table.kv{width:100%;border-collapse:collapse;font-size:8.5px;}
+  table.kv th,table.kv td{border:1px solid #c3cddc;padding:3.5px 7px;text-align:left;}
+  table.kv th{background:#eef2f8;font-weight:700;color:#4a5b75;width:38%;white-space:nowrap;}
   table.kv td{font-weight:700;color:#14213d;}
-  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 8px;}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:0 9px;}
 
-  /* ── misc ── */
-  .obj{font-size:8.5px;line-height:1.75;color:#2c3a52;padding:7px 10px;border:1px solid #c3cddc;
-       border-top:none;background:#fafbfe;text-align:justify;}
-  .none{font-size:8px;color:#96a0b2;font-style:italic;padding:5px 9px;border:1px solid #c3cddc;border-top:none;}
-  .cert-note{font-size:6.5px;color:#96a0b2;margin-top:3px;line-height:1.5;}
-  .skl{display:flex;flex-wrap:wrap;gap:3px;padding:6px 9px;border:1px solid #c3cddc;border-top:none;}
-  .skl span{font-size:7.5px;font-weight:700;background:#eef2f8;color:#0b2545;
-            padding:2px 7px;border:1px solid #c3cddc;}
-  .sign{margin-top:18px;display:flex;justify-content:space-between;align-items:flex-end;
-        font-size:7.5px;color:#4a5b75;line-height:1.6;}
-  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:200px;text-align:center;
-           font-weight:900;color:#0b2545;font-size:9px;text-transform:uppercase;letter-spacing:.5px;}
+  .obj{font-size:9px;line-height:1.75;color:#2c3a52;padding:8px 11px;border:1px solid #c3cddc;border-top:none;
+       background:#fafbfe;text-align:justify;}
+  .none{font-size:8.5px;color:#96a0b2;font-style:italic;padding:6px 10px;border:1px solid #c3cddc;border-top:none;}
+  .sign{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-end;
+        font-size:8px;color:#4a5b75;line-height:1.6;}
+  .sigline{border-top:1.5px solid #0b2545;padding-top:4px;min-width:215px;text-align:center;font-weight:900;
+           color:#0b2545;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;}
+  .cert-note{font-size:7px;color:#96a0b2;margin-top:4px;line-height:1.5;}
+  .skl{display:flex;flex-wrap:wrap;gap:4px;padding:7px 10px;border:1px solid #c3cddc;border-top:none;}
+  .skl span{font-size:8px;font-weight:700;background:#eef2f8;color:#0b2545;padding:2.5px 8px;
+            border:1px solid #c3cddc;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
 
-  /* ── manual page-break (admin-inserted) ── */
-  .pg-break{page-break-before:always;break-before:page;}
-
-  /* ── screen preview ── */
-  @media screen{
-    body{background:#555;padding:30px 0 60px;}
-    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);margin:0 auto;}
-    /* hide the cont-header on first page in screen preview */
-    .no-pg1{display:none;}
-    /* admin page-break shows as a visible rule on screen */
-    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;page-break-before:always;break-before:page;}
-  }
-
-  /* ── print ── */
-  @media print{
-    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;}
-    .no-print{display:none!important;}
-    @page{margin:10mm 12mm;size:A4 portrait;}
-    /* thead already repeats via display:table-header-group */
-    /* cont-hdr is visible on print but hidden on first screen page */
-    .no-pg1{display:flex;}
-    /* first cont-hdr (immediately after main hdr) — suppress on print too */
-    .hdr + .no-pg1{display:none!important;}
-  }
-</style></head><body>${pb}
-<div class="sea-doc">
-
-  <!-- PAGE 1 HEADER -->
   <div class="hdr">
     <div class="ph">${ph}</div>
     <div class="who">
-      <h1>${nm}</h1>
-      ${m.rank?`<span class="rank-badge">⚓ ${m.rank}</span>`:''}
+      <h1>${fullName(p)}</h1>
+      ${m.rank?`<span class="rank">⚓ ${m.rank}</span>`:''}
       <div class="hc">
         ${p.address?p.address+'<br>':''}
-        ${p.phone?`<b>T</b> ${p.phone}`:''}${m.phone2?` &nbsp;/&nbsp; ${m.phone2}`:''}
-        ${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
-        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}
-        ${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
-        ${m.highestLicense?`<br><b>Highest License</b> ${m.highestLicense}`:''}
+        ${p.phone?`<b>T</b> ${p.phone}`:''}${(p.phone&&p.email)?' &nbsp;&nbsp; ':''}${p.email?`<b>E</b> ${p.email}`:''}
+        ${p.nationality?`<br><b>Nationality</b> ${p.nationality}`:''}${m.lastRank?` &nbsp;&nbsp; <b>Last Rank</b> ${m.lastRank}`:''}
       </div>
     </div>
     <div class="brand">Seafarer<br>Résumé</div>
@@ -7922,113 +6693,85 @@ ${pc}
 
     ${s.profileSummary?`<div class="sec"><div class="sh"><span>Objective</span></div><div class="obj">${s.profileSummary}</div></div>`:''}
 
-    <!-- PERSONAL PARTICULARS -->
     <div class="sec">
       <div class="sh"><span>Personal Particulars</span></div>
       <div class="split">
         <table class="kv">
-          ${kv('Surname',p.lastName)}${kv('First Name',p.firstName)}${kv('Middle Name',p.middleName)}
-          ${kv('Date of Birth',fmtD(p.dob))}${kv('Place of Birth',m.birthPlace)}
-          ${kv('Nationality',p.nationality)}${kv('Civil Status',p.civilStatus)}
-          ${kv('Gender',p.gender)}${kv('Religion',m.religion)}
+          ${row('Surname',p.lastName)}
+          ${row('First Name',p.firstName)}
+          ${row('Middle Name',p.middleName)}
+          ${row('Date of Birth',d(p.dob))}
+          ${row('Place of Birth',m.birthPlace)}
+          ${row('Nationality',p.nationality)}
+          ${row('Civil Status',p.civilStatus)}
+          ${row('Gender',p.gender)}
+          ${row('Religion',m.religion)}
         </table>
         <table class="kv">
-          ${kv('Height',m.height)}${kv('Weight',m.weight)}${kv('BMI',m.bmi)}
-          ${kv('Colour of Eyes',m.eyes)}${kv('Colour of Hair',m.hair)}
-          ${kv('Blood Type',m.blood)}${kv('Shoe Size',m.shoe)}${kv('Coverall Size',m.coverall)}
-          ${kv('Last Rank Held',m.lastRank)}
+          ${row('Height',m.height)}
+          ${row('Weight',m.weight)}
+          ${row('BMI',m.bmi)}
+          ${row('Colour of Eyes',m.eyes)}
+          ${row('Colour of Hair',m.hair)}
+          ${row('Blood Type',m.blood)}
+          ${row('Shoe Size',m.shoe)}
+          ${row('Coverall Size',m.coverall)}
+          ${row('Last Rank Held',m.lastRank)}
         </table>
       </div>
-      <table class="kv" style="margin-top:-1px;">
-        ${kv('Nearest Relative / NOK',m.nok)}
-        ${kv('Children',m.children)}
-        ${(m.mailingAddress&&m.mailingAddress!==p.address)?kv('Mailing Address',m.mailingAddress):''}
-        ${(m.sss||m.tin)?`<tr><th>SSS No.</th><td>${m.sss||''}</td></tr><tr><th>TIN No.</th><td>${m.tin||''}</td></tr>`:''}
-        ${(m.pagibig||m.philhealth)?`<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td></tr><tr><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>`:''}
-        ${kv('SRC No.',m.src)}
-      </table>
+      ${(m.nok||m.govIds)?`<table class="kv" style="margin-top:-1px;">
+        ${m.nok?`<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>`:''}
+        ${m.govIds?`<tr><th style="width:15.5%;">Government IDs</th><td>${m.govIds}</td></tr>`:''}
+      </table>`:''}
     </div>
 
-    <!-- TRAVEL DOCUMENTS -->
     <div class="sec">
       <div class="sh"><span>Travel Documents</span>${docs.length?`<span class="cnt">${docs.length} on file</span>`:''}</div>
-      ${docs.length?`<table class="g" style="table-layout:auto;">
+      ${docs.length?`<table class="g">
         <thead><tr><th>Document</th><th>Number</th><th>Date Issued</th><th>Date Expiry</th><th>Place Issued</th></tr></thead>
         <tbody>${docs.map(x=>`<tr>
           <td style="font-weight:700;">${x.type||''}</td><td>${x.number||''}</td>
-          <td>${fmtD(x.dateIssued)}</td>${exCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
+          <td>${d(x.dateIssued)}</td>${expiryCell(x.dateExpiry)}<td>${x.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No travel documents on record.</div>`}
     </div>
 
-    <!-- CONTINUATION HEADER — browser shows this before certs section on pg 2+ -->
-    ${contHdr}
-
-    <!-- CERTS -->
     <div class="sec">
       <div class="sh"><span>Trainings &amp; Certificates</span>${certs.length?`<span class="cnt">${certs.length} on file</span>`:''}</div>
-      ${certs.length?`<table class="g" style="table-layout:auto;">
+      ${certs.length?`<table class="g">
         <thead><tr><th>Course / Certificate</th><th>Number</th><th>Issued By</th><th>Date Issued</th><th>Valid Until</th></tr></thead>
         <tbody>${certs.map(c=>`<tr>
           <td style="font-weight:700;">${c.name||''}</td><td>${c.number||''}</td><td>${c.issuedBy||''}</td>
-          <td>${fmtD(c.dateIssued)}</td>${exCell(c.validUntil)}
+          <td>${d(c.dateIssued)}</td>${expiryCell(c.validUntil)}
         </tr>`).join('')}</tbody></table>
-        <div class="cert-note">Cells shaded red have lapsed · amber expires within 90 days.</div>`
+        <div class="cert-note">Cells shaded red have lapsed; amber expires within 90 days.</div>`
       :`<div class="none">No certificates on record.</div>`}
     </div>
 
-    <!-- VACCINATION -->
     ${vax.length?`<div class="sec">
       <div class="sh"><span>Vaccination</span><span class="cnt">${vax.length} on file</span></div>
-      <table class="g" style="table-layout:auto;">
+      <table class="g">
         <thead><tr><th>Vaccine</th><th>Date Given</th><th>Valid Until</th><th>Place Issued</th></tr></thead>
         <tbody>${vax.map(v=>`<tr>
-          <td class="pri">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${exCell(v.validUntil)}<td>${v.placeIssued||''}</td>
+          <td class="pri">${v.name||''}</td><td>${d(v.dateGiven)}</td>${expiryCell(v.validUntil)}<td>${v.placeIssued||''}</td>
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
-    <!-- HEALTH / MEDICAL -->
-    ${(m.healthFlag||m.medResult)?`<div class="sec">
-      <div class="sh"><span>Health &amp; Medical</span></div>
-      <table class="kv">
-        ${m.healthFlag?`<tr><th>Health Declaration</th><td>${m.healthFlag}${m.healthIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.healthIssued):''}${m.healthValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.healthValid):''}${m.healthClinic?' &nbsp;·&nbsp; '+m.healthClinic:''}</td></tr>`:''}
-        ${m.medResult?`<tr><th>Pre-Medical Exam</th><td>${m.medResult}${m.medIssued?' &nbsp;·&nbsp; Issued: '+fmtD(m.medIssued):''}${m.medValid?' &nbsp;·&nbsp; Valid: '+fmtD(m.medValid):''}${m.medClinic?' &nbsp;·&nbsp; '+m.medClinic:''}</td></tr>`:''}
-      </table>
-    </div>`:''}
-
-    <!-- CONTINUATION HEADER before sea service -->
-    ${contHdr}
-
-    <!-- SEA SERVICE -->
     <div class="sec">
       <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
       ${sea.length?`<table class="g">
-        <colgroup>
-          <col style="width:13%"><col style="width:6%"><col style="width:7%"><col style="width:5%">
-          <col style="width:5%"><col style="width:6%"><col style="width:10%"><col style="width:10%">
-          <col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:9%">
-        </colgroup>
-        <thead><tr>
-          <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
-          <th>KW/BHP</th><th>Engine Type</th><th>Manning Agency</th><th>Principal</th>
-          <th>AMOSUP</th><th>Sign On</th><th>Sign Off</th><th>Reason / Trade</th>
-        </tr></thead>
+        <thead><tr><th>Vessel</th><th>Rank</th><th>Type</th><th>GRT</th><th>KW/HP</th><th>Company</th><th>Sign On</th><th>Sign Off</th><th>Trade Area</th></tr></thead>
         <tbody>${sea.map(v=>`<tr>
-          <td style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-weight:400;font-size:6.5px;color:#4a5b75;">${v.imoNo}</span>`:''}</td>
-          <td>${v.rank||''}</td><td>${v.vesselType||''}</td>
-          <td>${v.grt||''}</td><td>${v.dwt||''}</td><td>${v.kw||''}</td>
-          <td style="font-size:7px;">${v.engineType||''}</td>
-          <td>${v.company||''}</td><td>${v.principal||''}</td><td>${v.amosup||''}</td>
-          <td>${fmtD(v.signOn)}</td><td>${fmtD(v.signOff)}</td>
-          <td style="font-size:7px;">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
+          <td style="font-weight:700;">${v.vessel||''}</td><td>${v.rank||''}</td><td>${v.vesselType||''}</td>
+          <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${v.company||''}</td>
+          <td>${d(v.signOn)}</td><td>${d(v.signOff)}</td><td>${v.tradeArea||''}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No sea service yet — first-time applicant.</div>`}
     </div>
 
-    <!-- EDUCATION -->
     ${edu.length?`<div class="sec">
       <div class="sh"><span>Educational Background</span></div>
-      <table class="g" style="table-layout:auto;">
+      <table class="g">
         <thead><tr><th>School / Institution</th><th>Course / Level</th><th>Period</th><th>Honours</th></tr></thead>
         <tbody>${edu.map(e=>`<tr>
           <td style="font-weight:700;">${e.school||''}</td><td>${e.degree||''}</td>
@@ -8036,7 +6779,6 @@ ${pc}
         </tr>`).join('')}</tbody></table>
     </div>`:''}
 
-    <!-- SKILLS -->
     ${(s.skills?.length||s.languages?.length)?`<div class="sec">
       <div class="sh"><span>Skills &amp; Languages</span></div>
       <div class="skl">
@@ -8045,10 +6787,9 @@ ${pc}
       </div>
     </div>`:''}
 
-    <!-- REFERENCES -->
     ${refs.length?`<div class="sec">
       <div class="sh"><span>Character References</span></div>
-      <table class="g" style="table-layout:auto;">
+      <table class="g">
         <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact</th></tr></thead>
         <tbody>${refs.map(r=>`<tr>
           <td style="font-weight:700;">${r.name||''}</td><td>${r.position||''}</td>
@@ -8057,15 +6798,14 @@ ${pc}
     </div>`:''}
 
     <div class="sign">
-      <div style="font-size:7.5px;color:#4a5b75;line-height:1.6;">I certify that the information given above is true and correct to the best of my knowledge and belief.</div>
-      <div class="sigline">${nm}<br>
-        <span style="font-weight:600;font-size:7px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
+      <div>I certify that the information given above is true and correct<br>to the best of my knowledge and belief.</div>
+      <div class="sigline">${fullName(p)}<br>
+        <span style="font-weight:600;font-size:7.5px;letter-spacing:.3px;text-transform:none;color:#8a93a5;">Applicant's Signature Over Printed Name</span>
       </div>
     </div>
 
-  </div><!-- /body -->
-</div><!-- /sea-doc -->
-</body></html>`;}
+  </div>
+</div></div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 17 — Seafarer (Simple / Agency Form)
@@ -8080,29 +6820,34 @@ function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const certs = (m.certificates || []).filter(c=>c.name);
   const vax   = (m.vaccinations || []).filter(v=>v.name);
   const sea   = (m.seaService   || []).filter(v=>v.vessel);
-  const nm    = fullName(p);
 
-  const fmtD = v => {
+  const d = v => {
     if(!v) return '';
-    const t = new Date(v); if(isNaN(t)) return v;
+    const t = new Date(v);
+    if(isNaN(t)) return v;
     return String(t.getDate()).padStart(2,'0')+'-'+
       ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]+
       '-'+t.getFullYear();
   };
   const ex = v => {
     if(!v) return '<td></td>';
-    const t=new Date(v); if(isNaN(t)) return `<td>${v}</td>`;
+    const t=new Date(v);
+    if(isNaN(t)) return `<td>${v}</td>`;
     const days=(t-Date.now())/864e5;
-    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${fmtD(v)}</td>`;
+    return `<td${days<0?' class="x"':days<90?' class="w"':''}>${d(v)}</td>`;
   };
+
+  // Blank rows keep the ruled-form look when a section is short — an agency
+  // form has empty lines to write on, and a half-filled table reads as unfinished.
   const pad = (rows, want, cols) => {
     let out = rows;
     for(let i=rows.length; i<want; i++) out += '<tr>'+'<td>&nbsp;</td>'.repeat(cols)+'</tr>';
     return out;
   };
 
+  // Personal info is a fixed two-up grid of label/value pairs, left and right.
   const L = [['Surname',p.lastName],['First Name',p.firstName],['Middle Name',p.middleName],
-             ['Date of Birth',fmtD(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
+             ['Date of Birth',d(p.dob)],['Place of Birth',m.birthPlace],['Nationality',p.nationality],
              ['Civil Status',p.civilStatus],['Religion',m.religion]];
   const R = [['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
              ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
@@ -8112,180 +6857,119 @@ function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
       <th>${R[i]?R[i][0]:''}</th><td>${R[i]?(R[i][1]||''):''}</td>
     </tr>`).join('');
 
-  const extraRows = [
-    m.highestLicense ? `<tr><th>Highest License</th><td colspan="3">${m.highestLicense}</td></tr>` : '',
-    (m.sss||m.tin) ? `<tr><th>SSS No.</th><td>${m.sss||''}</td><th>TIN No.</th><td>${m.tin||''}</td></tr>` : '',
-    (m.pagibig||m.philhealth) ? `<tr><th>Pag-IBIG No.</th><td>${m.pagibig||''}</td><th>PhilHealth No.</th><td>${m.philhealth||''}</td></tr>` : '',
-    (m.src||m.phone2) ? `<tr><th>SRC No.</th><td>${m.src||''}</td><th>Alt. Phone</th><td>${m.phone2||''}</td></tr>` : '',
-    m.nok ? `<tr><th>Nearest Relative</th><td colspan="3">${m.nok}</td></tr>` : '',
-    m.children ? `<tr><th>Children</th><td colspan="3">${m.children}</td></tr>` : '',
-    (m.mailingAddress&&m.mailingAddress!==p.address) ? `<tr><th>Mailing Address</th><td colspan="3">${m.mailingAddress}</td></tr>` : '',
-    (m.healthFlag||m.medResult) ? `<tr><th>Health Decl.</th><td>${m.healthFlag||''}${m.healthValid?' (valid '+fmtD(m.healthValid)+')':''}</td><th>Pre-Medical</th><td>${m.medResult||''}${m.medValid?' (valid '+fmtD(m.medValid)+')':''}</td></tr>` : '',
-  ].filter(Boolean).join('');
-
-  const contHdr = `<div class="cont-hdr no-pg1">
-    <span class="cont-name">${nm}</span>
-    ${m.rank?`<span class="cont-rank">Applying for: ${m.rank}</span>`:''}
-    <span class="cont-label">Seafarer CV — continued</span>
-  </div>`;
-
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 ${pc}
 <style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;background:white;}
-  .sea-doc{width:210mm;margin:0 auto;background:white;}
-  .sec{page-break-inside:avoid;break-inside:avoid;margin-bottom:8px;}
-  .top{display:flex;gap:14px;align-items:flex-start;padding:14px 18px 10px;}
-  .top .ph{width:76px;height:92px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
-  .top h1{font-size:19px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;color:#111827;line-height:1.15;}
-  .apply{font-size:9px;color:#6b7280;margin-bottom:6px;}
+  body{font-family:'Inter',Arial,sans-serif;color:#1f2937;}
+  .page.pg{display:block;background:white;min-height:297mm;}
+
+  .top{display:flex;gap:14px;align-items:flex-start;padding:16px 18px 12px;}
+  .top .ph{width:78px;height:94px;flex-shrink:0;border:1px solid #9aa7bb;overflow:hidden;background:#eef1f6;}
+  .top h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 2px;text-transform:uppercase;
+          color:#111827;line-height:1.15;}
+  .apply{font-size:9.5px;color:#6b7280;margin-bottom:7px;}
   .apply b{color:#1f2937;font-weight:700;}
-  .ct{font-size:8px;color:#374151;line-height:1.7;}
+  .ct{font-size:8.5px;color:#374151;line-height:1.75;}
   .ct span{display:block;}
-  .cont-hdr{background:#1f3864;color:white;padding:5px 18px;display:flex;gap:14px;align-items:center;border-bottom:2px solid #9aa7bb;}
-  .cont-name{font-size:10px;font-weight:800;text-transform:uppercase;color:#cfe2f3;}
-  .cont-rank{font-size:8.5px;color:rgba(255,255,255,.7);}
-  .cont-label{font-size:7.5px;color:rgba(255,255,255,.4);margin-left:auto;letter-spacing:.5px;}
+
   .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
-        font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
-        color:#1f3864;padding:3px 0;page-break-after:avoid;break-after:avoid;}
+        font-size:8.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+        color:#1f3864;padding:3px 0;}
+  .obj{font-size:8.5px;line-height:1.7;color:#374151;padding:0 18px 10px;text-align:justify;}
   .wrap{padding:0 18px;}
-  table.f{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;table-layout:fixed;}
-  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.5px 4px;text-align:left;vertical-align:top;word-break:break-word;}
-  table.f thead th{background:#e8eef7;font-weight:800;font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
-  table.f thead{display:table-header-group;}
+  .wrap.last{padding-bottom:16px;}
+
+  table.f{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.8px 5px;text-align:left;vertical-align:top;}
+  table.f thead th{background:#e8eef7;font-weight:800;font-size:7.5px;letter-spacing:.4px;
+                   text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
   table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
   table.f td.w{background:#fdf1d6;color:#92400e;font-weight:700;}
-  table.p{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;}
-  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.5px 5px;text-align:left;}
+
+  /* Personal-information grid: label cells shaded, value cells open */
+  table.p{width:100%;border-collapse:collapse;font-size:8px;margin-bottom:9px;}
+  table.p th,table.p td{border:1px solid #9aa7bb;padding:2.8px 6px;text-align:left;}
   table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
   table.p td{width:34%;font-weight:600;}
+
   .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
-  .cert{font-size:6.5px;color:#9aa3b2;margin:-5px 0 8px;}
-  .foot{padding:12px 18px 0;font-size:7px;color:#4b5563;line-height:1.7;}
-  .sig{margin-top:22px;text-align:right;padding-right:18px;}
-  .sig .nm{font-weight:800;font-size:8.5px;color:#111827;text-transform:uppercase;border-top:1px solid #6b7280;display:inline-block;padding:3px 32px 0;}
-  .sig .rl{font-size:7px;color:#6b7280;margin-top:2px;}
-  .pg-break{page-break-before:always;break-before:page;}
-  @media screen{
-    body{background:#555;padding:30px 0 60px;}
-    .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);}
-    .no-pg1{display:none;}
-    .pg-break{border-top:3px dashed #ef4444;margin:4px 0;}
-  }
-  @media print{
-    body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;}
-    .no-print{display:none!important;}
-    @page{margin:10mm 12mm;size:A4 portrait;}
-    .no-pg1{display:flex;}
-    .top + .no-pg1{display:none!important;}
-  }
-</style></head><body>${pb}
-<div class="sea-doc">
+  .cert{font-size:7px;color:#9aa3b2;margin:-5px 0 9px;}
+  .foot{padding:14px 18px 0;font-size:7.5px;color:#4b5563;line-height:1.7;}
+  .sig{margin-top:26px;text-align:right;padding-right:18px;}
+  .sig .nm{font-weight:800;font-size:9px;color:#111827;text-transform:uppercase;
+           border-top:1px solid #6b7280;display:inline-block;padding:3px 34px 0;}
+  .sig .rl{font-size:7.5px;color:#6b7280;margin-top:2px;}
+</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
 
   <div class="top">
     <div class="ph">${ph}</div>
     <div style="flex:1;min-width:0;">
-      <h1>${nm}</h1>
+      <h1>${fullName(p)}</h1>
       <div class="apply">Applying for <b>${m.rank||p.jobTitle||'—'}</b></div>
       <div class="ct">
-        ${p.phone?`<span>📱 ${p.phone}${m.phone2?' / '+m.phone2:''}</span>`:''}
+        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
         ${p.email?`<span>✉ ${p.email}</span>`:''}
         ${p.address?`<span>📍 ${p.address}</span>`:''}
-        ${m.highestLicense?`<span>🏅 ${m.highestLicense}</span>`:''}
       </div>
     </div>
   </div>
 
   ${s.profileSummary?`<div class="band" style="margin:0 18px;">Objective</div>
-    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:6px 9px;margin-bottom:8px;">
-      <div style="font-size:8px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
+    <div class="wrap"><div style="border:1px solid #9aa7bb;border-top:none;padding:7px 9px;margin-bottom:9px;">
+      <div style="font-size:8.5px;line-height:1.7;color:#374151;text-align:justify;">${s.profileSummary}</div>
     </div></div>`:''}
 
-  <div class="wrap sec">
+  <div class="wrap">
     <div class="band">Personal Information</div>
     <table class="p">${pairs}</table>
-    ${extraRows?`<table class="p" style="margin-top:-1px;">${extraRows}</table>`:''}
-  </div>
 
-  <div class="wrap sec">
     <div class="band">Educational Background</div>
     <table class="f">
-      <thead><tr><th style="width:16%;">Level</th><th>Name of School</th><th style="width:16%;">Graduated</th><th style="width:28%;">Course</th></tr></thead>
+      <thead><tr><th style="width:18%;">Level</th><th>Name of School</th><th style="width:18%;">Date Graduated</th><th style="width:26%;">Course</th></tr></thead>
       <tbody>${pad(edu.map(e=>`<tr>
         <td class="lbl">${e.degree&&/college|tertiary|bachelor|bs |ba /i.test(e.degree)?'Tertiary':''}</td>
-        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 2, 4)}
+        <td>${e.school||''}</td><td>${e.yearGrad||''}</td><td>${e.degree||''}</td></tr>`).join(''), 3, 4)}
       </tbody>
     </table>
-  </div>
 
-  <div class="wrap sec">
     <div class="band">Travel Documents</div>
     <table class="f">
-      <thead><tr><th style="width:24%;">Document</th><th>Number</th><th style="width:15%;">Date Issued</th><th style="width:15%;">Expiry</th><th style="width:18%;">Place Issued</th></tr></thead>
+      <thead><tr><th style="width:26%;">Document</th><th>Number</th><th style="width:17%;">Date Issued</th><th style="width:17%;">Expiry Date</th><th style="width:18%;">Place Issued</th></tr></thead>
       <tbody>${pad(docs.map(x=>`<tr>
         <td class="lbl">${x.type||''}</td><td>${x.number||''}</td>
-        <td>${fmtD(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
+        <td>${d(x.dateIssued)}</td>${ex(x.dateExpiry)}<td>${x.placeIssued||''}</td></tr>`).join(''), 3, 5)}
       </tbody>
     </table>
-  </div>
 
-  ${contHdr}
-
-  <div class="wrap sec">
     <div class="band">Vaccination</div>
     <table class="f">
-      <thead><tr><th style="width:28%;">Type</th><th style="width:18%;">Date Vaccinated</th><th style="width:18%;">Valid Until</th><th>Place Issued</th></tr></thead>
+      <thead><tr><th style="width:28%;">Type</th><th style="width:20%;">Date Vaccinated</th><th style="width:20%;">Valid Until</th><th>Place Issued</th></tr></thead>
       <tbody>${pad(vax.map(v=>`<tr>
-        <td class="lbl">${v.name||''}</td><td>${fmtD(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
+        <td class="lbl">${v.name||''}</td><td>${d(v.dateGiven)}</td>${ex(v.validUntil)}<td>${v.placeIssued||''}</td></tr>`).join(''), 3, 4)}
       </tbody>
     </table>
-  </div>
 
-  <div class="wrap sec">
     <div class="band">Certificates &amp; Trainings</div>
     <table class="f">
-      <thead><tr><th>Name</th><th style="width:16%;">Number</th><th style="width:16%;">Date Issued</th><th style="width:16%;">Expiry Date</th></tr></thead>
+      <thead><tr><th>Name</th><th style="width:18%;">Number</th><th style="width:18%;">Date Issued</th><th style="width:18%;">Expiry Date</th></tr></thead>
       <tbody>${pad(certs.map(c=>`<tr>
         <td class="lbl" style="font-weight:600;color:#1f2937;background:white;">${c.name||''}</td>
-        <td>${c.number||''}</td><td>${fmtD(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
+        <td>${c.number||''}</td><td>${d(c.dateIssued)}</td>${ex(c.validUntil)}</tr>`).join(''), 4, 4)}
       </tbody>
     </table>
-    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · amber expires within 90 days.</div>`:''}
-  </div>
+    ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · shaded amber expires within 90 days.</div>`:''}
 
-  ${contHdr}
-
-  <div class="wrap sec">
-    <div class="band">Sea Service Record</div>
+    <div class="band">Sea Service</div>
     <table class="f">
-      <colgroup>
-        <col style="width:13%"><col style="width:6%"><col style="width:7%"><col style="width:5%">
-        <col style="width:5%"><col style="width:5%"><col style="width:9%"><col style="width:9%">
-        <col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:12%">
-      </colgroup>
-      <thead><tr>
-        <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
-        <th>KW</th><th>Engine Type</th><th>Manning Agency</th><th>Principal</th>
-        <th>AMOSUP</th><th>Joined</th><th>Sign Off</th><th>Reason / Trade</th>
-      </tr></thead>
+      <thead><tr><th>Rank</th><th>Name of Vessel</th><th>Type of Vessel</th><th>GRT</th><th>KW</th><th>Joined</th><th>Signed Off</th><th>Trade Area</th></tr></thead>
       <tbody>${pad(sea.map(v=>`<tr>
-        <td style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-size:6.5px;font-weight:400;">${v.imoNo}</span>`:''}</td>
-        <td>${v.rank||''}</td><td>${v.vesselType||''}</td>
-        <td>${v.grt||''}</td><td>${v.dwt||''}</td><td>${v.kw||''}</td>
-        <td style="font-size:6.5px;">${v.engineType||''}</td>
-        <td>${v.company||''}</td><td>${v.principal||''}</td><td>${v.amosup||''}</td>
-        <td>${fmtD(v.signOn)}</td><td>${fmtD(v.signOff)}</td>
-        <td style="font-size:6.5px;">${[v.signOffReason,v.tradeArea].filter(Boolean).join(' / ')}</td>
-        </tr>`).join(''), 4, 13)}
+        <td>${v.rank||''}</td><td style="font-weight:700;">${v.vessel||''}</td><td>${v.vesselType||''}</td>
+        <td>${v.grt||''}</td><td>${v.kw||''}</td><td>${d(v.signOn)}</td><td>${d(v.signOff)}</td>
+        <td>${v.tradeArea||''}</td></tr>`).join(''), 4, 8)}
       </tbody>
     </table>
-  </div>
 
-  ${refs.length?`<div class="wrap sec">
     <div class="band">Character Reference</div>
     <table class="f">
       <thead><tr><th>Name</th><th>Position</th><th>Company</th><th>Contact No. / Email</th></tr></thead>
@@ -8294,351 +6978,16 @@ ${pc}
         <td>${r.company||''}</td><td>${r.contact||''}</td></tr>`).join(''), 2, 4)}
       </tbody>
     </table>
-  </div>`:''}
+  </div>
 
-  <div class="foot">I hereby certify that the information provided in this resume is true and correct to the best of my knowledge and belief.</div>
+  <div class="foot">I hereby certify that the information provided in this resume is true and correct
+    to the best of my knowledge and belief.</div>
   <div class="sig">
-    <div class="nm">${nm}</div>
+    <div class="nm">${fullName(p)}</div>
     <div class="rl">Applicant</div>
   </div>
 
-</div></body></html>`;}
-
-// ─── REVIEW LINK HELPERS ──────────────────────────────────────────────────────
-function copyReviewLink() {
-  const link = window._lastReviewLink || document.getElementById('reviewLinkText')?.textContent || '';
-  if (!link) return;
-  navigator.clipboard?.writeText(link).then(() => showNotif('✅ Review link copied!')).catch(() => {
-    const el = document.getElementById('reviewLinkText');
-    if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
-    showNotif('📋 Link selected — press Ctrl+C to copy');
-  });
-}
-function openReviewLink() {
-  const link = window._lastReviewLink || document.getElementById('reviewLinkText')?.textContent || '';
-  if (link) window.open(link, '_blank');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// CUSTOMER REVIEW PAGE  (?review=TOKEN)
-// Activated on page load when the URL has ?review=TOKEN. Fetches the matching
-// submission from JSONBin, pre-fills an editable form, and lets the customer
-// confirm or correct everything. On confirm, the submission is patched in place.
-// ═══════════════════════════════════════════════════════════════════════════════
-
-// ── Boot: check for ?review= in URL ──────────────────────────────────────────
-(function checkReviewMode() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('review');
-  if (!token) return;
-  // Hide everything else and show the review page
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('startPage')?.classList.remove('active');
-    document.getElementById('stepsBar')?.style && (document.getElementById('stepsBar').style.display = 'none');
-    document.querySelectorAll('header .track-toggle').forEach(b => b.style.display = 'none');
-    document.getElementById('reviewPage')?.classList.add('active');
-    loadReviewSubmission(token);
-  });
-})();
-
-async function loadReviewSubmission(token) {
-  const loading = document.getElementById('rv-loading');
-  const form    = document.getElementById('rv-form');
-  const success = document.getElementById('rv-success');
-
-  try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-      headers: { 'X-Master-Key': JSONBIN_API_KEY }
-    });
-    if (!res.ok) throw new Error('Could not load submission (status ' + res.status + ')');
-    const json = await res.json();
-    const subs = json?.record?.submissions || json?.submissions || [];
-    const sub  = subs.find(s => s.reviewToken === token);
-
-    if (!sub) {
-      loading.innerHTML = '❌ Review link not found or has expired. Please contact Reymar Arroyo at 09063964052.';
-      return;
-    }
-
-    // Store token + sub ID globally so submitReview can patch the right record
-    window._rv_token = token;
-    window._rv_subId = sub.id;
-
-    // Fill header info
-    document.getElementById('rv-ref').textContent  = sub.id || '—';
-    document.getElementById('rv-date').textContent = sub.submittedAt
-      ? new Date(sub.submittedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-      : '—';
-
-    if (sub.customerConfirmed) {
-      document.getElementById('rv-edited-note').style.display = 'block';
-    }
-
-    const p = sub.personal || {};
-    const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
-
-    // Personal
-    set('rv-firstName',   p.firstName);
-    set('rv-middleName',  p.middleName);
-    set('rv-lastName',    p.lastName);
-    set('rv-jobTitle',    p.jobTitle);
-    set('rv-nationality', p.nationality);
-    set('rv-dob',         p.dob);
-    set('rv-address',     p.address);
-    set('rv-phone',       p.phone);
-    set('rv-email',       p.email);
-    if (p.civilStatus) {
-      const cs = document.getElementById('rv-civilStatus');
-      if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === p.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
-    }
-    if (p.gender) {
-      const gf = document.getElementById('rv-gender');
-      if (gf) { const m = [...gf.options].find(o => o.value.toLowerCase() === p.gender.toLowerCase()); if (m) gf.value = m.value; }
-    }
-
-    set('rv-aboutMe',            sub.aboutMe);
-    set('rv-specialInstructions',sub.specialInstructions);
-
-    // Education
-    const eduList = document.getElementById('rv-eduList');
-    (sub.education || []).forEach((e, i) => {
-      eduList.insertAdjacentHTML('beforeend', `
-        <div class="exp-entry">
-          <div class="exp-entry-num">Education #${i + 1}</div>
-          <div class="field-row full"><div class="field"><label>School / University</label>
-            <input type="text" value="${esc(e.school||'')}"></div></div>
-          <div class="field-row"><div class="field"><label>Degree / Course</label>
-            <input type="text" value="${esc(e.degree||'')}"></div>
-            <div class="field"><label>Year Graduated</label>
-            <input type="text" value="${esc(e.yearGrad||'')}"></div></div>
-        </div>`);
-    });
-    if (!(sub.education || []).length) {
-      eduList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-        <div class="field-row full"><div class="field"><label>School / University</label><input type="text" placeholder="e.g. Agro Industrial Foundation College"></div></div>
-        <div class="field-row"><div class="field"><label>Degree / Course</label><input type="text" placeholder="BS Marine Engineering"></div>
-          <div class="field"><label>Year Graduated</label><input type="text" placeholder="2014"></div></div>
-      </div>`);
-    }
-
-    const isSeaman = sub.eduLevel === 'seaman';
-    if (isSeaman) {
-      document.getElementById('rv-seamanSections').style.display = 'block';
-      const sm = sub.seaman || {};
-
-      // Documents
-      const docList = document.getElementById('rv-docList');
-      (sm.documents || []).forEach((d, i) => {
-        docList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-          <div class="exp-entry-num">Document #${i + 1}</div>
-          <div class="field-row"><div class="field"><label>Type</label><input type="text" value="${esc(d.type||'')}"></div>
-            <div class="field"><label>Number</label><input type="text" value="${esc(d.number||'')}"></div></div>
-          <div class="field-row triple">
-            <div class="field"><label>Date Issued</label><input type="date" value="${esc(d.dateIssued||'')}"></div>
-            <div class="field"><label>Date Expiry</label><input type="date" value="${esc(d.dateExpiry||'')}"></div>
-            <div class="field"><label>Place Issued</label><input type="text" value="${esc(d.placeIssued||'')}"></div>
-          </div></div>`);
-      });
-      if (!(sm.documents || []).length) docList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No documents were captured from your CGIS. Please contact us to add them manually.</p>';
-
-      // Certificates
-      const certList = document.getElementById('rv-certList');
-      (sm.certificates || []).forEach((c, i) => {
-        certList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-          <div class="exp-entry-num">Certificate #${i + 1}</div>
-          <div class="field-row full"><div class="field"><label>Certificate Name</label><input type="text" value="${esc(c.name||'')}"></div></div>
-          <div class="field-row">
-            <div class="field"><label>Number</label><input type="text" value="${esc(c.number||'')}"></div>
-            <div class="field"><label>Issued By</label><input type="text" value="${esc(c.issuedBy||'')}"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Date Issued</label><input type="date" value="${esc(c.dateIssued||'')}"></div>
-            <div class="field"><label>Valid Until</label><input type="date" value="${esc(c.validUntil||'')}"></div>
-          </div></div>`);
-      });
-      if (!(sm.certificates || []).length) certList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No certificates captured. Please contact us to add them manually.</p>';
-
-      // Vaccinations
-      const vaxList = document.getElementById('rv-vaxList');
-      (sm.vaccinations || []).forEach((v, i) => {
-        vaxList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-          <div class="exp-entry-num">Vaccination #${i + 1}</div>
-          <div class="field-row">
-            <div class="field"><label>Vaccine</label><input type="text" value="${esc(v.name||'')}"></div>
-            <div class="field"><label>Place Issued</label><input type="text" value="${esc(v.placeIssued||'')}"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Date Given</label><input type="date" value="${esc(v.dateGiven||'')}"></div>
-            <div class="field"><label>Valid Until</label><input type="date" value="${esc(v.validUntil||'')}"></div>
-          </div></div>`);
-      });
-      if (!(sm.vaccinations || []).length) vaxList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No vaccinations captured.</p>';
-
-      // Sea service
-      const seaList = document.getElementById('rv-seaList');
-      (sm.seaService || []).forEach((v, i) => {
-        seaList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-          <div class="exp-entry-num">Vessel #${i + 1}</div>
-          <div class="field-row">
-            <div class="field"><label>Vessel Name</label><input type="text" value="${esc(v.vessel||'')}"></div>
-            <div class="field"><label>Rank</label><input type="text" value="${esc(v.rank||'')}"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Vessel Type</label><input type="text" value="${esc(v.vesselType||'')}"></div>
-            <div class="field"><label>Manning Agency</label><input type="text" value="${esc(v.company||v.agency||'')}"></div>
-          </div>
-          <div class="field-row triple">
-            <div class="field"><label>GRT</label><input type="text" value="${esc(v.grt||'')}"></div>
-            <div class="field"><label>KW / HP</label><input type="text" value="${esc(v.kw||'')}"></div>
-            <div class="field"><label>Trade Area</label><input type="text" value="${esc(v.tradeArea||'')}"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Sign On</label><input type="date" value="${esc(v.signOn||'')}"></div>
-            <div class="field"><label>Sign Off</label><input type="date" value="${esc(v.signOff||'')}"></div>
-          </div></div>`);
-      });
-      if (!(sm.seaService || []).length) seaList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No sea service records captured. Please contact us.</p>';
-
-    } else {
-      // Non-seaman work experience
-      document.getElementById('rv-workSection').style.display = 'block';
-      const workList = document.getElementById('rv-workList');
-      (sub.workExperience || []).filter(w => w.company).forEach((w, i) => {
-        workList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
-          <div class="exp-entry-num">Job #${i + 1}</div>
-          <div class="field-row">
-            <div class="field"><label>Company</label><input type="text" value="${esc(w.company||'')}"></div>
-            <div class="field"><label>Position</label><input type="text" value="${esc(w.position||'')}"></div>
-          </div>
-          <div class="field-row">
-            <div class="field"><label>Date Started</label><input type="text" value="${esc(w.dateStart||'')}"></div>
-            <div class="field"><label>Date Ended</label><input type="text" value="${esc(w.dateEnd||'')}"></div>
-          </div></div>`);
-      });
-    }
-
-    loading.style.display = 'none';
-    form.style.display    = 'block';
-
-  } catch (err) {
-    loading.innerHTML = `❌ Could not load your details — please check your connection and try again.<br>
-      <small style="color:var(--gray)">${err.message}</small><br><br>
-      <a href="tel:09063964052" style="color:var(--navy);font-weight:700;">📱 Call Reymar: 09063964052</a>`;
-  }
-}
-
-// Simple HTML escaper for values inserted via innerHTML
-function esc(v) {
-  return String(v == null ? '' : v)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Collect values from the review form and patch JSONBin
-async function submitReview() {
-  const btn     = document.getElementById('rv-confirmBtn');
-  const label   = document.getElementById('rv-confirmLabel');
-  const spinner = document.getElementById('rv-confirmSpinner');
-  btn.disabled  = true;
-  label.textContent = 'Saving…';
-  spinner.classList.remove('hidden');
-
-  try {
-    // Collect edits from the review form
-    const gv   = id => document.getElementById(id)?.value.trim() || '';
-    const patch = {
-      personal: {
-        firstName:   gv('rv-firstName'),
-        middleName:  gv('rv-middleName'),
-        lastName:    gv('rv-lastName'),
-        jobTitle:    gv('rv-jobTitle'),
-        nationality: gv('rv-nationality'),
-        dob:         gv('rv-dob'),
-        address:     gv('rv-address'),
-        phone:       gv('rv-phone'),
-        email:       gv('rv-email'),
-        civilStatus: gv('rv-civilStatus'),
-        gender:      gv('rv-gender')
-      },
-      aboutMe:            gv('rv-aboutMe'),
-      specialInstructions:gv('rv-specialInstructions'),
-      customerConfirmed:  true,
-      customerConfirmedAt:new Date().toISOString(),
-      // Collect education edits
-      education: [...document.querySelectorAll('#rv-eduList .exp-entry')].map(entry => {
-        const inp = entry.querySelectorAll('input');
-        return { school: inp[0]?.value || '', degree: inp[1]?.value || '', yearGrad: inp[2]?.value || '' };
-      }).filter(e => e.school),
-      // Collect seaman section edits
-      _rv_seamanEdits: {
-        documents: [...document.querySelectorAll('#rv-docList .exp-entry')].map(entry => {
-          const inp = entry.querySelectorAll('input');
-          return { type: inp[0]?.value||'', number: inp[1]?.value||'', dateIssued: inp[2]?.value||'', dateExpiry: inp[3]?.value||'', placeIssued: inp[4]?.value||'' };
-        }).filter(d => d.type || d.number),
-        certificates: [...document.querySelectorAll('#rv-certList .exp-entry')].map(entry => {
-          const inp = entry.querySelectorAll('input');
-          return { name: inp[0]?.value||'', number: inp[1]?.value||'', issuedBy: inp[2]?.value||'', dateIssued: inp[3]?.value||'', validUntil: inp[4]?.value||'' };
-        }).filter(c => c.name),
-        vaccinations: [...document.querySelectorAll('#rv-vaxList .exp-entry')].map(entry => {
-          const inp = entry.querySelectorAll('input');
-          return { name: inp[0]?.value||'', placeIssued: inp[1]?.value||'', dateGiven: inp[2]?.value||'', validUntil: inp[3]?.value||'' };
-        }).filter(v => v.name),
-        seaService: [...document.querySelectorAll('#rv-seaList .exp-entry')].map(entry => {
-          const inp = entry.querySelectorAll('input');
-          return { vessel: inp[0]?.value||'', rank: inp[1]?.value||'', vesselType: inp[2]?.value||'', company: inp[3]?.value||'', grt: inp[4]?.value||'', kw: inp[5]?.value||'', tradeArea: inp[6]?.value||'', signOn: inp[7]?.value||'', signOff: inp[8]?.value||'' };
-        }).filter(v => v.vessel)
-      }
-    };
-
-    // Fetch full record, find submission by token, merge patch
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-      headers: { 'X-Master-Key': JSONBIN_API_KEY }
-    });
-    if (!res.ok) throw new Error('Could not load record');
-    const json  = await res.json();
-    const rec   = json?.record || json || {};
-    const subs  = rec.submissions || [];
-    const idx   = subs.findIndex(s => s.reviewToken === window._rv_token);
-    if (idx < 0) throw new Error('Submission not found');
-
-    const existing = subs[idx];
-    // Merge personal fields (preserve photo and other fields we don't show)
-    subs[idx] = {
-      ...existing,
-      personal: { ...existing.personal, ...patch.personal, photo: existing.personal?.photo || '' },
-      aboutMe:             patch.aboutMe             || existing.aboutMe,
-      specialInstructions: patch.specialInstructions || existing.specialInstructions,
-      education:           patch.education.length    ? patch.education : existing.education,
-      customerConfirmed:   true,
-      customerConfirmedAt: patch.customerConfirmedAt,
-      // Merge seaman sub-sections if this is a seafarer submission
-      seaman: existing.seaman ? {
-        ...existing.seaman,
-        documents:    patch._rv_seamanEdits.documents.length    ? patch._rv_seamanEdits.documents    : existing.seaman.documents,
-        certificates: patch._rv_seamanEdits.certificates.length ? patch._rv_seamanEdits.certificates : existing.seaman.certificates,
-        vaccinations: patch._rv_seamanEdits.vaccinations.length ? patch._rv_seamanEdits.vaccinations : existing.seaman.vaccinations,
-        seaService:   patch._rv_seamanEdits.seaService.length   ? patch._rv_seamanEdits.seaService   : existing.seaman.seaService
-      } : existing.seaman
-    };
-
-    const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-      body: JSON.stringify({ ...rec, submissions: subs })
-    });
-    if (!putRes.ok) throw new Error('Save failed (status ' + putRes.status + ')');
-
-    document.getElementById('rv-form').style.display    = 'none';
-    document.getElementById('rv-success').style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-  } catch (err) {
-    console.error('Review submit error:', err);
-    btn.disabled = false;
-    label.textContent = '✅ Confirm — Details are Correct';
-    spinner.classList.add('hidden');
-    showNotif('❌ Could not save — please check your connection and try again.', true);
-  }
-}
+</div></div></body></html>`;}
 
 
 // ─── NOTIF ────────────────────────────────────────────────────────────────────
