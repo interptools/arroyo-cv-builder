@@ -3932,10 +3932,24 @@ Remember: FIRST PERSON only. NO name. 3 sentences. Applicant convincing employer
 
 // ── OPEN PRINT WINDOW (no AI, no content changes) ─────────────────────────────
 function openCVPrintWindow(sub){
+  // Parked on the dashboard so the print window's toolbar can rebuild itself
+  // when the admin switches template or discards edits — the window keeps a
+  // live opener reference, so it re-renders in place instead of opening again.
+  window.__acvSub = sub;
+  window.__acvTmpl = selectedTemplate;
   const html=buildCVHtml(sub,selectedTemplate,'print');
   const win=window.open('','_blank');
   win.document.write(html);
   win.document.close();
+}
+
+// Called from the print window. Rewrites that document with the chosen layout,
+// keeping one window rather than stacking up new ones.
+function acvRender(tmpl, win){
+  if(!window.__acvSub || !win) return;
+  window.__acvTmpl = tmpl;
+  const html = buildCVHtml(window.__acvSub, tmpl, 'print');
+  win.document.open(); win.document.write(html); win.document.close();
 }
 
 // ── BUILD CV HTML ─────────────────────────────────────────────────────────────
@@ -3989,7 +4003,10 @@ const ADMIN_CV_TOOLBAR = `
 </style>
 
 <div class="acv-bar">
+  <button id="acvT16" onclick="acvTmpl(16)">Template 16</button>
+  <button id="acvT17" onclick="acvTmpl(17)">Template 17</button>
   <button id="acvEdit" onclick="acvEdit()">Turn on editing</button>
+  <button onclick="acvPhoto()">Change photo</button>
   <button id="acvExp" onclick="acvExpiry()">Hide expiry colours</button>
   <button id="acvColsBtn" onclick="acvToggleCols()">Columns\u2026</button>
   <span class="sp">
@@ -3999,7 +4016,9 @@ const ADMIN_CV_TOOLBAR = `
     <button onclick="acvSetZoom(100)" style="font-size:11px">Reset</button>
   </span>
   <button class="go" onclick="acvPrint()">Print / Save PDF</button>
+  <button onclick="acvUndo()">Undo my edits</button>
   <button onclick="window.close()">Close</button>
+  <input type="file" id="acvPhotoIn" accept="image/*" style="display:none">
   <span class="hint">A4 \u00b7 Margins <b>Default</b> \u00b7 Background graphics <b>on</b></span>
 </div>
 
@@ -4017,7 +4036,7 @@ const ADMIN_CV_TOOLBAR = `
 
 <script>
 (function(){
-  var editing=false, expOn=true, zoom=100, hidden=[];
+  var editing=false, expOn=true, zoom=100, hidden=[], current=0;
   var SEA=[['c-vessel','Vessel / IMO',15],['c-rank','Rank',7],['c-type','Type',8],
     ['c-grt','GRT',6.5],['c-dwt','DWT',5.5],['c-kw','KW / BHP',7],
     ['c-engine','Engine type',11],['c-agency','Agency / Principal',14],
@@ -4147,6 +4166,40 @@ const ADMIN_CV_TOOLBAR = `
     else toast(zoom+'% \\u2014 check the page count before printing.');
   };
 
+  // Switching layout and discarding edits both go back through the dashboard,
+  // which still holds the record. The window rewrites itself rather than
+  // opening another one on every click.
+  function rerender(t){
+    if(window.opener && !window.opener.closed && window.opener.acvRender)
+      window.opener.acvRender(t, window);
+    else toast('The dashboard was closed \u2014 reopen the CV from there.');
+  }
+  window.acvTmpl=function(t){ if(t!==current) rerender(t); };
+  window.acvUndo=function(){
+    if(confirm('Discard your changes and reload this CV from the record?'))
+      rerender(current || 16);
+  };
+
+  // Local to this printout. The stored record keeps its own photo, so use the
+  // dashboard's Edit screen if the change should stick.
+  window.acvPhoto=function(){
+    var el=document.getElementById('acvPhotoIn'); if(el) el.click();
+  };
+  (function(){
+    var inp=document.getElementById('acvPhotoIn'); if(!inp) return;
+    inp.onchange=function(e){
+      var f=e.target.files&&e.target.files[0]; if(!f) return;
+      var r=new FileReader();
+      r.onload=function(){
+        var imgs=document.querySelectorAll('.ph img, .hdr img, .top img');
+        if(!imgs.length){ toast('This layout has no photo frame.'); return; }
+        [].slice.call(imgs).forEach(function(i){ i.src=r.result; });
+        toast('Photo replaced for this printout only \u2014 the record is unchanged.');
+      };
+      r.readAsDataURL(f);
+    };
+  })();
+
   window.acvPrint=function(){
     if(editing) nodes().forEach(function(el){el.contentEditable='false';});
     toast('Untick "Headers and footers" in the dialog.');
@@ -4166,6 +4219,18 @@ const ADMIN_CV_TOOLBAR = `
     }
     if(!document.querySelector('td.exp,td.soon,td.x,td.w')){
       var e=document.getElementById('acvExp'); if(e) e.style.display='none';
+    }
+    // Which of the two seafarer layouts is on screen, so the pair reads as a
+    // toggle. Templates 1-15 and the Europe layouts have no alternative, so
+    // the buttons come off entirely there.
+    current = document.querySelector('table.sea') ? 16
+            : document.querySelector('table.f')   ? 17 : 0;
+    var b16=document.getElementById('acvT16'), b17=document.getElementById('acvT17');
+    if(current){
+      var act=document.getElementById('acvT'+current);
+      if(act) act.classList.add('on');
+    } else if(b16 && b17){
+      b16.style.display='none'; b17.style.display='none';
     }
   }
   if(document.readyState==='loading')
