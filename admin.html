@@ -1994,7 +1994,10 @@ function exportCSV(){
     // admin-entered fields — two identical column names would be unreadable.
     'Sea: Rank Applied','Sea: Last Rank','Sea: Height','Sea: Weight','Sea: BMI',
     'Sea: Eyes','Sea: Hair','Sea: Blood Type','Sea: Shoe Size','Sea: Coverall',
-    'Sea: Religion','Sea: Place of Birth','Sea: Gov IDs','Sea: Next of Kin',
+    'Sea: Religion','Sea: Place of Birth','Sea: Highest License',
+    'Sea: SSS No.','Sea: TIN No.','Sea: Pag-IBIG No.','Sea: PhilHealth No.','Sea: SRC No.',
+    'Sea: Alt. Phone','Sea: Next of Kin','Sea: Mailing Address','Sea: Children',
+    'Sea: Health Declaration','Sea: Pre-Medical',
     'Sea: Travel Documents','Sea: Certificates','Sea: Sea Service',
     // Europe block — blank on every other kind of order, same as the seafarer
     // columns above, so one export still covers the whole queue.
@@ -2044,7 +2047,19 @@ function exportCSV(){
       .map(c=>`${c.name}${c.number?' #'+c.number:''}${c.issuedBy?' by '+c.issuedBy:''}${c.dateIssued?' issued '+c.dateIssued:''}${c.validUntil?' valid to '+c.validUntil:''}`)
       .join(' | ');
     const seaStr = (m.seaService||[]).filter(v=>v.vessel)
-      .map(v=>`${v.vessel}${v.rank?' as '+v.rank:''}${v.vesselType?' ('+v.vesselType+')':''}${v.company?' - '+v.company:''}${v.grt?' GRT '+v.grt:''}${v.kw?' '+v.kw:''}${(v.signOn||v.signOff)?' '+(v.signOn||'')+' to '+(v.signOff||''):''}${v.tradeArea?' ['+v.tradeArea+']':''}`)
+      .map(v=>[
+        v.vessel+(v.imoNo?' (IMO:'+v.imoNo+')':''),
+        v.rank?'as '+v.rank:'',
+        v.vesselType?'('+v.vesselType+')':'',
+        v.company?'Agency:'+v.company:'',
+        v.principal?'Principal:'+v.principal:'',
+        v.grt?'GRT:'+v.grt:'',v.dwt?'DWT:'+v.dwt:'',v.kw?'KW:'+v.kw:'',
+        v.engineType?'Engine:'+v.engineType:'',
+        v.amosup?'AMOSUP:'+v.amosup:'',
+        (v.signOn||v.signOff)?(v.signOn||'')+' to '+(v.signOff||''):'',
+        v.signOffReason?'Reason:'+v.signOffReason:'',
+        v.tradeArea?'['+v.tradeArea+']':''
+      ].filter(Boolean).join(' '))
       .join(' | ');
 
     let submitted = s.submittedAt || '';
@@ -2084,7 +2099,11 @@ function exportCSV(){
       // spreadsheet usable for both kinds of order rather than needing two.
       m.rank||'', m.lastRank||'', m.height||'', m.weight||'', m.bmi||'',
       m.eyes||'', m.hair||'', m.blood||'', m.shoe||'', m.coverall||'',
-      m.religion||'', m.birthPlace||'', [m.sss,m.tin,m.pagibig,m.philhealth].filter(Boolean).join(' / ')||'', m.nok||'',
+      m.religion||'', m.birthPlace||'', m.highestLicense||'',
+      m.sss||'', m.tin||'', m.pagibig||'', m.philhealth||'', m.src||'',
+      m.phone2||'', m.nok||'', m.mailingAddress||'', m.children||'',
+      [m.healthFlag,m.healthIssued,m.healthValid,m.healthClinic].filter(Boolean).join(' / ')||'',
+      [m.medResult,m.medIssued,m.medValid,m.medClinic].filter(Boolean).join(' / ')||'',
       docStr, certStr, seaStr,
       eu.country||'', eu.city||'', eu.permit||'', eu.permitExpiry||'',
       eu.notice||'', eu.relocate||'', eu.licence||'', eu.currentLocation||'',
@@ -3219,8 +3238,25 @@ function viewSubmission(idx){
       ['Height',m.height],['Weight',m.weight],['BMI',m.bmi],
       ['Colour of Eyes',m.eyes],['Colour of Hair',m.hair],['Blood Type',m.blood],
       ['Shoe Size',m.shoe],['Coverall Size',m.coverall],['Religion',m.religion],
-      ['Place of Birth',m.birthPlace],['SSS No.',m.sss],['TIN No.',m.tin],['Pag-IBIG No.',m.pagibig],['PhilHealth No.',m.philhealth],['SRC No.',m.src],['Nearest Relative',m.nok]
+      ['Place of Birth',m.birthPlace],['Highest License / COC',m.highestLicense],
+      ['SSS No.',m.sss],['TIN No.',m.tin],['Pag-IBIG No.',m.pagibig],
+      ['PhilHealth No.',m.philhealth],['SRC No.',m.src],
+      ['Alternative Phone',m.phone2],['Nearest Relative / NOK',m.nok],
+      ['Mailing Address',m.mailingAddress],['Children',m.children],
     ].filter(r=>r[1]));
+
+    if(m.healthFlag||m.medResult||m.healthClinic||m.medClinic){
+      html+=grp('🏥 Health & Medical',[
+        ['Health Declaration',m.healthFlag],
+        ['Health Issued', m.healthIssued ? dd(m.healthIssued) : ''],
+        ['Health Valid Until', m.healthValid ? dd(m.healthValid) : ''],
+        ['Health Clinic', m.healthClinic],
+        ['Pre-Medical Result', m.medResult],
+        ['Pre-Medical Issued', m.medIssued ? dd(m.medIssued) : ''],
+        ['Pre-Medical Valid Until', m.medValid ? dd(m.medValid) : ''],
+        ['Pre-Medical Clinic', m.medClinic],
+      ].filter(r=>r[1]));
+    }
 
     const docs=(m.documents||[]).filter(x=>x.type||x.number);
     if(docs.length) html+=`<div class="info-group"><h4>🛂 Travel Documents</h4>${
@@ -3236,8 +3272,13 @@ function viewSubmission(idx){
     const sea=(m.seaService||[]).filter(v=>v.vessel);
     html+=`<div class="info-group"><h4>🚢 Sea Service Record</h4>${
       sea.length
-        ? tbl(['Vessel','Rank','Type','GRT','KW/HP','Company','Sign On','Sign Off','Trade Area'],
-            sea.map(v=>`<tr>${cell('<strong>'+(v.vessel||'')+'</strong>')}${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.kw)}${cell(v.company)}${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.tradeArea)}</tr>`).join(''))
+        ? tbl(['Vessel / IMO','Rank','Type','GRT','DWT','KW/BHP','Engine Type','Manning Agency','Principal','AMOSUP/CBA','Sign On','Sign Off','Reason','Trade Area'],
+            sea.map(v=>`<tr>
+              ${cell('<strong>'+(v.vessel||'')+'</strong>'+(v.imoNo?'<br><small style="font-weight:400;color:#6b7280;">'+v.imoNo+'</small>':''))}
+              ${cell(v.rank)}${cell(v.vesselType)}${cell(v.grt)}${cell(v.dwt)}${cell(v.kw)}
+              ${cell(v.engineType)}${cell(v.company)}${cell(v.principal)}${cell(v.amosup)}
+              ${cell(dd(v.signOn))}${cell(dd(v.signOff))}${cell(v.signOffReason)}${cell(v.tradeArea)}
+            </tr>`).join(''))
         : `<p style="font-size:12.5px;color:var(--gray);font-style:italic;">No sea service — first-time applicant.</p>`}</div>`;
   }
 
