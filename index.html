@@ -8537,13 +8537,16 @@ ${pc}
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .no-print{display:none!important;}
-    /* A zero page margin is deliberate: the browser prints its own date, title
-       and file:// path INTO that margin, and there is no CSS that hides them.
-       With no margin there is nowhere to draw them, so the sheet comes out
-       clean. The white border the page still needs becomes padding below. */
-    @page{margin:0;size:A4 portrait;}
+    /* The margin has to live on @page, not on the container. Container padding
+       only applies at the element's start and end, so with @page:0 every page
+       after the first began hard against the paper edge. @page margins repeat
+       on every sheet, which is what a multi-page CV needs.
+       Trade-off: this is also where the browser prints its own date, title and
+       file:// path. No CSS can suppress those — untick "Headers and footers"
+       in the print dialog. Chrome remembers the setting. */
+    @page{margin:12mm;size:A4 portrait;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
-             padding:11mm 12mm!important;}
+             padding:0!important;}
     /* thead already repeats via display:table-header-group */
   }
 </style></head><body>${pb}
@@ -8831,11 +8834,11 @@ ${pc}
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .no-print{display:none!important;}
-    /* Zero margin so the browser cannot print its own header and footer into
-       it — see the note in T16. The page's white border is padding instead. */
-    @page{margin:0;size:A4 portrait;}
+    /* Margins on @page so they repeat on every sheet — see the note in T16.
+       Untick "Headers and footers" in the print dialog. */
+    @page{margin:12mm;size:A4 portrait;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
-             padding:11mm 12mm!important;}
+             padding:0!important;}
   }
 </style></head><body>${pb}
 <div class="sea-doc">
