@@ -4157,10 +4157,21 @@ const ADMIN_CV_TOOLBAR = `
   });
 
   // A non-seafarer layout has no sea table, so those controls would do nothing.
-  if(!document.querySelector('colgroup col.c-vessel'))
-    document.getElementById('acvColsBtn').style.display='none';
-  if(!document.querySelector('td.exp,td.soon,td.x,td.w'))
-    document.getElementById('acvExp').style.display='none';
+  // This has to wait for the document: the toolbar is written at the TOP of
+  // <body>, so at parse time the CV below it does not exist yet and both
+  // buttons would hide themselves on every CV, seafarer ones included.
+  function hideIrrelevant(){
+    if(!document.querySelector('colgroup col.c-vessel')){
+      var c=document.getElementById('acvColsBtn'); if(c) c.style.display='none';
+    }
+    if(!document.querySelector('td.exp,td.soon,td.x,td.w')){
+      var e=document.getElementById('acvExp'); if(e) e.style.display='none';
+    }
+  }
+  if(document.readyState==='loading')
+    document.addEventListener('DOMContentLoaded', hideIrrelevant);
+  else
+    hideIrrelevant();
 })();
 <\/script>`;
 
@@ -4238,6 +4249,11 @@ function buildCVHtml(s,tmpl,mode){
     company: esc(r.company), contact: esc(r.contact)
   }));
 
+  // 'print'  → the standalone print window, which gets the editing toolbar.
+  // 'layout'  → the Page Layout Editor, which supplies its own controls; adding
+  //             the toolbar there put two click handlers on every section header
+  //             and shifted the preview by the toolbar's height.
+  // 'preview' → the template picker's thumbnail, no chrome at all.
   const printBar = mode === 'print' ? ADMIN_CV_TOOLBAR : '';
 
   const printCSS=`<style>
@@ -8471,7 +8487,7 @@ function _peRender() {
   // Use the correct function name (buildCVHtml, lowercase h)
   // Always use T16 or T17 for seafarer — default to 16 if no seafarer template selected
   const tmpl = (_peTmpl === 17) ? 17 : 16;
-  const html = buildCVHtml(s, tmpl, 'print');
+  const html = buildCVHtml(s, tmpl, 'layout');
   if (!html) { console.error('_peRender: buildCVHtml returned empty'); return; }
 
   const frame = document.getElementById('pageEditorFrame');
