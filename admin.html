@@ -823,6 +823,16 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div style="color:#ffd166;font-size:15px;font-weight:800;">📄 Seafarer CV — Page Layout Editor</div>
       <div style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px;">Click any section header to force a page break before it · Blue dashes = natural browser break · Red dashes = your forced break</div>
     </div>
+    <div style="display:flex;gap:6px;margin-left:10px;">
+      <button id="peTmpl16" onclick="switchPeTemplate(16)"
+        style="padding:6px 14px;border:none;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;background:#ffd166;color:#0b2545;">
+        T16 Polished
+      </button>
+      <button id="peTmpl17" onclick="switchPeTemplate(17)"
+        style="padding:6px 14px;border:none;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;background:rgba(255,255,255,.1);color:rgba(255,255,255,.7);">
+        T17 Agency
+      </button>
+    </div>
     <div style="margin-left:auto;display:flex;gap:10px;">
       <button onclick="printFromPageEditor()" style="background:#ffd166;color:#0b2545;border:none;padding:9px 22px;border-radius:8px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">🖨 Print / Save PDF</button>
       <button onclick="closePageEditor()" style="background:rgba(255,255,255,.1);color:white;border:1px solid rgba(255,255,255,.2);padding:9px 16px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;">✕ Close</button>
@@ -8045,8 +8055,25 @@ let _peTmpl  = 16;          // template (16 or 17)
 function openPageEditor(idx) {
   _peIdx   = idx;
   _peBreaks.clear();
-  _peTmpl  = selectedTemplate === 17 ? 17 : 16;
-  document.getElementById('pageEditorOverlay').style.display = 'flex';
+  // Use T16 (polished) by default; switch to T17 only if it was explicitly selected
+  _peTmpl  = (selectedTemplate === 17) ? 17 : 16;
+  const overlay = document.getElementById('pageEditorOverlay');
+  overlay.style.display = 'flex';
+  // Template toggle buttons
+  const tb16 = document.getElementById('peTmpl16');
+  const tb17 = document.getElementById('peTmpl17');
+  if (tb16) tb16.style.background = _peTmpl === 16 ? '#ffd166' : 'rgba(255,255,255,.1)';
+  if (tb17) tb17.style.background = _peTmpl === 17 ? '#ffd166' : 'rgba(255,255,255,.1)';
+  _peRender();
+}
+
+function switchPeTemplate(tmpl) {
+  _peTmpl = tmpl;
+  _peBreaks.clear();
+  const tb16 = document.getElementById('peTmpl16');
+  const tb17 = document.getElementById('peTmpl17');
+  if (tb16) { tb16.style.background = tmpl===16 ? '#ffd166' : 'rgba(255,255,255,.1)'; tb16.style.color = tmpl===16 ? '#0b2545' : 'rgba(255,255,255,.7)'; }
+  if (tb17) { tb17.style.background = tmpl===17 ? '#ffd166' : 'rgba(255,255,255,.1)'; tb17.style.color = tmpl===17 ? '#0b2545' : 'rgba(255,255,255,.7)'; }
   _peRender();
 }
 
@@ -8066,14 +8093,18 @@ function _peRender() {
   const s = submissions[_peIdx];
   if (!s) return;
 
-  // Build the CV HTML via the existing buildCVHTML helper
-  const html = buildCVHTML(s, _peTmpl, 'print');
+  // Use the correct function name (buildCVHtml, lowercase h)
+  // Always use T16 or T17 for seafarer — default to 16 if no seafarer template selected
+  const tmpl = (_peTmpl === 17) ? 17 : 16;
+  const html = buildCVHtml(s, tmpl, 'print');
+  if (!html) { console.error('_peRender: buildCVHtml returned empty'); return; }
 
-  // Inject into iframe
   const frame = document.getElementById('pageEditorFrame');
 
-  // We'll post-process: add a script that makes .sh elements clickable,
-  // highlights forced breaks, and reports page count
+  // Editor script injected into the iframe:
+  // - makes .sh/.band section headers clickable to toggle forced page breaks
+  // - reports scroll height via postMessage (since sandbox blocks contentDocument)
+  // - reports page count estimate
   const editorScript = `
 <script>
 (function(){
@@ -8081,11 +8112,9 @@ function _peRender() {
   var MM = 96/25.4, A4H = 297*MM;
 
   function apply(){
-    // Remove all existing forced-break classes
     document.querySelectorAll('.pg-break').forEach(function(el){
       el.classList.remove('pg-break');
     });
-    // Apply from current breaks set
     var secs = document.querySelectorAll('.sec, .wrap.sec');
     breaks.forEach(function(i){
       if(secs[i]) secs[i].classList.add('pg-break');
@@ -8099,55 +8128,57 @@ function _peRender() {
       if(!sh) return;
       sh.style.cursor = 'pointer';
       sh.title = 'Click to toggle page break before this section';
+      sh.style.outline = '2px dashed transparent';
+      sh.addEventListener('mouseenter', function(){ sh.style.outline = '2px dashed rgba(52,211,153,0.7)'; });
+      sh.addEventListener('mouseleave', function(){ sh.style.outline = '2px dashed transparent'; });
       sh.addEventListener('click', function(){
         if(breaks.includes(i)) breaks = breaks.filter(function(x){return x!==i;});
         else breaks.push(i);
-        // Tell parent
-        window.parent.postMessage({type:'pe-toggle', idx:i, breaks:breaks}, '*');
         apply();
-        reportPages();
+        window.parent.postMessage({type:'pe-toggle', idx:i, breaks:breaks}, '*');
+        reportSize();
       });
     });
   }
 
-  function reportPages(){
-    var body = document.body;
-    var h = body ? body.scrollHeight : 0;
+  function reportSize(){
+    var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
     var pages = Math.ceil(h / A4H) || 1;
-    window.parent.postMessage({type:'pe-pages', count:pages}, '*');
+    window.parent.postMessage({type:'pe-size', height: h, pages: pages}, '*');
   }
 
   apply();
-  if(document.readyState==='complete'){ addHandlers(); setTimeout(reportPages,400); }
-  else { window.addEventListener('load', function(){ addHandlers(); setTimeout(reportPages,400); }); }
+  if(document.readyState==='complete'){ addHandlers(); setTimeout(reportSize, 300); }
+  else { window.addEventListener('load', function(){ addHandlers(); setTimeout(reportSize, 300); }); }
+  // Also report after fonts/images load
+  window.addEventListener('load', function(){ setTimeout(reportSize, 800); });
 })();
 <\/script>`;
 
-  // Inject the script just before </body>
-  const patched = html.replace('</body>', editorScript + '</body>');
+  // Inject script before </body>
+  const patched = html.includes('</body>')
+    ? html.replace('</body>', editorScript + '</body>')
+    : html + editorScript;
+
+  // Set a reasonable initial height so the iframe isn't invisible while loading
+  frame.style.height = '1200px';
   frame.srcdoc = patched;
 
   // Listen for messages from iframe
   window._peListener && window.removeEventListener('message', window._peListener);
   window._peListener = function(e) {
-    if (!e.data || e.data.type !== 'pe-toggle' && e.data.type !== 'pe-pages') return;
+    if (!e.data) return;
     if (e.data.type === 'pe-toggle') {
       _peBreaks = new Set(e.data.breaks);
     }
-    if (e.data.type === 'pe-pages') {
+    if (e.data.type === 'pe-size') {
+      // Resize iframe to match content height
+      frame.style.height = (e.data.height + 60) + 'px';
       const el = document.getElementById('pePageCount');
-      if (el) el.textContent = `Estimated: ${e.data.count} page${e.data.count===1?'':'s'}`;
+      if (el) el.textContent = `Estimated: ${e.data.pages} page${e.data.pages===1?'':'s'}`;
     }
   };
   window.addEventListener('message', window._peListener);
-
-  // Auto-size iframe height so it scrolls
-  frame.onload = function() {
-    try {
-      const h = frame.contentDocument?.body?.scrollHeight;
-      if (h) frame.style.height = (h + 40) + 'px';
-    } catch(e) {}
-  };
 }
 
 function showNotif(msg,isError=false){
