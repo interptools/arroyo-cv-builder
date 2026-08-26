@@ -8478,13 +8478,27 @@ ${pc}
   /* ── data tables ── */
   table.g{width:100%;border-collapse:collapse;font-size:7.8px;table-layout:fixed;}
   table.g th,table.g td{border:1px solid #c3cddc;padding:3px 5px;text-align:left;vertical-align:top;
-                         word-break:break-word;}
+                         overflow-wrap:break-word;word-break:normal;}
   table.g thead th{background:#0b2545;color:#ffd166;font-size:7px;font-weight:800;
                    letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;border-color:#0b2545;}
   table.g tbody tr:nth-child(even) td{background:#f6f8fc;}
   table.g td.exp{background:#fee2e2!important;color:#b91c1c;font-weight:800;}
   table.g td.soon{background:#fef3c7!important;color:#92400e;font-weight:700;}
   table.g td.pri{font-weight:800;color:#0b2545;}
+
+  /* Sea service is the widest table on the sheet, so its columns are sized
+     explicitly rather than left to the browser. Change a value here and the
+     header and every row move together. */
+  table.sea .c-vessel{width:15%;}  table.sea .c-rank  {width:7%;}
+  table.sea .c-type  {width:8%;}   table.sea .c-grt   {width:6.5%;}
+  table.sea .c-dwt   {width:5.5%;} table.sea .c-kw    {width:7%;}
+  table.sea .c-engine{width:11%;}  table.sea .c-agency{width:14%;}
+  table.sea .c-on    {width:8%;}   table.sea .c-off   {width:8%;}
+  table.sea .c-reason{width:10%;}
+  /* Figures and dates must never be split across lines. */
+  table.g td.n{white-space:nowrap;}
+  table.g td.sm{font-size:7px;line-height:1.35;}
+  table.g thead th{word-break:normal;white-space:nowrap;}
   /* thead repeats on each printed page so columns stay labelled */
   table.g thead{display:table-header-group;}
 
@@ -8632,25 +8646,32 @@ ${pc}
     <!-- SEA SERVICE -->
     <div class="sec">
       <div class="sh"><span>Sea Service Record</span>${sea.length?`<span class="cnt">${sea.length} vessel${sea.length>1?'s':''}</span>`:''}</div>
-      ${sea.length?`<table class="g">
+      ${sea.length?`<table class="g sea">
         <colgroup>
-          <col style="width:13%"><col style="width:6%"><col style="width:7%"><col style="width:5%">
-          <col style="width:5%"><col style="width:6%"><col style="width:10%"><col style="width:10%">
-          <col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:9%">
+          <col class="c-vessel"><col class="c-rank"><col class="c-type">
+          <col class="c-grt"><col class="c-dwt"><col class="c-kw">
+          <col class="c-engine"><col class="c-agency">
+          <col class="c-on"><col class="c-off"><col class="c-reason">
         </colgroup>
         <thead><tr>
           <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
-          <th>KW/BHP</th><th>Engine Type</th><th>Manning Agency</th><th>Principal</th>
-          <th>AMOSUP</th><th>Sign On</th><th>Sign Off</th><th>Reason / Trade</th>
+          <th>KW/BHP</th><th>Engine Type</th><th>Agency / Principal</th>
+          <th>Sign On</th><th>Sign Off</th><th>Reason</th>
         </tr></thead>
         <tbody>${sea.map(v=>`<tr>
-          <td style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-weight:400;font-size:6.5px;color:#4a5b75;">${v.imoNo}</span>`:''}</td>
-          <td>${v.rank||''}</td><td>${v.vesselType||''}</td>
-          <td>${v.grt||''}</td><td>${v.dwt||''}</td><td>${v.kw||''}</td>
-          <td style="font-size:7px;">${v.engineType||''}</td>
-          <td>${v.company||''}</td><td>${v.principal||''}</td><td>${v.amosup||''}</td>
-          <td>${fmtD(v.signOn)}</td><td>${fmtD(v.signOff)}</td>
-          <td style="font-size:7px;">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
+          <td class="c-vessel" style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-weight:400;font-size:6.5px;color:#4a5b75;">IMO ${v.imoNo}</span>`:''}</td>
+          <td class="c-rank">${v.rank||''}</td>
+          <td class="c-type">${v.vesselType||''}</td>
+          <td class="c-grt n">${v.grt||''}</td>
+          <td class="c-dwt n">${v.dwt||''}</td>
+          <td class="c-kw n">${v.kw||''}</td>
+          <td class="c-engine sm">${v.engineType||''}</td>
+          <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean)
+              .map((x,i)=>i?`<span style="color:#4a5b75;">${x}</span>`:`<strong>${x}</strong>`)
+              .join('<br>')}</td>
+          <td class="c-on n">${fmtD(v.signOn)}</td>
+          <td class="c-off n">${fmtD(v.signOff)}</td>
+          <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
         </tr>`).join('')}</tbody></table>`
       :`<div class="none">No sea service yet — first-time applicant.</div>`}
     </div>
@@ -8774,7 +8795,8 @@ ${pc}
         color:#1f3864;padding:3px 0;page-break-after:avoid;break-after:avoid;}
   .wrap{padding:0 18px;}
   table.f{width:100%;border-collapse:collapse;font-size:7.5px;margin-bottom:8px;table-layout:fixed;}
-  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.5px 4px;text-align:left;vertical-align:top;word-break:break-word;}
+  table.f th,table.f td{border:1px solid #9aa7bb;padding:2.5px 4px;text-align:left;vertical-align:top;
+                         overflow-wrap:break-word;word-break:normal;}
   table.f thead th{background:#e8eef7;font-weight:800;font-size:7px;letter-spacing:.3px;text-transform:uppercase;color:#1f3864;text-align:center;white-space:nowrap;}
   table.f thead{display:table-header-group;}
   table.f td.x{background:#fde2e2;color:#b91c1c;font-weight:700;}
@@ -8784,6 +8806,17 @@ ${pc}
   table.p th{background:#e8eef7;font-weight:700;color:#1f3864;width:16%;white-space:nowrap;}
   table.p td{width:34%;font-weight:600;}
   .lbl{background:#f2f5fa;font-weight:700;color:#1f3864;white-space:nowrap;}
+
+  /* Sea service column widths — the one table wide enough to need them set. */
+  table.f .c-vessel{width:15%;}  table.f .c-rank  {width:7%;}
+  table.f .c-type  {width:8%;}   table.f .c-grt   {width:6.5%;}
+  table.f .c-dwt   {width:5.5%;} table.f .c-kw    {width:7%;}
+  table.f .c-engine{width:11%;}  table.f .c-agency{width:14%;}
+  table.f .c-on    {width:8%;}   table.f .c-off   {width:8%;}
+  table.f .c-reason{width:10%;}
+  table.f td.n{white-space:nowrap;}
+  table.f td.sm{font-size:6.5px;line-height:1.35;}
+  table.f thead th{word-break:normal;white-space:nowrap;}
   .cert{font-size:6.5px;color:#9aa3b2;margin:-5px 0 8px;}
   .foot{padding:12px 18px 0;font-size:7px;color:#4b5563;line-height:1.7;}
   .sig{margin-top:22px;text-align:right;padding-right:18px;}
@@ -8882,24 +8915,29 @@ ${pc}
     <div class="band">Sea Service Record</div>
     <table class="f">
       <colgroup>
-        <col style="width:13%"><col style="width:6%"><col style="width:7%"><col style="width:5%">
-        <col style="width:5%"><col style="width:5%"><col style="width:9%"><col style="width:9%">
-        <col style="width:9%"><col style="width:6%"><col style="width:7%"><col style="width:7%"><col style="width:12%">
+        <col class="c-vessel"><col class="c-rank"><col class="c-type">
+        <col class="c-grt"><col class="c-dwt"><col class="c-kw">
+        <col class="c-engine"><col class="c-agency">
+        <col class="c-on"><col class="c-off"><col class="c-reason">
       </colgroup>
       <thead><tr>
         <th>Vessel / IMO</th><th>Rank</th><th>Type</th><th>GRT</th><th>DWT</th>
-        <th>KW</th><th>Engine Type</th><th>Manning Agency</th><th>Principal</th>
-        <th>AMOSUP</th><th>Joined</th><th>Sign Off</th><th>Reason / Trade</th>
+        <th>KW</th><th>Engine Type</th><th>Agency / Principal</th>
+        <th>Joined</th><th>Sign Off</th><th>Reason</th>
       </tr></thead>
       <tbody>${pad(sea.map(v=>`<tr>
-        <td style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-size:6.5px;font-weight:400;">${v.imoNo}</span>`:''}</td>
-        <td>${v.rank||''}</td><td>${v.vesselType||''}</td>
-        <td>${v.grt||''}</td><td>${v.dwt||''}</td><td>${v.kw||''}</td>
-        <td style="font-size:6.5px;">${v.engineType||''}</td>
-        <td>${v.company||''}</td><td>${v.principal||''}</td><td>${v.amosup||''}</td>
-        <td>${fmtD(v.signOn)}</td><td>${fmtD(v.signOff)}</td>
-        <td style="font-size:6.5px;">${[v.signOffReason,v.tradeArea].filter(Boolean).join(' / ')}</td>
-        </tr>`).join(''), 4, 13)}
+        <td class="c-vessel" style="font-weight:700;">${v.vessel||''}${v.imoNo?`<br><span style="font-size:6.5px;font-weight:400;">IMO ${v.imoNo}</span>`:''}</td>
+        <td class="c-rank">${v.rank||''}</td>
+        <td class="c-type">${v.vesselType||''}</td>
+        <td class="c-grt n">${v.grt||''}</td>
+        <td class="c-dwt n">${v.dwt||''}</td>
+        <td class="c-kw n">${v.kw||''}</td>
+        <td class="c-engine sm">${v.engineType||''}</td>
+        <td class="c-agency sm">${[v.company, v.principal, v.amosup].filter(Boolean).join('<br>')}</td>
+        <td class="c-on n">${fmtD(v.signOn)}</td>
+        <td class="c-off n">${fmtD(v.signOff)}</td>
+        <td class="c-reason sm">${[v.signOffReason,v.tradeArea].filter(Boolean).join('<br>')}</td>
+        </tr>`).join(''), 4, 11)}
       </tbody>
     </table>
   </div>
