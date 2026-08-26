@@ -4390,6 +4390,26 @@ Rules:
 // ─────────────────────────────────────────────────────────────────────────────
 
 // Shared Gemini proxy call — returns parsed JSON or throws
+// Extract the FIRST complete, balanced JSON object from a string.
+// Handles cases where Gemini appends extra text, a second JSON block,
+// or markdown fences after the closing brace.
+function extractFirstJSON(raw) {
+  const clean = raw.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+  const start = clean.indexOf('{');
+  if (start < 0) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < clean.length; i++) {
+    const c = clean[i];
+    if (esc)        { esc = false; continue; }
+    if (c === '\\' && inStr) { esc = true; continue; }
+    if (c === '"')  { inStr = !inStr; continue; }
+    if (inStr)      continue;
+    if (c === '{')  depth++;
+    if (c === '}') { depth--; if (depth === 0) return clean.slice(start, i + 1); }
+  }
+  return null; // never closed
+}
+
 async function cgisGeminiCall(pages, prompt, maxTok, statusEl, passLabel) {
   const parts = [{ text: prompt }];
   pages.forEach((pg, i) => {
@@ -4397,33 +4417,47 @@ async function cgisGeminiCall(pages, prompt, maxTok, statusEl, passLabel) {
     parts.push({ inline_data: { mime_type: 'image/jpeg', data: pg.base64 } });
   });
 
-  const timeoutMs = Math.min(25000 + (pages.length - 1) * 8000, 65000);
+  // Give generous time and tokens — truncation is what causes bad JSON
+  const timeoutMs = Math.min(30000 + (pages.length - 1) * 8000, 70000);
 
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
-  let res;
-  try {
-    res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
-      })
-    });
-  } finally { clearTimeout(tid); }
+  async function doFetch() {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
+    let res;
+    try {
+      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
+        })
+      });
+    } finally { clearTimeout(tid); }
+    if (!res.ok) throw new Error(`${passLabel} HTTP ${res.status}`);
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || `${passLabel} API error`);
+    let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (typeof text !== 'string') text = JSON.stringify(text);
+    return text;
+  }
 
-  if (!res.ok) throw new Error(`${passLabel} HTTP ${res.status}`);
-  const d = await res.json();
-  if (d.error) throw new Error(d.error.message || `${passLabel} API error`);
-
-  let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (typeof text !== 'string') text = JSON.stringify(text);
-  text = text.replace(/```json|```/g, '').trim();
-  const js = text.indexOf('{'), je = text.lastIndexOf('}');
-  if (js < 0 || je < 0) throw new Error(`${passLabel}: no JSON in response`);
-  return JSON.parse(text.slice(js, je + 1));
+  // Try up to 2 times — network blip or a truncated response on first attempt
+  let lastErr;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const rawText = await doFetch();
+      const jsonStr = extractFirstJSON(rawText);
+      if (!jsonStr) throw new Error(`${passLabel}: no valid JSON object in response`);
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      console.warn(`${passLabel} attempt ${attempt} failed:`, e.message);
+      lastErr = e;
+      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+    }
+  }
+  throw lastErr;
 }
 
 async function scanCGIS(input) {
@@ -4542,8 +4576,8 @@ Leave empty if not visible. Never invent.`;
     status.innerHTML = `⏳ Reading ${pages.length} page${pages.length>1?'s':''} — Pass 1: personal info &amp; Pass 2: tables (running together)…`;
 
     const [p1, p2] = await Promise.all([
-      cgisGeminiCall(pages, pass1Prompt, 3000, status, 'Pass 1'),
-      cgisGeminiCall(pages, pass2Prompt, 4000, status, 'Pass 2')
+      cgisGeminiCall(pages, pass1Prompt, 3500, status, 'Pass 1'),
+      cgisGeminiCall(pages, pass2Prompt, 6000, status, 'Pass 2')
     ]);
 
     // Merge
