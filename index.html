@@ -5639,9 +5639,11 @@ function handleEduChange() {
   const isEurope  = val === 'europe';
   const isFreshGr = val === 'fresh';
 
-  // Work Experience — hidden for fresh grads, seafarers, and europe
+  // Work Experience — hidden for fresh grads (nothing to list yet) and for
+  // seafarers (sea service replaces it). Europe keeps it: the EU template
+  // renders an employment section, so hiding it would print an empty CV.
   const workCard = document.getElementById('workCard');
-  if (isFreshGr || isSeaman || isEurope) workCard.classList.add('hidden');
+  if (isFreshGr || isSeaman) workCard.classList.add('hidden');
   else workCard.classList.remove('hidden');
 
   // OJT — hidden for seaman and europe

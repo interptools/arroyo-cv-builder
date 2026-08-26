@@ -152,9 +152,6 @@ button{cursor:pointer;}
   scroll-margin-top:76px;
 }
 .card.hide{display:none;}
-/* .hide is otherwise scoped to rail links and whole cards. Individual fields
-   inside a grid need their own rule or they stay on screen. */
-.grid>.hide{display:none;}
 
 /* Opening panel. People were reaching the form with no idea what the sequence
    was, or that a payment sat between them and their file. */
@@ -353,17 +350,6 @@ textarea{resize:vertical;line-height:1.6;}
 
 /* Tags */
 .tagbox{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;min-height:4px;}
-/* Phone keyboards show Go/Done/newline instead of Enter on a bare text input,
-   and several Android keyboards send nothing a keydown handler can see. The
-   Add button is the reliable way in; Enter and a typed comma still work. */
-.tag-row{display:flex;gap:8px;align-items:stretch;}
-.tag-row input{flex:1;min-width:0;}
-.tag-add{
-  flex:0 0 auto;padding:0 18px;border:none;border-radius:10px;
-  background:var(--navy);color:#fff;font-size:14px;font-weight:700;
-  cursor:pointer;min-height:44px;
-}
-.tag-add:active{opacity:.75;}
 .tag{
   display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;
   padding:5px 11px;border-radius:16px;font-size:12px;font-weight:500;
@@ -424,23 +410,7 @@ textarea{resize:vertical;line-height:1.6;}
 .pv-strip{
   display:flex;gap:7px;overflow-x:auto;padding:10px 14px;background:var(--white);
   border-bottom:1px solid var(--line);flex-shrink:0;scrollbar-width:thin;
-  align-items:flex-end;
 }
-/* Each run of swatches carries its purpose above it, so the strip reads as
-   groups rather than one undifferentiated row of numbers. */
-.tgrp{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
-.tgrp-h{
-  font-size:8.5px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;
-  color:var(--muted);white-space:nowrap;padding-left:2px;
-}
-.tgrp-row{display:flex;gap:7px;}
-.tgrp+.tgrp{border-left:1px solid var(--line);padding-left:10px;margin-left:3px;}
-.pack-h{
-  font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
-  color:var(--navy);margin:13px 0 2px;
-}
-.pack-h:first-child{margin-top:4px;}
-.pack-b{font-size:10.5px;color:var(--muted);line-height:1.5;margin-bottom:5px;}
 .tsw{
   flex-shrink:0;width:40px;height:52px;border-radius:7px;border:2px solid transparent;
   display:grid;place-items:center;font-size:11px;font-weight:800;position:relative;
@@ -729,9 +699,8 @@ textarea{resize:vertical;line-height:1.6;}
     <a href="#s-ojt" data-sec="s-ojt"><span class="rn">05</span>OJT / Practicum<span class="tick">✓</span></a>
     <a href="#s-seaman" data-sec="s-seaman"><span class="rn">06</span>Seafarer records<span class="tick">✓</span></a>
     <a href="#s-europe" data-sec="s-europe"><span class="rn">07</span>Europe details<span class="tick">✓</span></a>
-    <a href="#s-gulf" data-sec="s-gulf"><span class="rn">07</span>Gulf details<span class="tick">✓</span></a>
     <a href="#s-skills" data-sec="s-skills"><span class="rn">08</span>Skills &amp; languages<span class="tick">✓</span></a>
-    <a href="#s-extra" data-sec="s-extra"><span class="rn">09</span>Trainings, awards &amp; interests<span class="tick">✓</span></a>
+    <a href="#s-extra" data-sec="s-extra"><span class="rn">09</span>Awards &amp; interests<span class="tick">✓</span></a>
     <a href="#s-refs" data-sec="s-refs"><span class="rn">10</span>References<span class="tick">✓</span></a>
     <a href="#s-summary" data-sec="s-summary"><span class="rn">11</span>Profile summary<span class="tick">✓</span></a>
   </nav>
@@ -772,6 +741,25 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
       <input type="file" id="scanInput" accept="image/*" multiple style="display:none" onchange="scanOldCV(this)">
 
+      <div style="text-align:center;margin:12px 0 0">
+        <button type="button" class="x-btn" onclick="togglePastePanel()" id="pasteToggle"
+          style="font-size:12.5px;padding:8px 16px">📄 Or paste the text instead</button>
+      </div>
+
+      <!-- Paste path. Text copied from a PDF or Google Lens is exact, so it
+           beats reading a photo whenever the customer can get at it. -->
+      <div id="pastePanel" style="display:none;margin-top:12px">
+        <label>Paste your CV or CGIS text</label>
+        <textarea id="pasteText" rows="7" oninput="queuePreview()"
+          placeholder="Works for any format — a regular resume, or a seafarer CGIS copied from a PDF or Google Lens. Paste everything you have; blank fields are simply skipped."></textarea>
+        <div style="display:flex;gap:8px;margin-top:9px;flex-wrap:wrap">
+          <button type="button" class="duty-btn" onclick="parsePastedText()" style="flex:1;min-width:180px">
+            ✨ Read it and fill the form
+          </button>
+          <button type="button" class="x-btn" onclick="$('pasteText').value=''">Clear</button>
+        </div>
+      </div>
+
       <div class="scan-pages" id="scanPages"></div>
       <div class="stat" id="scanStat"></div>
     </section>
@@ -781,6 +769,8 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="card-h"><span class="num">01</span><h2>Which format fits you?</h2></div>
       <p class="card-sub">This decides which sections appear below and which templates you can pick from.</p>
       <div class="fmt">
+        <label><input type="radio" name="eduLevel" value="highschool" onchange="onFormat()">
+          <span>High school<small>Senior high or K-12 graduate</small></span></label>
         <label><input type="radio" name="eduLevel" value="college" checked onchange="onFormat()">
           <span>Standard<small>You have work experience</small></span></label>
         <label><input type="radio" name="eduLevel" value="fresh" onchange="onFormat()">
@@ -789,8 +779,6 @@ textarea{resize:vertical;line-height:1.6;}
           <span>⚓ Seafarer<small>Documents, certificates, sea service</small></span></label>
         <label><input type="radio" name="eduLevel" value="europe" onchange="onFormat()">
           <span>🇪🇺 Europe / EU<small>ATS-friendly, CEFR languages</small></span></label>
-        <label><input type="radio" name="eduLevel" value="gulf" onchange="onFormat()">
-          <span>🕌 Gulf / Middle East<small>Passport, visa status, availability</small></span></label>
       </div>
     </section>
 
@@ -861,35 +849,58 @@ textarea{resize:vertical;line-height:1.6;}
 
       <div class="grid g3">
         <div class="full"><label>Rank you are applying for <span class="req">*</span></label>
-          <select id="sm-rank">
+          <select id="sm-rank" onchange="queuePreview()">
             <option value="">— Select rank —</option>
             <optgroup label="Deck">
               <option>Master</option><option>Chief Officer</option><option>Second Officer</option>
               <option>Third Officer</option><option>Deck Cadet</option><option>Bosun</option>
               <option>Able Seaman (AB)</option><option>Ordinary Seaman (OS)</option>
+              <option>Deck Fitter</option>
             </optgroup>
             <optgroup label="Engine">
               <option>Chief Engineer</option><option>Second Engineer</option><option>Third Engineer</option>
               <option>Fourth Engineer</option><option>Engine Cadet</option><option>Oiler</option>
-              <option>Wiper</option><option>Fitter</option><option>Electrician / ETO</option>
+              <option>Wiper</option><option>Motorman</option><option>Fitter</option>
+              <option>Electrician / ETO</option>
             </optgroup>
             <optgroup label="Catering">
-              <option>Chief Cook</option><option>Messman</option><option>Steward</option>
+              <option>Chief Cook</option><option>Second Cook</option>
+              <option>Messman</option><option>Steward</option>
             </optgroup>
           </select></div>
-        <div><label>Last rank held</label><input type="text" id="sm-lastRank" placeholder="Ordinary Seaman"></div>
-        <div><label>Height</label><input type="text" id="sm-height" placeholder="170 cm"></div>
-        <div><label>Weight</label><input type="text" id="sm-weight" placeholder="65 kg"></div>
-        <div><label>BMI</label><input type="text" id="sm-bmi" placeholder="22.5"></div>
-        <div><label>Eye colour</label><input type="text" id="sm-eyes" placeholder="Black"></div>
-        <div><label>Hair colour</label><input type="text" id="sm-hair" placeholder="Black"></div>
-        <div><label>Blood type</label><input type="text" id="sm-blood" placeholder="O+"></div>
-        <div><label>Shoe size</label><input type="text" id="sm-shoe" placeholder="9"></div>
-        <div><label>Coverall size</label><input type="text" id="sm-coverall" placeholder="Medium"></div>
-        <div><label>Religion</label><input type="text" id="sm-religion" placeholder="Roman Catholic"></div>
-        <div><label>Place of birth</label><input type="text" id="sm-birthPlace" placeholder="Cebu City"></div>
-        <div class="full"><label>Government IDs</label><input type="text" id="sm-govIds" placeholder="SSS 12-3456789 · TIN 123-456-789"></div>
-        <div class="full"><label>Next of kin</label><input type="text" id="sm-nok" placeholder="Maria dela Cruz · Spouse · 09XX-XXX-XXXX"></div>
+        <div><label>Last rank held</label><input type="text" id="sm-lastRank" placeholder="Ordinary Seaman" oninput="queuePreview()"></div>
+        <div class="full"><label>Highest license / COC held</label><input type="text" id="sm-highestLicense" placeholder="COC as Able Seafarer Engine" oninput="queuePreview()"></div>
+        <div><label>Height</label><input type="text" id="sm-height" placeholder="170 cm" oninput="queuePreview()"></div>
+        <div><label>Weight</label><input type="text" id="sm-weight" placeholder="65 kg" oninput="queuePreview()"></div>
+        <div><label>BMI</label><input type="text" id="sm-bmi" placeholder="22.5" oninput="queuePreview()"></div>
+        <div><label>Eye colour</label><input type="text" id="sm-eyes" placeholder="Black" oninput="queuePreview()"></div>
+        <div><label>Hair colour</label><input type="text" id="sm-hair" placeholder="Black" oninput="queuePreview()"></div>
+        <div><label>Blood type</label><input type="text" id="sm-blood" placeholder="O+" oninput="queuePreview()"></div>
+        <div><label>Shoe size</label><input type="text" id="sm-shoe" placeholder="9" oninput="queuePreview()"></div>
+        <div><label>Coverall size</label><input type="text" id="sm-coverall" placeholder="Medium" oninput="queuePreview()"></div>
+        <div><label>Religion</label><input type="text" id="sm-religion" placeholder="Roman Catholic" oninput="queuePreview()"></div>
+        <div><label>Place of birth</label><input type="text" id="sm-birthPlace" placeholder="Bislig, Surigao del Sur" oninput="queuePreview()"></div>
+        <div><label>SSS No.</label><input type="text" id="sm-sss" placeholder="09-4056054-5" oninput="queuePreview()"></div>
+        <div><label>TIN No.</label><input type="text" id="sm-tin" placeholder="123-456-789" oninput="queuePreview()"></div>
+        <div><label>Pag-IBIG No.</label><input type="text" id="sm-pagibig" placeholder="121211982297" oninput="queuePreview()"></div>
+        <div><label>PhilHealth No.</label><input type="text" id="sm-philhealth" placeholder="160255918157" oninput="queuePreview()"></div>
+        <div><label>SRC No.</label><input type="text" id="sm-src" placeholder="2019011901042" oninput="queuePreview()"></div>
+        <div><label>Alternative phone / Viber</label><input type="tel" id="sm-phone2" placeholder="09XX-XXX-XXXX" oninput="queuePreview()"></div>
+        <div class="full"><label>Next of kin</label><input type="text" id="sm-nok" placeholder="Maria dela Cruz · Spouse · 09XX-XXX-XXXX" oninput="queuePreview()"></div>
+        <div class="full"><label>Mailing address <span class="opt">— if different from home address</span></label><input type="text" id="sm-mailingAddress" placeholder="Leave blank if same as home address" oninput="queuePreview()"></div>
+        <div class="full"><label>Children <span class="opt">— name and date of birth</span></label><input type="text" id="sm-children" placeholder="Joe Vergil C. Gamutan — 26/03/2023" oninput="queuePreview()"></div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:700;margin:22px 0 10px">Health &amp; medical</h3>
+      <div class="grid g3">
+        <div><label>Health declaration — flag / issuer</label><input type="text" id="sm-healthFlag" placeholder="Bahamas" oninput="queuePreview()"></div>
+        <div><label>Health issued</label><input type="date" id="sm-healthIssued" oninput="queuePreview()"></div>
+        <div><label>Health valid until</label><input type="date" id="sm-healthValid" oninput="queuePreview()"></div>
+        <div class="full"><label>Health clinic</label><input type="text" id="sm-healthClinic" placeholder="HMI" oninput="queuePreview()"></div>
+        <div><label>Pre-medical result</label><input type="text" id="sm-medResult" placeholder="Fit For Sea Duty" oninput="queuePreview()"></div>
+        <div><label>Pre-medical issued</label><input type="date" id="sm-medIssued" oninput="queuePreview()"></div>
+        <div><label>Pre-medical valid until</label><input type="date" id="sm-medValid" oninput="queuePreview()"></div>
+        <div class="full"><label>Pre-medical clinic</label><input type="text" id="sm-medClinic" placeholder="Health Metrics, Inc." oninput="queuePreview()"></div>
       </div>
 
       <h3 style="font-size:13px;font-weight:700;margin:22px 0 10px">Travel documents</h3>
@@ -941,94 +952,26 @@ textarea{resize:vertical;line-height:1.6;}
     </section>
 
     <!-- 09 SKILLS -->
-    <!-- 08b GULF -->
-    <section class="card hide" id="s-gulf">
-      <div class="card-h"><span class="num">07</span><h2>🕌 Gulf / Middle East details</h2></div>
-      <p class="card-sub">Gulf agencies screen on these before they read your work history. A CV that leaves them out gets set aside.</p>
-
-      <div class="grid">
-        <div><label>Country applying to</label>
-          <input type="text" id="gf-country" list="gulfCountries" placeholder="Saudi Arabia" oninput="queuePreview()">
-          <datalist id="gulfCountries">
-            <option>Saudi Arabia</option><option>United Arab Emirates</option><option>Qatar</option>
-            <option>Kuwait</option><option>Bahrain</option><option>Oman</option>
-          </datalist></div>
-        <div><label>Visa status</label>
-          <select id="gf-visaStatus" onchange="queuePreview()">
-            <option value="">—</option>
-            <option>No visa yet — for processing</option>
-            <option>Visit visa</option>
-            <option>Transferable work visa</option>
-            <option>Non-transferable work visa</option>
-            <option>Currently employed in country</option>
-            <option>Exit / final exit taken</option>
-          </select></div>
-        <div><label>Passport number</label>
-          <input type="text" id="gf-passportNo" placeholder="P1234567A" oninput="queuePreview()"></div>
-        <div><label>Passport expiry</label>
-          <input type="date" id="gf-passportExpiry" oninput="queuePreview()">
-          <div class="hint">Most employers will not process a visa with under 6 months left.</div></div>
-        <div><label>Religion</label>
-          <input type="text" id="gf-religion" placeholder="Roman Catholic" oninput="queuePreview()"></div>
-        <div><label>Number of dependants</label>
-          <input type="text" id="gf-dependants" placeholder="2" oninput="queuePreview()"></div>
-        <div><label>Available from</label>
-          <input type="text" id="gf-availability" placeholder="Immediately · After 30 days" oninput="queuePreview()"></div>
-        <div><label>Notice period</label>
-          <input type="text" id="gf-notice" placeholder="30 days" oninput="queuePreview()"></div>
-        <div class="full"><label>Expected salary <span class="opt">— optional</span></label>
-          <input type="text" id="gf-expectedSalary" placeholder="SAR 3,000 · Negotiable" oninput="queuePreview()"></div>
-      </div>
-
-      <h3 style="font-size:13px;font-weight:700;margin:22px 0 6px">If you also apply outside the Gulf</h3>
-      <p class="hint" style="margin:0 0 10px">Template 22 is the photo-free layout for the US, Canada, Australia and New Zealand. These two lines only appear on it.</p>
-      <div class="grid">
-        <div><label>Work authorisation</label>
-          <input type="text" id="gf-workAuth" placeholder="Requires sponsorship · Open work permit" oninput="queuePreview()"></div>
-        <div><label>Willing to relocate</label>
-          <select id="gf-relocate" onchange="queuePreview()">
-            <option value="">—</option><option>Yes</option><option>No</option><option>Already in country</option>
-          </select></div>
-      </div>
-    </section>
-
     <section class="card" id="s-skills">
       <div class="card-h"><span class="num">08</span><h2>Skills &amp; languages</h2></div>
-      <p class="card-sub">Type one and tap Add — or separate them with commas. Tap a suggestion to add it instantly.</p>
+      <p class="card-sub">Press Enter after each one. Tap a suggestion to add it instantly.</p>
 
       <label>Skills</label>
-      <div class="tag-row">
-        <input type="text" id="skillInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
-               placeholder="Microsoft Office, Communication…"
-               onkeydown="tagKey('skill',event)" onblur="blurTag('skill')">
-        <button type="button" class="tag-add" onclick="addTag('skill')">Add</button>
-      </div>
-      <div class="hint">You can type several at once: <em>Excel, Communication, Data Entry</em></div>
+      <input type="text" id="skillInput" placeholder="Microsoft Office, Communication…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('skill');}">
       <div class="chip-row" id="skillSuggest"></div>
       <div class="tagbox" id="skillTags"></div>
 
       <label style="margin-top:18px">Languages</label>
-      <div class="tag-row">
-        <input type="text" id="langInput" enterkeyhint="done" autocapitalize="words" autocorrect="off"
-               placeholder="English, Filipino, Bisaya…"
-               onkeydown="tagKey('lang',event)" onblur="blurTag('lang')">
-        <button type="button" class="tag-add" onclick="addTag('lang')">Add</button>
-      </div>
+      <input type="text" id="langInput" placeholder="English, Filipino, Bisaya…" onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('lang');}">
       <div class="chip-row" id="langSuggest"></div>
       <div class="tagbox" id="langTags"></div>
     </section>
 
     <!-- 10 EXTRA -->
     <section class="card" id="s-extra">
-      <div class="card-h"><span class="num">09</span><h2>Trainings, awards &amp; interests</h2></div>
+      <div class="card-h"><span class="num">09</span><h2>Awards &amp; interests</h2></div>
       <p class="card-sub">Optional, but they fill out a short CV nicely.</p>
       <div class="grid">
-        <!-- Hidden for seafarers: their trainings already go in with numbers and
-             expiry dates under Trainings &amp; Certificates, and asking twice
-             would only get the same list typed in again. -->
-        <div class="full" id="trainingsField"><label>Trainings &amp; seminars attended</label>
-          <textarea id="trainings" rows="4" placeholder="Basic Occupational Safety and Health (BOSH), DOLE, March 2024&#10;Customer Service Excellence Seminar, TESDA, 2023"></textarea>
-          <div class="hint">One per line. Include the organiser and the year if you have them.</div></div>
         <div class="full"><label>Awards, honours, recognition</label>
           <textarea id="awards" rows="3" placeholder="Dean's Lister 2023&#10;Employee of the Month, March 2024"></textarea></div>
         <div class="full"><label>Hobbies &amp; interests</label>
@@ -1180,33 +1123,25 @@ textarea{resize:vertical;line-height:1.6;}
    ══════════════════════════════════════════════════════════════════════════ */
 
 const TMPL_INFO = [
-  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff', group:'modern'},
-  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316', group:'modern'},
-  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a', group:'modern'},
-  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white', group:'corp'},
-  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white', group:'corp'},
-  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623', group:'corp'},
-  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white', group:'corp'},
-  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b', group:'fresh'},
-  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd', group:'ats'},
-  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b', group:'corp'},
-  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white', retired:true, group:'modern'},
-  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c', group:'warm'},
-  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac', group:'warm'},
-  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1', group:'warm'},
-  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac', group:'modern'},
-  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true, group:'sea'},
-  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true, group:'sea'},
-  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true, group:'eu'},
-  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true, group:'eu'},
-  {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true, group:'gulf'},
-  {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true, group:'gulf'},
-  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},
-  {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24', group:'modern'},
-  {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917', group:'ats'},
-  {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa', group:'modern'},
-  {num:26, name:'Template 26', desc:'Compact · Executive',   bg:'#0f172a', color:'#22d3ee', group:'corp'},
-  {num:27, name:'Template 27', desc:'Warm Neutral · Maroon', bg:'#efe9dd', color:'#7c2d3a', border:'1.5px solid #7c2d3a', group:'warm'}
+  {num:1,  name:'Template 1',  desc:'Dark · Cyan',          bg:'#1a1a2e', color:'#00d4ff'},
+  {num:2,  name:'Template 2',  desc:'Black · Orange',       bg:'#1a1a1a', color:'#f97316'},
+  {num:3,  name:'Template 3',  desc:'Gray · Maroon',        bg:'#4a4a4a', color:'#8b1a4a'},
+  {num:4,  name:'Template 4',  desc:'Blue · Pro',           bg:'#1565c0', color:'white'},
+  {num:5,  name:'Template 5',  desc:'Modern Blue',          bg:'#1976d2', color:'white'},
+  {num:6,  name:'Template 6',  desc:'Navy · Gold',          bg:'#1a2744', color:'#f5a623'},
+  {num:7,  name:'Template 7',  desc:'Classic · Clean',      bg:'#2c3e50', color:'white'},
+  {num:8,  name:'Template 8',  desc:'Fresh Grad · Grid',    bg:'#1a2744', color:'#c8a84b'},
+  {num:9,  name:'Template 9',  desc:'Minimalist · White',   bg:'#ffffff', color:'#222', border:'1.5px solid #ddd'},
+  {num:10, name:'Template 10', desc:'Elegant · Black Gold', bg:'#111',    color:'#c8a84b'},
+  {num:11, name:'Template 11', desc:'Bold · Colorful',      bg:'linear-gradient(135deg,#6d28d9,#db2777)', color:'white'},
+  {num:12, name:'Template 12', desc:'Pastel · Peach',       bg:'#fde8dc', color:'#c2410c'},
+  {num:13, name:'Template 13', desc:'Green · Nature',       bg:'#14532d', color:'#86efac'},
+  {num:14, name:'Template 14', desc:'Pastel · Sky Blue',    bg:'#e0f2fe', color:'#0369a1'},
+  {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac'},
+  {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
+  {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
+  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true},
+  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true}
 ];
 
 // Assembles the display name for CV templates. Middle name is optional, so this
@@ -1242,19 +1177,8 @@ function buildCVHtml(s,tmpl,mode){
      languages:(s.languages||[]).map(_esc0),
      aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
      awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
-     // Trainings and seminars arrive as one box, one entry per line, so the
-     // breaks have to become <br> here — .para and the sidebar <p> rules have
-     // no white-space setting and would otherwise run every entry together.
-     // Each line is escaped before the <br> are added, so the markup this
-     // introduces survives and anything the customer typed does not.
-     // Seafarer orders already itemise this material under Trainings &
-     // Certificates with numbers and expiry dates, so it is blanked for them
-     // rather than printed twice.
-     trainingsHtml:(s.eduLevel==='seaman')?'':String(s.trainings||'').split(/\r?\n/)
-       .map(x=>x.trim()).filter(Boolean).map(_esc0).join('<br>'),
      seaman:s.seaman?_escDeep(s.seaman):s.seaman,
-     europe:s.europe?_escDeep(s.europe):s.europe,
-     overseas:s.overseas?_escDeep(s.overseas):s.overseas};
+     europe:s.europe?_escDeep(s.europe):s.europe};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -1529,17 +1453,8 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===18) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   if(tmpl===19) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,true);
-  if(tmpl===20) return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===21) return T21(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===22) return T22(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===23) return T23(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===24) return T24(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===25) return T25(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===26) return T26(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
-  if(tmpl===27) return T27(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   // A seafarer record has no ordinary work history to show, so even a stale or
   // absent template preference lands on the maritime layout.
-  if(s.eduLevel==='gulf') return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(s.eduLevel==='europe') return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
@@ -1714,7 +1629,6 @@ ${pb}
           `<div><b>${l.lang}</b>${[l.level,l.cert].filter(Boolean).join(' · ')}</div>`).join('')}</div>`
       : (plainLangs.length?`<p class="para">${plainLangs.join(' · ')}</p>`:''))}
 
-  ${sec('Trainings & Seminars', s.trainingsHtml?`<p class="para">${s.trainingsHtml}</p>`:'')}
   ${sec('Certifications & Awards', s.awards?`<p class="para">${s.awards}</p>`:'')}
 
   ${sec('Additional Information', extras.length
@@ -1784,7 +1698,6 @@ ${pb}
       ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
-      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -1797,7 +1710,6 @@ ${pb}
     ${s.profileSummary?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${edu.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${work.length?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Trainings &amp; Seminars</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="sec"><div class="sec-head"><div class="sec-dot"></div>Awards</div><p style="font-size:11.5px;color:#3a3a4a;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -1853,7 +1765,6 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
-        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -1866,7 +1777,6 @@ ${pb}
       ${s.profileSummary?`<div class="rsec"><div class="rs-head">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${edu.length?`<div class="rsec"><div class="rs-head">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${work.length?`<div class="rsec"><div class="rs-head">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="rsec"><div class="rs-head">Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rs-head">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -1925,8 +1835,6 @@ ${pb}
     ${p.phone?`<div class="cb-item">📱 ${p.phone}</div>`:''}
     ${p.email?`<div class="cb-item">✉️ ${p.email}</div>`:''}
     ${p.address?`<div class="cb-item">📍 ${p.address}</div>`:''}
-    ${p.social?`<div class="cb-item">🌐 ${p.social}</div>`:''}
-    ${p.linkedin?`<div class="cb-item">🔗 ${p.linkedin}</div>`:''}
     ${p.nationality?`<div class="cb-item">🌏 ${p.nationality}</div>`:''}
     ${p.civilStatus?`<div class="cb-item">💍 ${p.civilStatus}</div>`:''}
   </div>
@@ -1941,7 +1849,6 @@ ${pb}
     <div class="R">
       ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11.5px;color:rgba(255,255,255,.75);line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -1996,7 +1903,6 @@ ${pb}
       ${p.phone?`<div class="ci">📱 ${p.phone}</div>`:''}
       ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
       ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
-      ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
       ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
       ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
     </div>
@@ -2009,7 +1915,6 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div><div class="rh-text">Profile</div><div class="rh-line"></div></div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div><div class="rh-text">Experience</div><div class="rh-line"></div></div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Education</div><div class="rh-line"></div></div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div><div class="rh-text">Trainings &amp; Seminars</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div><div class="rh-text">Awards</div><div class="rh-line"></div></div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2066,7 +1971,6 @@ ${pb}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
       ${skills.length?`<div class="lsec"><div class="lh">Skills</div><div>${skills.map(sk=>`<span class="skill-tag">${sk}</span>`).join('')}</div></div>`:''}
-      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2075,7 +1979,6 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
-        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -2138,8 +2041,6 @@ ${pb}
       ${p.email?`<div class="ci"><div class="ci-label">Email</div><div class="ci-val">${p.email}</div></div>`:''}
       ${p.phone?`<div class="ci"><div class="ci-label">Phone</div><div class="ci-val">${p.phone}</div></div>`:''}
       ${p.address?`<div class="ci"><div class="ci-label">Address</div><div class="ci-val">${p.address}</div></div>`:''}
-      ${p.social?`<div class="ci"><div class="ci-label">Social</div><div class="ci-val">${p.social}</div></div>`:''}
-      ${p.linkedin?`<div class="ci"><div class="ci-label">LinkedIn</div><div class="ci-val">${p.linkedin}</div></div>`:''}
       ${p.nationality?`<div class="ci"><div class="ci-label">Nationality</div><div class="ci-val">${p.nationality}</div></div>`:''}
       ${p.civilStatus?`<div class="ci"><div class="ci-label">Civil Status</div><div class="ci-val">${p.civilStatus}</div></div>`:''}
     </div>
@@ -2152,7 +2053,6 @@ ${pb}
     ${work.length?`<div class="rsec"><div class="rh">💼 Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">🎓 Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
     ${refs.length?`<div class="rsec"><div class="rh">🤝 References</div>${refs.map(r=>`<div style="margin-bottom:10px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="rsec"><div class="rh">🎓 Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">🏆 Awards</div><p style="font-size:11px;color:#333;line-height:1.7;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2212,7 +2112,6 @@ ${pb}
         ${p.email?`<div class="ci">✉️ ${p.email}</div>`:''}
         ${p.address?`<div class="ci">📍 ${p.address}</div>`:''}
         ${p.social?`<div class="ci">🌐 ${p.social}</div>`:''}
-        ${p.linkedin?`<div class="ci">🔗 ${p.linkedin}</div>`:''}
         ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
         ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
       </div>
@@ -2225,7 +2124,6 @@ ${pb}
       ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-icon">👤</div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="rsec"><div class="rh"><div class="rh-icon">💼</div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-header"><div class="i-co">${w.company}</div><div class="i-date-r">${w.dateStart} – ${w.dateEnd}</div></div><div class="i-pos">${w.position}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Education</div>${edu.map(e=>`<div class="item"><div class="i-header"><div class="i-co">${e.school}</div>${e.yearGrad||e.yearStart?`<div class="i-date-r">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}</div>${e.degree?`<div class="i-pos">${e.degree}</div>`:''}${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-icon">🎓</div>Trainings &amp; Seminars</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-icon">🏆</div>Awards</div><p style="font-size:11px;color:#333;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
   </div>
@@ -2308,10 +2206,9 @@ ${pb}
       <div class="ch">Languages</div>
       ${langs.length?langs.map(l=>`<div class="li">${l}</div>`).join(''):''}
     </div>
-    ${s.trainingsHtml?`<div class="cell"><div class="ch">Trainings &amp; Seminars</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="cell"><div class="ch">Achievements &amp; Awards</div><p style="font-size:11px;color:#444;line-height:1.75;">${s.awards}</p></div>`:''}
     ${s.awards?'':''}
-    ${s.hobbies||refs.length?`<div class="cell ${(s.awards||s.trainingsHtml)?'':'full'}">
+    ${s.hobbies||refs.length?`<div class="cell ${s.awards?'':'full'}">
       ${s.hobbies?`<div class="ch">Interests &amp; Hobbies</div><p style="font-size:11px;color:#444;line-height:1.75;margin-bottom:${refs.length?'10px':'0'};">${s.hobbies}</p>`:''}
       ${refs.length?`<div class="ch" style="margin-top:${s.hobbies?'10px':'0'};">References</div>${refs.map(r=>`<div style="margin-bottom:8px;"><div class="ref-n">${r.name}</div><div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div><div class="ref-s">${r.contact||''}</div></div>`).join('')}`:''}
     </div>`:''}
@@ -2383,7 +2280,6 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="sh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="sh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="sh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="lsec"><div class="sh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="sh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2469,7 +2365,6 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:rgba(255,255,255,.6);line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2534,7 +2429,6 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2616,7 +2510,6 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="rsec"><div class="rh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2684,7 +2577,6 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">About Me</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2756,7 +2648,6 @@ ${pb}
       ${s.profileSummary?`<div class="lsec"><div class="lh">Profile Summary</div><p class="about">${s.profileSummary}</p></div>`:''}
       ${work.length?`<div class="lsec"><div class="lh">Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
       ${edu.length?`<div class="lsec"><div class="lh">Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="lsec"><div class="lh">Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
       ${s.awards?`<div class="lsec"><div class="lh">Awards & Achievements</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
     </div>
     <div class="R">
@@ -2834,7 +2725,6 @@ ${pb}
     ${s.profileSummary?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Profile</div><p class="about">${s.profileSummary}</p></div>`:''}
     ${work.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Work Experience</div>${work.map(w=>`<div class="item"><div class="i-co">${w.company}</div><div class="i-pos">${w.position}</div><div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>${w.responsibilities?`<div class="i-desc">${w.responsibilities}</div>`:''}</div>`).join('')}</div>`:''}
     ${edu.length?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Education</div>${edu.map(e=>`<div class="item"><div class="i-co">${e.school}</div><div class="i-pos">${e.degree||''}</div><div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>${e.honors?`<div class="i-desc">${e.honors}</div>`:''}</div>`).join('')}</div>`:''}
-    ${s.trainingsHtml?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Trainings &amp; Seminars</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.trainingsHtml}</p></div>`:''}
     ${s.awards?`<div class="rsec"><div class="rh"><div class="rh-dot"></div>Awards</div><p style="font-size:11px;color:#555;line-height:1.75;">${s.awards}</p></div>`:''}
   </div>
 </div></div></body></html>`;}
@@ -2847,838 +2737,6 @@ ${pb}
 // everything on one page, expiry dates where a reviewer's eye lands. The one
 // styled element is the navy header block carrying the applicant's rank.
 // ══════════════════════════════════════════════════════════════════════════════
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 20 — Gulf / Middle East (Agency Profile)
-// The format Gulf recruitment agencies actually screen with, and the near-exact
-// opposite of the Europe layouts: photo prominent, personal data front and
-// centre, passport and visa status above the fold, one page. A recruiter in
-// Riyadh or Dubai wants nationality, religion, marital status and availability
-// answered before they read a single duty, and a CV that withholds them reads
-// as evasive rather than principled.
-// ══════════════════════════════════════════════════════════════════════════════
-function T20(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  const G = s.overseas || {};
-  const d = v => { if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
-    return String(t.getDate()).padStart(2,'0')+'-'
-      +['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]
-      +'-'+t.getFullYear(); };
-
-  // Passports lapse, and most Gulf employers will not process a visa on one
-  // with under six months left. Flagging it is the most useful thing this
-  // layout can do for the person holding the CV.
-  const passportNote = (() => {
-    if(!G.passportExpiry) return '';
-    const t = new Date(G.passportExpiry);
-    if(isNaN(t)) return '';
-    const months = (t - Date.now()) / 2.63e9;
-    if(months < 0)  return '<span class="warn">EXPIRED</span>';
-    if(months < 6)  return '<span class="warn">under 6 months</span>';
-    return '';
-  })();
-
-  const rows = [
-    ['Nationality',    p.nationality || 'Filipino'],
-    ['Date of Birth',  p.dob],
-    ['Civil Status',   p.civilStatus],
-    ['Gender',         p.gender],
-    ['Religion',       G.religion],
-    ['Dependants',     G.dependants],
-    ['Passport No.',   G.passportNo ? G.passportNo + (passportNote ? ' ' + passportNote : '') : ''],
-    ['Passport Expiry',d(G.passportExpiry)],
-    ['Visa Status',    G.visaStatus],
-    ['Available From', G.availability],
-    ['Notice Period',  G.notice],
-    ['Expected Salary',G.expectedSalary]
-  ].filter(r => r[1]);
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Arial,Helvetica,'Liberation Sans',sans-serif;background:#e8e8e8;color:#1c2430;}
-.page{width:100%;min-height:100vh;background:#fff;display:flex;flex-direction:column;}
-.top{background:#0f3d3e;color:#fff;padding:20px 26px;display:flex;gap:20px;align-items:center;}
-.pw{width:112px;height:132px;flex-shrink:0;border:3px solid #c9a227;overflow:hidden;background:#123f40;}
-.nm{font-size:26px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;line-height:1.15;}
-.rl{font-size:13px;color:#f0d68a;font-weight:700;margin-top:4px;letter-spacing:.4px;}
-.ct{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px 16px;font-size:10.5px;color:rgba(255,255,255,.88);}
-.body{padding:16px 26px 22px;flex:1;}
-.band{background:#c9a227;color:#0f3d3e;font-size:10.5px;font-weight:800;letter-spacing:1.3px;
-  text-transform:uppercase;padding:4px 10px;margin:14px 0 8px;}
-.band:first-child{margin-top:0;}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;}
-.r{display:flex;justify-content:space-between;gap:10px;font-size:11px;padding:3.5px 0;
-  border-bottom:1px solid #e6e8ec;}
-.r span:first-child{color:#6b7480;font-weight:600;}
-.r span:last-child{font-weight:700;text-align:right;}
-.warn{background:#fde2e1;color:#9b1c1c;font-weight:800;font-size:9px;padding:1px 5px;border-radius:3px;}
-.it{margin-bottom:9px;}
-.it-h{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;}
-.it-t{font-weight:800;}
-.it-d{color:#6b7480;font-size:10.5px;white-space:nowrap;font-weight:600;}
-.it-s{font-size:10.5px;color:#0f3d3e;font-weight:700;margin:1px 0 2px;}
-.it-b{font-size:10.5px;color:#3d4550;line-height:1.6;}
-.tags{display:flex;flex-wrap:wrap;gap:5px;}
-.tg{background:#eef2f1;border:1px solid #cfdad7;font-size:10px;padding:2.5px 9px;border-radius:3px;font-weight:600;}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;}
-.sig{margin-top:auto;padding-top:16px;display:flex;justify-content:space-between;align-items:flex-end;}
-.sigbox{width:190px;border-top:1px solid #1c2430;padding-top:3px;text-align:center;
-  font-size:8.5px;color:#6b7480;font-weight:600;}
-.cert{font-size:8.5px;color:#6b7480;line-height:1.5;max-width:330px;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="top">
-    <div class="pw">${ph}</div>
-    <div>
-      <div class="nm">${fullName(p)}</div>
-      ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-      <div class="ct">
-        ${p.phone?`<span>\u260e ${p.phone}</span>`:''}
-        ${p.email?`<span>\u2709 ${p.email}</span>`:''}
-        ${p.address?`<span>\u{1f4cd} ${p.address}</span>`:''}
-        ${G.country?`<span>\u2708 Applying: ${G.country}</span>`:''}
-      </div>
-    </div>
-  </div>
-
-  <div class="body">
-    ${(s.profileSummary||s.aboutMe)?`<div class="band">Objective</div>
-      <div class="it-b">${s.profileSummary||s.aboutMe}</div>`:''}
-
-    ${rows.length?`<div class="band">Personal &amp; Travel Particulars</div>
-      <div class="grid">${rows.map(r=>
-        `<div class="r"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')}</div>`:''}
-
-    ${work.length?`<div class="band">Employment History</div>
-      ${work.map(w=>`<div class="it">
-        <div class="it-h"><span class="it-t">${w.position||''}</span>
-          <span class="it-d">${w.dateStart||''}${w.dateEnd?' \u2013 '+w.dateEnd:''}</span></div>
-        <div class="it-s">${w.company||''}${w.location?' \u00b7 '+w.location:''}</div>
-        ${w.responsibilities?`<div class="it-b">${w.responsibilities}</div>`:''}
-      </div>`).join('')}`:''}
-
-    ${edu.length?`<div class="band">Education</div>
-      ${edu.map(e=>`<div class="it">
-        <div class="it-h"><span class="it-t">${e.degree||e.school}</span>
-          <span class="it-d">${e.yearStart||''}${e.yearGrad?' \u2013 '+e.yearGrad:''}</span></div>
-        ${e.degree?`<div class="it-s">${e.school}</div>`:''}
-        ${e.honors?`<div class="it-b">${e.honors}</div>`:''}
-      </div>`).join('')}`:''}
-
-    ${s.trainingsHtml?`<div class="band">Trainings &amp; Seminars</div>
-      <div class="it-b">${s.trainingsHtml}</div>`:''}
-
-    <div class="two">
-      <div>
-        ${(s.skills||[]).length?`<div class="band">Skills</div>
-          <div class="tags">${s.skills.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}
-      </div>
-      <div>
-        ${(s.languages||[]).length?`<div class="band">Languages</div>
-          <div class="tags">${s.languages.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}
-      </div>
-    </div>
-
-    ${s.awards?`<div class="band">Awards</div><div class="it-b">${s.awards}</div>`:''}
-
-    ${refs.length?`<div class="band">References</div>
-      <div class="two">${refs.map(r=>`<div class="it">
-        <div class="it-t" style="font-size:11px;">${r.name}</div>
-        <div class="it-b">${r.position||''}${r.company?' \u00b7 '+r.company:''}<br>${r.contact||''}</div>
-      </div>`).join('')}</div>`:''}
-
-    <div class="sig">
-      <div class="cert">I hereby certify that the information given above is true and
-        correct to the best of my knowledge and belief.</div>
-      <div class="sigbox">${fullName(p)}<br>Applicant's Signature</div>
-    </div>
-  </div>
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 21 — Gulf / Middle East (Data Sheet)
-// The undesigned ruled-box variant, the same way T17 is the plain counterpart to
-// T16. Gulf agencies frequently retype a CV into their own house sheet, and a
-// layout that already looks like that sheet survives the process intact. Every
-// field is boxed and labelled so nothing gets lost in the retyping.
-// ══════════════════════════════════════════════════════════════════════════════
-function T21(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  const G = s.overseas || {};
-  const d = v => { if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
-    return String(t.getDate()).padStart(2,'0')+'-'
-      +['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][t.getMonth()]
-      +'-'+t.getFullYear(); };
-  const cell = (l,v) => `<div class="c"><div class="cl">${l}</div><div class="cv">${v||'&nbsp;'}</div></div>`;
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Arial,Helvetica,'Liberation Sans',sans-serif;background:#e8e8e8;color:#111;}
-.page{width:100%;min-height:100vh;background:#fff;padding:24px 30px;display:flex;flex-direction:column;}
-.hd{display:flex;gap:16px;border:1.5px solid #1f3864;padding:12px 14px;align-items:center;}
-.pw{width:100px;height:120px;border:1px solid #1f3864;overflow:hidden;flex-shrink:0;background:#eef2f8;}
-.nm{font-size:21px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#1f3864;}
-.rl{font-size:12px;font-weight:700;color:#444;margin-top:2px;}
-.ct{font-size:10px;color:#555;margin-top:6px;line-height:1.65;}
-.band{background:#cfe2f3;border:1.5px solid #1f3864;border-top:none;color:#1f3864;font-size:10px;
-  font-weight:800;letter-spacing:1.2px;text-transform:uppercase;padding:3px 10px;}
-.rowbox{border:1.5px solid #1f3864;border-top:none;display:grid;grid-template-columns:repeat(3,1fr);}
-.rowbox.two{grid-template-columns:repeat(2,1fr);}
-.c{border-right:1px solid #b9c7db;border-bottom:1px solid #b9c7db;padding:4px 8px;min-height:31px;}
-.c:nth-child(3n){border-right:none;}
-.rowbox.two .c:nth-child(3n){border-right:1px solid #b9c7db;}
-.rowbox.two .c:nth-child(2n){border-right:none;}
-.cl{font-size:7.5px;text-transform:uppercase;letter-spacing:.5px;color:#6b7a90;font-weight:700;}
-.cv{font-size:10.5px;font-weight:700;color:#111;line-height:1.4;}
-table{width:100%;border-collapse:collapse;}
-th{background:#eef4fb;border:1px solid #b9c7db;font-size:8px;text-transform:uppercase;
-  letter-spacing:.5px;color:#1f3864;padding:4px 7px;text-align:left;}
-td{border:1px solid #b9c7db;font-size:10px;padding:4px 7px;vertical-align:top;line-height:1.5;}
-.tw{border:1.5px solid #1f3864;border-top:none;padding:0;}
-.free{border:1.5px solid #1f3864;border-top:none;padding:7px 10px;font-size:10.5px;line-height:1.65;}
-.sig{margin-top:auto;padding-top:18px;display:flex;justify-content:flex-end;}
-.sb{width:210px;border-top:1px solid #111;padding-top:3px;text-align:center;font-size:8px;color:#555;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="hd">
-    <div class="pw">${ph}</div>
-    <div>
-      <div class="nm">${fullName(p)}</div>
-      ${p.jobTitle?`<div class="rl">Position Applied For: ${p.jobTitle}</div>`:''}
-      <div class="ct">
-        ${p.phone?`${p.phone}`:''}${p.email?` &nbsp;|&nbsp; ${p.email}`:''}
-        ${p.address?`<br>${p.address}`:''}
-        ${G.country?`<br>Country applied for: <b>${G.country}</b>`:''}
-      </div>
-    </div>
-  </div>
-
-  <div class="band">Personal Data</div>
-  <div class="rowbox">
-    ${cell('Nationality', p.nationality||'Filipino')}
-    ${cell('Date of Birth', p.dob)}
-    ${cell('Civil Status', p.civilStatus)}
-    ${cell('Gender', p.gender)}
-    ${cell('Religion', G.religion)}
-    ${cell('Dependants', G.dependants)}
-  </div>
-
-  <div class="band">Travel Document &amp; Availability</div>
-  <div class="rowbox">
-    ${cell('Passport No.', G.passportNo)}
-    ${cell('Passport Expiry', d(G.passportExpiry))}
-    ${cell('Visa Status', G.visaStatus)}
-    ${cell('Available From', G.availability)}
-    ${cell('Notice Period', G.notice)}
-    ${cell('Expected Salary', G.expectedSalary)}
-  </div>
-
-  ${work.length?`<div class="band">Employment Record</div>
-  <div class="tw"><table>
-    <tr><th style="width:26%">Employer</th><th style="width:22%">Position</th>
-        <th style="width:20%">Period</th><th>Duties</th></tr>
-    ${work.map(w=>`<tr><td><b>${w.company||''}</b>${w.location?'<br>'+w.location:''}</td>
-      <td>${w.position||''}</td>
-      <td>${w.dateStart||''}${w.dateEnd?'<br>to '+w.dateEnd:''}</td>
-      <td>${w.responsibilities||''}</td></tr>`).join('')}
-  </table></div>`:''}
-
-  ${edu.length?`<div class="band">Educational Background</div>
-  <div class="tw"><table>
-    <tr><th style="width:44%">School</th><th style="width:36%">Course / Level</th><th>Year</th></tr>
-    ${edu.map(e=>`<tr><td><b>${e.school||''}</b></td><td>${e.degree||''}${e.honors?'<br>'+e.honors:''}</td>
-      <td>${e.yearStart||''}${e.yearGrad?' \u2013 '+e.yearGrad:''}</td></tr>`).join('')}
-  </table></div>`:''}
-
-  ${s.trainingsHtml?`<div class="band">Trainings &amp; Seminars Attended</div>
-    <div class="free">${s.trainingsHtml}</div>`:''}
-
-  ${((s.skills||[]).length||(s.languages||[]).length)?`<div class="band">Skills &amp; Languages</div>
-    <div class="rowbox two">
-      ${cell('Skills',(s.skills||[]).join(', '))}
-      ${cell('Languages',(s.languages||[]).join(', '))}
-    </div>`:''}
-
-  ${refs.length?`<div class="band">Character References</div>
-  <div class="tw"><table>
-    <tr><th style="width:32%">Name</th><th style="width:34%">Position / Company</th><th>Contact</th></tr>
-    ${refs.map(r=>`<tr><td><b>${r.name||''}</b></td>
-      <td>${r.position||''}${r.company?' \u00b7 '+r.company:''}</td><td>${r.contact||''}</td></tr>`).join('')}
-  </table></div>`:''}
-
-  <div class="sig">
-    <div class="sb">${fullName(p)}<br>Signature Over Printed Name</div>
-  </div>
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 22 — Global ATS (No Photo)
-// For the US, Canada, Australia and New Zealand, where a photo, date of birth,
-// gender, civil status or nationality on a CV is not merely unfashionable but a
-// discrimination-law problem for the employer — many applicant tracking systems
-// reject such a CV before a human sees it. Deliberately single-column with no
-// tables, icons or sidebars, because multi-column layouts are what ATS parsers
-// scramble. Takes no extra fields: it renders less of what is already there.
-// ══════════════════════════════════════════════════════════════════════════════
-function T22(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  const G = s.overseas || {};
-  // Bullets parse far more reliably than a wrapped paragraph, and the duty
-  // lines already arrive one per line.
-  const bullets = t => String(t||'').split('<br>').map(x=>x.trim()).filter(Boolean)
-    .map(x=>`<li>${x}</li>`).join('');
-
-  const contact = [p.phone, p.email, p.address, p.linkedin].filter(Boolean).join('  \u2022  ');
-
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-/* Calibri/Arial deliberately: the two faces every ATS text extractor handles
-   without substitution. */
-body{font-family:Calibri,Arial,'Liberation Sans',sans-serif;background:#e8e8e8;color:#000;}
-.page{width:100%;min-height:100vh;background:#fff;padding:42px 52px 34px;display:flex;flex-direction:column;}
-h1{font-size:24px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
-.role{font-size:13px;font-weight:600;color:#333;margin-top:2px;}
-.ct{font-size:11px;color:#333;margin-top:7px;line-height:1.7;}
-h2{font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;
-  border-bottom:1px solid #000;padding-bottom:3px;margin:17px 0 8px;}
-p.para{font-size:11.5px;line-height:1.72;text-align:left;}
-.it{margin-bottom:11px;}
-.it-h{display:flex;justify-content:space-between;gap:14px;font-size:11.5px;}
-.it-t{font-weight:700;}
-.it-d{white-space:nowrap;color:#333;}
-.it-s{font-size:11.5px;font-style:italic;color:#333;margin-top:1px;}
-ul{margin:4px 0 0 17px;}
-li{font-size:11.5px;line-height:1.62;margin-bottom:2px;}
-.inline{font-size:11.5px;line-height:1.72;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <h1>${fullName(p)}</h1>
-  ${p.jobTitle?`<div class="role">${p.jobTitle}</div>`:''}
-  <div class="ct">${contact}</div>
-  ${(G.workAuth||G.relocate)?`<div class="ct"><b>Work authorisation:</b> ${G.workAuth||'\u2014'}${
-    G.relocate?`  \u2022  <b>Relocation:</b> ${G.relocate}`:''}</div>`:''}
-
-  ${(s.profileSummary||s.aboutMe)?`<h2>Professional Summary</h2>
-    <p class="para">${s.profileSummary||s.aboutMe}</p>`:''}
-
-  ${(s.skills||[]).length?`<h2>Core Skills</h2>
-    <p class="inline">${s.skills.join('  \u2022  ')}</p>`:''}
-
-  ${work.length?`<h2>Professional Experience</h2>
-    ${work.map(w=>`<div class="it">
-      <div class="it-h"><span class="it-t">${w.position||''}</span>
-        <span class="it-d">${w.dateStart||''}${w.dateEnd?' \u2013 '+w.dateEnd:''}</span></div>
-      <div class="it-s">${w.company||''}${w.location?', '+w.location:''}</div>
-      ${w.responsibilities?`<ul>${bullets(w.responsibilities)}</ul>`:''}
-    </div>`).join('')}`:''}
-
-  ${edu.length?`<h2>Education</h2>
-    ${edu.map(e=>`<div class="it">
-      <div class="it-h"><span class="it-t">${e.degree||e.school}</span>
-        <span class="it-d">${e.yearGrad||e.yearStart||''}</span></div>
-      ${e.degree?`<div class="it-s">${e.school}</div>`:''}
-      ${e.honors?`<div class="inline">${e.honors}</div>`:''}
-    </div>`).join('')}`:''}
-
-  ${s.trainingsHtml?`<h2>Professional Development</h2>
-    <p class="inline">${s.trainingsHtml}</p>`:''}
-
-  ${(s.languages||[]).length?`<h2>Languages</h2>
-    <p class="inline">${s.languages.join('  \u2022  ')}</p>`:''}
-
-  ${s.awards?`<h2>Awards &amp; Achievements</h2><p class="para">${s.awards}</p>`:''}
-
-  <h2>References</h2>
-  ${refs.length
-    ? refs.map(r=>`<div class="it"><span class="it-t">${r.name}</span>
-        <div class="it-s">${r.position||''}${r.company?', '+r.company:''}</div>
-        ${r.contact?`<div class="inline">${r.contact}</div>`:''}</div>`).join('')
-    : `<p class="inline">Available upon request.</p>`}
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 23 — Timeline · Slate
-// The first layout here that is structurally different rather than a repainted
-// sidebar: experience runs down a vertical spine with the dates in a left
-// gutter. It reads as a career progression rather than a list, which suits
-// anyone who has moved steadily between roles — and it makes a short history
-// look deliberate instead of thin.
-// ══════════════════════════════════════════════════════════════════════════════
-function T23(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  // The surname is weighted differently from the rest, so it has to be split off
-  // — but naively printing firstName + lastName dropped the middle name, which
-  // Philippine CVs are expected to carry. fullName() already handles the period
-  // on a bare initial, so split its output rather than rebuilding the name.
-  const _fn = fullName(p), _ln = String(p.lastName||'').trim();
-  const _tail = (_ln && _fn.endsWith(_ln)) ? _ln : '';
-  const _lead = _tail ? _fn.slice(0, _fn.length - _tail.length).trim() : _fn;
-  const li = t => String(t||'').split('<br>').map(x=>x.trim()).filter(Boolean)
-    .map(x=>`<li>${x}</li>`).join('');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:'Segoe UI',Inter,Arial,sans-serif;background:#e8e8e8;color:#1e293b;}
-.page{width:100%;min-height:100vh;background:#fff;padding:0;display:flex;flex-direction:column;}
-.hd{background:#334155;color:#fff;padding:24px 40px;display:flex;justify-content:space-between;align-items:center;gap:22px;}
-.nm{font-size:29px;font-weight:300;letter-spacing:2px;text-transform:uppercase;line-height:1.1;}
-.nm b{font-weight:700;}
-.rl{font-size:12px;color:#fbbf24;font-weight:600;letter-spacing:2.6px;text-transform:uppercase;margin-top:6px;}
-.pw{width:86px;height:86px;border-radius:50%;overflow:hidden;border:2px solid #fbbf24;flex-shrink:0;}
-.strip{background:#1e293b;color:#cbd5e1;font-size:10px;padding:7px 40px;display:flex;flex-wrap:wrap;gap:4px 20px;}
-.body{padding:22px 40px 30px;flex:1;}
-h2{font-size:11px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:#334155;
-  margin:18px 0 10px;display:flex;align-items:center;gap:10px;}
-h2:first-child{margin-top:0;}
-h2::after{content:'';flex:1;height:1px;background:#e2e8f0;}
-.sum{font-size:11.5px;line-height:1.75;color:#475569;}
-.tl{position:relative;padding-left:104px;}
-.tl::before{content:'';position:absolute;left:88px;top:4px;bottom:4px;width:2px;background:#e2e8f0;}
-.ev{position:relative;margin-bottom:13px;}
-.ev::before{content:'';position:absolute;left:-22px;top:4px;width:9px;height:9px;border-radius:50%;
-  background:#fbbf24;border:2px solid #fff;box-shadow:0 0 0 2px #e2e8f0;}
-.dt{position:absolute;left:-104px;top:2px;width:74px;text-align:right;font-size:9.5px;
-  font-weight:700;color:#64748b;line-height:1.45;}
-.ti{font-size:12.5px;font-weight:700;color:#1e293b;}
-.co{font-size:11px;color:#475569;font-weight:600;margin-top:1px;}
-ul{margin:5px 0 0 15px;}
-li{font-size:10.5px;line-height:1.6;color:#475569;margin-bottom:2px;}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:0 30px;}
-.tg{display:inline-block;background:#f1f5f9;border-left:2px solid #fbbf24;font-size:10px;
-  padding:3px 9px;margin:0 4px 4px 0;color:#334155;font-weight:600;}
-.ln{font-size:10.5px;line-height:1.7;color:#475569;}
-.rf{margin-bottom:7px;}
-.rf b{font-size:11px;color:#1e293b;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="hd">
-    <div>
-      <div class="nm">${_lead}${_tail?` <b>${_tail}</b>`:''}</div>
-      ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-    </div>
-    <div class="pw">${ph}</div>
-  </div>
-  <div class="strip">
-    ${p.phone?`<span>${p.phone}</span>`:''}${p.email?`<span>${p.email}</span>`:''}
-    ${p.address?`<span>${p.address}</span>`:''}${p.linkedin?`<span>${p.linkedin}</span>`:''}
-  </div>
-
-  <div class="body">
-    ${(s.profileSummary||s.aboutMe)?`<h2>Profile</h2><p class="sum">${s.profileSummary||s.aboutMe}</p>`:''}
-
-    ${work.length?`<h2>Experience</h2><div class="tl">${work.map(w=>`<div class="ev">
-      <div class="dt">${w.dateStart||''}${w.dateEnd?'<br>\u2193<br>'+w.dateEnd:''}</div>
-      <div class="ti">${w.position||''}</div>
-      <div class="co">${w.company||''}${w.location?' \u00b7 '+w.location:''}</div>
-      ${w.responsibilities?`<ul>${li(w.responsibilities)}</ul>`:''}
-    </div>`).join('')}</div>`:''}
-
-    ${edu.length?`<h2>Education</h2><div class="tl">${edu.map(e=>`<div class="ev">
-      <div class="dt">${e.yearStart||''}${e.yearGrad?'<br>\u2193<br>'+e.yearGrad:''}</div>
-      <div class="ti">${e.degree||e.school}</div>
-      ${e.degree?`<div class="co">${e.school}</div>`:''}
-      ${e.honors?`<div class="ln">${e.honors}</div>`:''}
-    </div>`).join('')}</div>`:''}
-
-    ${s.trainingsHtml?`<h2>Trainings &amp; Seminars</h2><div class="ln">${s.trainingsHtml}</div>`:''}
-
-    <div class="two">
-      <div>${(s.skills||[]).length?`<h2>Skills</h2><div>${s.skills.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}</div>
-      <div>${(s.languages||[]).length?`<h2>Languages</h2><div>${s.languages.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}</div>
-    </div>
-
-    <div class="two">
-      <div>${s.awards?`<h2>Awards</h2><div class="ln">${s.awards}</div>`:''}
-        ${s.hobbies?`<h2>Interests</h2><div class="ln">${s.hobbies}</div>`:''}</div>
-      <div>${refs.length?`<h2>References</h2>${refs.map(r=>`<div class="rf">
-        <b>${r.name}</b><div class="ln">${r.position||''}${r.company?' \u00b7 '+r.company:''}<br>${r.contact||''}</div>
-      </div>`).join('')}`:''}</div>
-    </div>
-  </div>
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 24 — Editorial · Serif
-// No colour panel anywhere: a serif face, wide margins and a lot of white space,
-// closer to a printed page than to a form. Every other layout in the set signals
-// its seriousness with a dark block of colour; this one does it by restraint,
-// which is what suits law, academia, finance and senior applications.
-// ══════════════════════════════════════════════════════════════════════════════
-function T24(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  const li = t => String(t||'').split('<br>').map(x=>x.trim()).filter(Boolean)
-    .map(x=>`<li>${x}</li>`).join('');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Georgia,'Times New Roman',serif;background:#e8e8e8;color:#1c1917;}
-.page{width:100%;min-height:100vh;background:#fffdf9;padding:46px 58px 36px;display:flex;flex-direction:column;}
-.top{display:flex;justify-content:space-between;align-items:flex-start;gap:26px;
-  border-bottom:2px solid #1c1917;padding-bottom:16px;}
-.nm{font-size:33px;font-weight:400;letter-spacing:.5px;line-height:1.08;}
-.rl{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;letter-spacing:3.4px;text-transform:uppercase;
-  color:#78716c;margin-top:9px;font-weight:600;}
-.pw{width:82px;height:82px;overflow:hidden;flex-shrink:0;border:1px solid #d6d3d1;}
-.ct{font-family:'Segoe UI',Arial,sans-serif;font-size:10px;color:#57534e;margin-top:11px;
-  display:flex;flex-wrap:wrap;gap:3px 16px;}
-h2{font-family:'Segoe UI',Arial,sans-serif;font-size:9.5px;font-weight:700;letter-spacing:2.8px;
-  text-transform:uppercase;color:#a8a29e;margin:22px 0 9px;}
-.lead{font-size:12.5px;line-height:1.85;font-style:italic;color:#44403c;margin-top:16px;}
-.it{margin-bottom:14px;display:grid;grid-template-columns:82px 1fr;gap:14px;}
-.yr{font-family:'Segoe UI',Arial,sans-serif;font-size:9.5px;color:#a8a29e;font-weight:600;
-  padding-top:3px;line-height:1.5;}
-.ti{font-size:13px;font-weight:700;}
-.co{font-size:11.5px;font-style:italic;color:#57534e;margin-top:1px;}
-ul{margin:6px 0 0 16px;}
-li{font-size:11px;line-height:1.72;color:#44403c;margin-bottom:2px;}
-.ln{font-size:11px;line-height:1.8;color:#44403c;}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:0 34px;}
-.rule{border-top:1px solid #e7e5e4;margin-top:20px;}
-.rf{margin-bottom:9px;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="top">
-    <div>
-      <div class="nm">${fullName(p)}</div>
-      ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-      <div class="ct">
-        ${p.phone?`<span>${p.phone}</span>`:''}${p.email?`<span>${p.email}</span>`:''}
-        ${p.address?`<span>${p.address}</span>`:''}${p.linkedin?`<span>${p.linkedin}</span>`:''}
-      </div>
-    </div>
-    <div class="pw">${ph}</div>
-  </div>
-
-  ${(s.profileSummary||s.aboutMe)?`<p class="lead">${s.profileSummary||s.aboutMe}</p>`:''}
-
-  ${work.length?`<h2>Experience</h2>${work.map(w=>`<div class="it">
-    <div class="yr">${w.dateStart||''}${w.dateEnd?'<br>\u2014<br>'+w.dateEnd:''}</div>
-    <div><div class="ti">${w.position||''}</div>
-      <div class="co">${w.company||''}${w.location?', '+w.location:''}</div>
-      ${w.responsibilities?`<ul>${li(w.responsibilities)}</ul>`:''}</div>
-  </div>`).join('')}`:''}
-
-  ${edu.length?`<div class="rule"></div><h2>Education</h2>${edu.map(e=>`<div class="it">
-    <div class="yr">${e.yearGrad||e.yearStart||''}</div>
-    <div><div class="ti">${e.degree||e.school}</div>
-      ${e.degree?`<div class="co">${e.school}</div>`:''}
-      ${e.honors?`<div class="ln">${e.honors}</div>`:''}</div>
-  </div>`).join('')}`:''}
-
-  ${s.trainingsHtml?`<div class="rule"></div><h2>Trainings &amp; Seminars</h2>
-    <div class="ln">${s.trainingsHtml}</div>`:''}
-
-  <div class="rule"></div>
-  <div class="two">
-    <div>${(s.skills||[]).length?`<h2>Competencies</h2><div class="ln">${s.skills.join(' \u00b7 ')}</div>`:''}
-      ${s.awards?`<h2>Distinctions</h2><div class="ln">${s.awards}</div>`:''}</div>
-    <div>${(s.languages||[]).length?`<h2>Languages</h2><div class="ln">${s.languages.join(' \u00b7 ')}</div>`:''}
-      ${s.hobbies?`<h2>Interests</h2><div class="ln">${s.hobbies}</div>`:''}</div>
-  </div>
-
-  ${refs.length?`<h2>References</h2><div class="two">${refs.map(r=>`<div class="rf">
-    <span class="ti" style="font-size:11.5px;">${r.name}</span>
-    <div class="ln">${r.position||''}${r.company?', '+r.company:''}<br>${r.contact||''}</div>
-  </div>`).join('')}</div>`:''}
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 25 — Banner · Terracotta
-// A full-width header band instead of a full-height sidebar. The colour reads as
-// warm rather than corporate, and because the band stops after the header the
-// body gets the whole page width — which is why this one holds more text than
-// the sidebar layouts without feeling crowded.
-// ══════════════════════════════════════════════════════════════════════════════
-function T25(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:#e8e8e8;color:#292524;}
-.page{width:100%;min-height:100vh;background:#fff;display:flex;flex-direction:column;}
-.bn{background:#9a3412;color:#fff;padding:26px 38px 22px;display:flex;gap:24px;align-items:center;}
-.pw{width:96px;height:96px;border-radius:50%;overflow:hidden;border:3px solid #fdba74;flex-shrink:0;}
-.nm{font-size:28px;font-weight:800;letter-spacing:-.4px;line-height:1.12;}
-.rl{font-size:12.5px;color:#fed7aa;font-weight:600;margin-top:4px;}
-.ct{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:10px;color:rgba(255,255,255,.9);}
-.acc{height:5px;background:#fdba74;}
-.body{display:grid;grid-template-columns:1.9fr 1fr;gap:0 26px;padding:22px 38px 28px;flex:1;}
-h2{font-size:10.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#9a3412;
-  border-bottom:2px solid #fed7aa;padding-bottom:4px;margin:0 0 9px;}
-.sec{margin-bottom:16px;}
-.sum{font-size:11.5px;line-height:1.75;color:#44403c;}
-.it{margin-bottom:11px;}
-.it-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
-.ti{font-size:12.5px;font-weight:700;}
-.dt{font-size:9.5px;font-weight:700;color:#9a3412;background:#fff7ed;padding:1px 8px;
-  border-radius:10px;white-space:nowrap;}
-.co{font-size:11px;color:#78716c;font-weight:600;margin-top:1px;}
-.bd{font-size:10.5px;line-height:1.66;color:#44403c;margin-top:4px;}
-.tg{display:block;font-size:10.5px;color:#44403c;padding:3.5px 0 3.5px 13px;position:relative;
-  border-bottom:1px solid #f5f5f4;}
-.tg::before{content:'';position:absolute;left:0;top:11px;width:5px;height:5px;border-radius:50%;background:#fdba74;}
-.ln{font-size:10.5px;line-height:1.7;color:#44403c;}
-.rf{margin-bottom:8px;font-size:10.5px;line-height:1.6;color:#44403c;}
-.rf b{color:#292524;font-size:11px;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="bn">
-    <div class="pw">${ph}</div>
-    <div>
-      <div class="nm">${fullName(p)}</div>
-      ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-      <div class="ct">
-        ${p.phone?`<span>\u260e ${p.phone}</span>`:''}${p.email?`<span>\u2709 ${p.email}</span>`:''}
-        ${p.address?`<span>\u{1f4cd} ${p.address}</span>`:''}${p.linkedin?`<span>\u{1f517} ${p.linkedin}</span>`:''}
-      </div>
-    </div>
-  </div>
-  <div class="acc"></div>
-
-  <div class="body">
-    <div>
-      ${(s.profileSummary||s.aboutMe)?`<div class="sec"><h2>Profile</h2>
-        <p class="sum">${s.profileSummary||s.aboutMe}</p></div>`:''}
-
-      ${work.length?`<div class="sec"><h2>Experience</h2>${work.map(w=>`<div class="it">
-        <div class="it-h"><span class="ti">${w.position||''}</span>
-          <span class="dt">${w.dateStart||''}${w.dateEnd?' \u2013 '+w.dateEnd:''}</span></div>
-        <div class="co">${w.company||''}${w.location?' \u00b7 '+w.location:''}</div>
-        ${w.responsibilities?`<div class="bd">${w.responsibilities}</div>`:''}
-      </div>`).join('')}</div>`:''}
-
-      ${edu.length?`<div class="sec"><h2>Education</h2>${edu.map(e=>`<div class="it">
-        <div class="it-h"><span class="ti">${e.degree||e.school}</span>
-          <span class="dt">${e.yearStart||''}${e.yearGrad?' \u2013 '+e.yearGrad:''}</span></div>
-        ${e.degree?`<div class="co">${e.school}</div>`:''}
-        ${e.honors?`<div class="bd">${e.honors}</div>`:''}
-      </div>`).join('')}</div>`:''}
-
-      ${s.trainingsHtml?`<div class="sec"><h2>Trainings &amp; Seminars</h2>
-        <div class="ln">${s.trainingsHtml}</div></div>`:''}
-    </div>
-
-    <div>
-      ${(s.skills||[]).length?`<div class="sec"><h2>Skills</h2>
-        ${s.skills.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}
-      ${(s.languages||[]).length?`<div class="sec"><h2>Languages</h2>
-        ${s.languages.map(k=>`<span class="tg">${k}</span>`).join('')}</div>`:''}
-      ${s.awards?`<div class="sec"><h2>Awards</h2><div class="ln">${s.awards}</div></div>`:''}
-      ${s.hobbies?`<div class="sec"><h2>Interests</h2><div class="ln">${s.hobbies}</div></div>`:''}
-      ${refs.length?`<div class="sec"><h2>References</h2>${refs.map(r=>`<div class="rf">
-        <b>${r.name}</b><br>${r.position||''}${r.company?'<br>'+r.company:''}<br>${r.contact||''}
-      </div>`).join('')}</div>`:''}
-    </div>
-  </div>
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 26 — Compact · Executive
-// Built for the applicant every other layout fails: fifteen years, six employers
-// and a page that will not hold them. Tighter type, denser leading and a narrow
-// meta rail, so a long history fits on one sheet instead of spilling onto a
-// second that recruiters routinely never open.
-// ══════════════════════════════════════════════════════════════════════════════
-function T26(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:#e8e8e8;color:#0f172a;}
-.page{width:100%;min-height:100vh;background:#fff;padding:24px 32px 22px;display:flex;flex-direction:column;}
-.mh{display:flex;gap:16px;align-items:center;border-bottom:2.5px solid #0f172a;padding-bottom:12px;}
-.pw{width:64px;height:64px;overflow:hidden;flex-shrink:0;border-radius:3px;background:#f1f5f9;border:1px solid #e2e8f0;}
-.nm{font-size:23px;font-weight:800;letter-spacing:-.3px;line-height:1.1;text-transform:uppercase;}
-.rl{font-size:10.5px;font-weight:700;color:#0891b2;letter-spacing:1.4px;text-transform:uppercase;margin-top:2px;}
-.ct{font-size:9px;color:#475569;margin-top:5px;display:flex;flex-wrap:wrap;gap:2px 12px;}
-.body{display:grid;grid-template-columns:1fr 195px;gap:0 22px;padding-top:12px;flex:1;}
-h2{font-size:9px;font-weight:800;letter-spacing:1.9px;text-transform:uppercase;color:#0891b2;
-  margin:0 0 6px;padding-bottom:2px;border-bottom:1px solid #e2e8f0;}
-.sec{margin-bottom:12px;}
-.sum{font-size:9.5px;line-height:1.6;color:#334155;}
-.it{margin-bottom:8px;}
-.it-h{display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
-.ti{font-size:10.5px;font-weight:800;}
-.dt{font-size:8.5px;font-weight:700;color:#64748b;white-space:nowrap;}
-.co{font-size:9.5px;color:#0891b2;font-weight:700;}
-.bd{font-size:9.5px;line-height:1.55;color:#334155;margin-top:2px;}
-.kv{font-size:9.5px;line-height:1.6;color:#334155;padding:2.5px 0;border-bottom:1px solid #f1f5f9;}
-.ln{font-size:9.5px;line-height:1.6;color:#334155;}
-.tg{display:inline-block;background:#ecfeff;border:1px solid #cffafe;color:#0e7490;font-size:8.5px;
-  font-weight:700;padding:1.5px 6px;border-radius:3px;margin:0 3px 3px 0;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="mh">
-    <div class="pw">${ph}</div>
-    <div>
-      <div class="nm">${fullName(p)}</div>
-      ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-      <div class="ct">
-        ${p.phone?`<span>${p.phone}</span>`:''}${p.email?`<span>${p.email}</span>`:''}
-        ${p.address?`<span>${p.address}</span>`:''}${p.linkedin?`<span>${p.linkedin}</span>`:''}
-      </div>
-    </div>
-  </div>
-
-  <div class="body">
-    <div>
-      ${(s.profileSummary||s.aboutMe)?`<div class="sec"><h2>Profile</h2>
-        <p class="sum">${s.profileSummary||s.aboutMe}</p></div>`:''}
-
-      ${work.length?`<div class="sec"><h2>Professional Experience</h2>${work.map(w=>`<div class="it">
-        <div class="it-h"><span class="ti">${w.position||''}</span>
-          <span class="dt">${w.dateStart||''}${w.dateEnd?' \u2013 '+w.dateEnd:''}</span></div>
-        <div class="co">${w.company||''}${w.location?' \u00b7 '+w.location:''}</div>
-        ${w.responsibilities?`<div class="bd">${w.responsibilities}</div>`:''}
-      </div>`).join('')}</div>`:''}
-
-      ${edu.length?`<div class="sec"><h2>Education</h2>${edu.map(e=>`<div class="it">
-        <div class="it-h"><span class="ti">${e.degree||e.school}</span>
-          <span class="dt">${e.yearGrad||e.yearStart||''}</span></div>
-        ${e.degree?`<div class="co">${e.school}</div>`:''}
-        ${e.honors?`<div class="bd">${e.honors}</div>`:''}
-      </div>`).join('')}</div>`:''}
-    </div>
-
-    <div>
-      ${(s.skills||[]).length?`<div class="sec"><h2>Skills</h2>
-        <div>${s.skills.map(k=>`<span class="tg">${k}</span>`).join('')}</div></div>`:''}
-      ${(s.languages||[]).length?`<div class="sec"><h2>Languages</h2>
-        ${s.languages.map(k=>`<div class="kv">${k}</div>`).join('')}</div>`:''}
-      ${s.trainingsHtml?`<div class="sec"><h2>Trainings</h2><div class="ln">${s.trainingsHtml}</div></div>`:''}
-      ${s.awards?`<div class="sec"><h2>Awards</h2><div class="ln">${s.awards}</div></div>`:''}
-      ${s.hobbies?`<div class="sec"><h2>Interests</h2><div class="ln">${s.hobbies}</div></div>`:''}
-      ${refs.length?`<div class="sec"><h2>References</h2>${refs.map(r=>`<div class="kv">
-        <b>${r.name}</b><br>${r.position||''}${r.company?' \u00b7 '+r.company:''}<br>${r.contact||''}
-      </div>`).join('')}</div>`:''}
-    </div>
-  </div>
-
-</div></div></body></html>`;}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-// TEMPLATE 27 — Warm Neutral
-// Paper-toned rather than white, with a muted maroon accent and a narrow left
-// rail. Quiet where templates 11 and 12 are loud, and warm where 9 is clinical —
-// it suits applicants who want the layout to stay out of the way without the CV
-// reading as unfinished.
-// ══════════════════════════════════════════════════════════════════════════════
-function T27(p,s,ph,edu,work,refs,isFresh,pb,pc){
-  // The surname is weighted differently from the rest, so it has to be split off
-  // — but naively printing firstName + lastName dropped the middle name, which
-  // Philippine CVs are expected to carry. fullName() already handles the period
-  // on a bare initial, so split its output rather than rebuilding the name.
-  const _fn = fullName(p), _ln = String(p.lastName||'').trim();
-  const _tail = (_ln && _fn.endsWith(_ln)) ? _ln : '';
-  const _lead = _tail ? _fn.slice(0, _fn.length - _tail.length).trim() : _fn;
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-${pc}
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;width:100%;}
-body{font-family:Inter,'Segoe UI',Arial,sans-serif;background:#e8e8e8;color:#3b332e;}
-.page{width:100%;min-height:100vh;background:#faf7f1;display:flex;}
-.rail{width:196px;background:#efe9dd;padding:26px 18px;flex-shrink:0;border-right:1px solid #ded5c4;}
-.pw{width:104px;height:104px;border-radius:50%;overflow:hidden;margin:0 auto 14px;border:3px solid #faf7f1;
-  box-shadow:0 0 0 1px #ded5c4;}
-.rh{font-size:9px;font-weight:800;letter-spacing:2.1px;text-transform:uppercase;color:#7c2d3a;
-  margin:16px 0 7px;padding-bottom:3px;border-bottom:1px solid #ded5c4;}
-.rv{font-size:10px;line-height:1.65;color:#544a43;word-break:break-word;}
-.rv+.rv{margin-top:5px;}
-.tg{display:block;font-size:10px;color:#544a43;padding:3px 0 3px 12px;position:relative;}
-.tg::before{content:'';position:absolute;left:0;top:10px;width:4px;height:4px;border-radius:50%;background:#7c2d3a;}
-.main{flex:1;padding:30px 32px 26px;display:flex;flex-direction:column;}
-.nm{font-size:29px;font-weight:300;letter-spacing:1px;color:#3b332e;line-height:1.1;}
-.nm b{font-weight:700;color:#7c2d3a;}
-.rl{font-size:11px;font-weight:600;letter-spacing:2.4px;text-transform:uppercase;color:#8a7d70;margin-top:6px;}
-.hr{height:1px;background:#ded5c4;margin:16px 0;}
-h2{font-size:9.5px;font-weight:800;letter-spacing:2.1px;text-transform:uppercase;color:#7c2d3a;margin:0 0 8px;}
-.sec{margin-bottom:15px;}
-.sum{font-size:11px;line-height:1.78;color:#544a43;}
-.it{margin-bottom:10px;padding-left:13px;border-left:2px solid #e3dacd;}
-.it-h{display:flex;justify-content:space-between;gap:10px;align-items:baseline;}
-.ti{font-size:12px;font-weight:700;color:#3b332e;}
-.dt{font-size:9.5px;color:#8a7d70;font-weight:600;white-space:nowrap;}
-.co{font-size:10.5px;color:#7c2d3a;font-weight:600;margin-top:1px;}
-.bd{font-size:10.5px;line-height:1.68;color:#544a43;margin-top:3px;}
-.ln{font-size:10.5px;line-height:1.7;color:#544a43;}
-</style></head><body>${pb}<div class="page-wrap"><div class="page pg">
-
-  <div class="rail">
-    <div class="pw">${ph}</div>
-    <div class="rh">Contact</div>
-    ${p.phone?`<div class="rv">${p.phone}</div>`:''}
-    ${p.email?`<div class="rv">${p.email}</div>`:''}
-    ${p.address?`<div class="rv">${p.address}</div>`:''}
-    ${p.linkedin?`<div class="rv">${p.linkedin}</div>`:''}
-    ${p.social?`<div class="rv">${p.social}</div>`:''}
-
-    ${(s.skills||[]).length?`<div class="rh">Skills</div>
-      ${s.skills.map(k=>`<span class="tg">${k}</span>`).join('')}`:''}
-    ${(s.languages||[]).length?`<div class="rh">Languages</div>
-      ${s.languages.map(k=>`<span class="tg">${k}</span>`).join('')}`:''}
-    ${s.hobbies?`<div class="rh">Interests</div><div class="rv">${s.hobbies}</div>`:''}
-    ${refs.length?`<div class="rh">References</div>${refs.map(r=>`<div class="rv">
-      <b>${r.name}</b><br>${r.position||''}${r.company?'<br>'+r.company:''}<br>${r.contact||''}</div>`).join('')}`:''}
-  </div>
-
-  <div class="main">
-    <div class="nm">${_lead}${_tail?` <b>${_tail}</b>`:''}</div>
-    ${p.jobTitle?`<div class="rl">${p.jobTitle}</div>`:''}
-    <div class="hr"></div>
-
-    ${(s.profileSummary||s.aboutMe)?`<div class="sec"><h2>About</h2>
-      <p class="sum">${s.profileSummary||s.aboutMe}</p></div>`:''}
-
-    ${work.length?`<div class="sec"><h2>Experience</h2>${work.map(w=>`<div class="it">
-      <div class="it-h"><span class="ti">${w.position||''}</span>
-        <span class="dt">${w.dateStart||''}${w.dateEnd?' \u2013 '+w.dateEnd:''}</span></div>
-      <div class="co">${w.company||''}${w.location?' \u00b7 '+w.location:''}</div>
-      ${w.responsibilities?`<div class="bd">${w.responsibilities}</div>`:''}
-    </div>`).join('')}</div>`:''}
-
-    ${edu.length?`<div class="sec"><h2>Education</h2>${edu.map(e=>`<div class="it">
-      <div class="it-h"><span class="ti">${e.degree||e.school}</span>
-        <span class="dt">${e.yearStart||''}${e.yearGrad?' \u2013 '+e.yearGrad:''}</span></div>
-      ${e.degree?`<div class="co">${e.school}</div>`:''}
-      ${e.honors?`<div class="bd">${e.honors}</div>`:''}
-    </div>`).join('')}</div>`:''}
-
-    ${s.trainingsHtml?`<div class="sec"><h2>Trainings &amp; Seminars</h2>
-      <div class="ln">${s.trainingsHtml}</div></div>`:''}
-
-    ${s.awards?`<div class="sec"><h2>Awards</h2><div class="ln">${s.awards}</div></div>`:''}
-  </div>
-
-</div></div></body></html>`;}
-
-
 function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const m = s.seaman || {};
   const docs  = (m.documents   || []).filter(d=>d.type||d.number);
@@ -3808,10 +2866,19 @@ ${pc}
           ${row('Last Rank Held',m.lastRank)}
         </table>
       </div>
-      ${(m.nok||m.govIds)?`<table class="kv" style="margin-top:-1px;">
-        ${m.nok?`<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>`:''}
-        ${m.govIds?`<tr><th style="width:15.5%;">Government IDs</th><td>${m.govIds}</td></tr>`:''}
-      </table>`:''}
+      ${(() => {
+        const ids = [m.sss && 'SSS ' + m.sss, m.tin && 'TIN ' + m.tin,
+                     m.pagibig && 'Pag-IBIG ' + m.pagibig,
+                     m.philhealth && 'PhilHealth ' + m.philhealth,
+                     m.src && 'SRC ' + m.src].filter(Boolean).join(' · ');
+        const rows = [
+          m.nok            ? `<tr><th style="width:15.5%;">Nearest Relative</th><td>${m.nok}</td></tr>` : '',
+          ids              ? `<tr><th style="width:15.5%;">Government IDs</th><td>${ids}</td></tr>` : '',
+          m.children       ? `<tr><th style="width:15.5%;">Children</th><td>${m.children}</td></tr>` : '',
+          m.mailingAddress ? `<tr><th style="width:15.5%;">Mailing Address</th><td>${m.mailingAddress}</td></tr>` : ''
+        ].filter(Boolean).join('');
+        return rows ? `<table class="kv" style="margin-top:-1px;">${rows}</table>` : '';
+      })()}
     </div>
 
     <div class="sec">
@@ -4332,22 +3399,41 @@ const ROW_KEYS = {
   doc:  ['type','number','dateIssued','dateExpiry','placeIssued'],
   cert: ['name','number','issuedBy','dateIssued','validUntil'],
   vax:  ['name','placeIssued','dateGiven','validUntil'],
-  sea:  ['vessel','rank','vesselType','company','grt','kw','tradeArea','signOn','signOff'],
+  // Order matches addSea() DOM order exactly — readRows maps positionally
+  sea:  ['vessel','imoNo','rank','vesselType','grt','dwt','kw','engineType',
+         'tradeArea','company','principal','amosup','signOffReason','signOn','signOff'],
   ref:  ['name','position','company','contact']
 };
 
+// Field tuple: [label, placeholder, type, isFullWidth, aiFlag, extra]
+//   type 'textarea'  → textarea
+//   type 'select'    → <select>, `extra` is the array of option labels
+//   otherwise        → <input type=...>; `extra` (if a string) becomes a
+//                      datalist id so the field autocompletes
 function rowHTML(title, fields){
-  const cells = fields.map(f => `
+  const cells = fields.map(f => {
+    const extra = f[5];
+    let control;
+    if(f[2] === 'textarea'){
+      control = `<textarea rows="3" placeholder="${f[1]}" oninput="queuePreview()"></textarea>`;
+    } else if(f[2] === 'select'){
+      const opts = ['<option value="">—</option>']
+        .concat((extra || []).map(o => `<option>${o}</option>`)).join('');
+      control = `<select onchange="queuePreview()">${opts}</select>`;
+    } else {
+      const list = typeof extra === 'string' ? ` list="${extra}"` : '';
+      control = `<input type="${f[2] || 'text'}"${list} placeholder="${f[1]}" oninput="queuePreview()">`;
+    }
+    return `
     <div${f[3] ? ' class="full"' : ''}>
       <label>${f[0]}</label>
-      ${f[2] === 'textarea'
-        ? `<textarea rows="3" placeholder="${f[1]}" oninput="queuePreview()"></textarea>`
-        : `<input type="${f[2] || 'text'}" placeholder="${f[1]}" oninput="queuePreview()">`}
+      ${control}
       ${f[4] === 'ai' ? `
       <button type="button" class="duty-btn" onclick="suggestDuties(this)">
         \u2728 Not sure what to write? Suggest duties
       </button>` : ''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
   return `<div class="entry">
     <div class="entry-h"><span>${title}</span>
       <button type="button" class="x-btn" onclick="dropEntry(this)">✕ Remove</button></div>
@@ -4402,23 +3488,37 @@ const addOjt  = () => addRow('ojtList','OJT',[
   ['Tasks — one per line','Assisted with hardware troubleshooting\nEncoded records into the database','textarea',true,'ai'],
   ['Tools / software used','Windows 10, MS Excel','text',true]]);
 
+const SIGN_OFF_REASONS = ['End of Contract','Sign Off / Finished Contract','Medical',
+  'Repatriation','Mutual Consent','Vessel Sold','Other'];
+
 const addDoc  = () => addRow('docList','Document',[
-  ['Type','Passport'],['Number','P1234567A'],
+  ['Type','Passport','text',false,'','docTypeList'],
+  ['Number','P1234567A'],
   ['Date issued','','date'],['Expiry','','date'],['Place issued','Manila']]);
 
 const addCert = () => addRow('certList','Certificate',[
-  ['Certificate name','Basic Training (STCW)','text',true],
+  ['Certificate name','Basic Training (STCW)','text',true,'','certNameList'],
   ['Number','BT-99881'],['Issued by','MARINA'],
   ['Date issued','','date'],['Valid until','','date']]);
 
 const addVax  = () => addRow('vaxList','Vaccination',[
-  ['Vaccine','Yellow Fever'],['Place issued','Manila'],
+  ['Vaccine','Yellow Fever','text',false,'','vaxNameList'],
+  ['Place issued','Manila'],
   ['Date given','','date'],['Valid until','','date']]);
 
+// Column order must stay in step with ROW_KEYS.sea — readRows() maps them
+// positionally across inputs, textareas and selects in DOM order.
 const addSea  = () => addRow('seaList','Vessel',[
-  ['Vessel name','MV Pacific Star'],['Rank on board','Ordinary Seaman'],
-  ['Vessel type','Bulk Carrier'],['Company','ABC Shipping'],
-  ['GRT','35,000'],['kW','8,000'],['Trade area','Worldwide'],
+  ['Vessel name','MV African Oriole'],['IMO number','9733284'],
+  ['Rank on board','Wiper'],
+  ['Vessel type','Bulk Carrier','text',false,'','vesselTypeList'],
+  ['GRT / GT','24,725'],['DWT','38,500'],['Engine kW / BHP','9,480 BHP'],
+  ['Engine type','MAN B&W 6S60MC-C8','text',true],
+  ['Trade area','Worldwide'],
+  ['Manning agency','Jebsen PTC Maritime, Inc.'],
+  ['Principal / shipowner','Dockendal Ship Management'],
+  ['AMOSUP / CBA','AMOSUP-IMEC'],
+  ['Reason for sign-off','','select',false,'',SIGN_OFF_REASONS],
   ['Sign on','','date'],['Sign off','','date']]);
 
 const addRef  = () => addRow('refList','Reference',[
@@ -4519,47 +3619,16 @@ function compressPhoto(dataUrl){
 }
 
 /* ─── TAGS ──────────────────────────────────────────────────────────────── */
-// One box, several entries. Someone who types "Excel, Word, Communication"
-// and taps Add means three skills, not one skill with commas in it.
 function addTag(kind, forced){
   const input = $(kind + 'Input');
-  const raw   = forced !== undefined ? forced : input.value;
-  const arr   = kind === 'skill' ? skills : languages;
-  String(raw).split(/[,;\u3001\uff0c]/).map(t => t.trim()).filter(Boolean).forEach(text => {
-    if(!arr.some(x => x.toLowerCase() === text.toLowerCase())) arr.push(text);
-  });
-  if(forced === undefined) input.value = '';
+  const text  = (forced || input.value).trim();
+  if(!text) return;
+  const arr = kind === 'skill' ? skills : languages;
+  if(!arr.some(x => x.toLowerCase() === text.toLowerCase())) arr.push(text);
+  if(!forced) input.value = '';
   drawTags(kind);
   queuePreview();
 }
-
-// Enter is unreliable on phone keyboards, so a typed comma or semicolon commits
-// the tag too — that is how people already write lists.
-function tagKey(kind, e){
-  if(e.key === 'Enter' || e.key === ',' || e.key === ';'){
-    e.preventDefault();
-    addTag(kind);
-  }
-}
-
-// Set while a suggestion chip is being pressed. On a touchscreen the input
-// blurs BEFORE the chip's click lands, so without this, typing "Micro" and then
-// tapping the "Microsoft Office" suggestion would add both.
-let chipPress = 0;
-
-// Anything still sitting in the box when the customer moves on is a skill they
-// meant to add and would otherwise lose without ever seeing why.
-function blurTag(kind){
-  if(Date.now() - chipPress < 500) return;
-  const el = $(kind + 'Input');
-  if(el && el.value.trim()) addTag(kind);
-}
-
-// Called before the order is read, so a half-typed entry still counts.
-function flushTags(){ ['skill','lang'].forEach(k => {
-  const el = $(k + 'Input');
-  if(el && el.value.trim()) addTag(k);
-}); }
 
 function dropTag(kind, i){
   (kind === 'skill' ? skills : languages).splice(i, 1);
@@ -4575,8 +3644,7 @@ function drawTags(kind){
   const ideas = (kind === 'skill' ? SKILL_IDEAS : LANG_IDEAS)
     .filter(s => !arr.some(x => x.toLowerCase() === s.toLowerCase()));
   $(kind + 'Suggest').innerHTML = ideas.slice(0, 8).map(s =>
-    `<button type="button" class="chip" onpointerdown="chipPress=Date.now()"
-       onclick="addTag('${kind}','${s.replace(/'/g,"\\'")}')">+ ${s}</button>`
+    `<button type="button" class="chip" onclick="addTag('${kind}','${s.replace(/'/g,"\\'")}')">+ ${s}</button>`
   ).join('');
 }
 
@@ -4588,82 +3656,18 @@ const escHtml = t => String(t == null ? '' : t)
 // has no sea service to print and a seafarer template has no CEFR grid, so
 // mixing them produced half-empty CVs and a form that grew sections the
 // applicant had no reason to see.
-// ─── TEMPLATE GROUPS ────────────────────────────────────────────────────────
-// Twenty numbered squares tell an applicant nothing. Grouping them by the kind
-// of job they suit turns the picker into a question the person can actually
-// answer — "what am I applying for" rather than "which number looks nice".
-// Order matters: this is the order the groups appear in.
-const TMPL_GROUPS = [
-  ['ats',    'Clean &amp; ATS-Safe',
-             'Plain and single-column. Safest for job portals and big companies that scan CVs by machine.'],
-  ['corp',   'Office &amp; Corporate',
-             'BPO, admin, accounting, banking, government and other office roles.'],
-  ['modern', 'Modern &amp; Bold',
-             'Sales, marketing, design, hospitality — anywhere standing out helps.'],
-  ['warm',   'Soft &amp; Approachable',
-             'Healthcare, teaching, childcare and service roles.'],
-  ['fresh',  'First Job &amp; Fresh Graduate',
-             'Built to look complete when your work history is still short.'],
-  ['sea',    '⚓ Seafarer',
-             'Documents, certificates, vaccinations and sea service.'],
-  ['eu',     '🇪🇺 Europe / EU',
-             'No photo or personal data, CEFR language levels.'],
-  ['gulf',   '🕌 Gulf / Middle East',
-             'Passport, visa status and availability shown up front.']
-];
-
-// Splits a template list into its groups, keeping TMPL_GROUPS order and
-// dropping any group with nothing in it. Anything carrying an unknown group
-// still comes out at the end rather than silently disappearing from the picker.
-function groupTemplates(list){
-  const out = [];
-  // A track-specific group leads when it is present: on the Gulf track the
-  // Gulf layouts are the answer and the shared ATS one is the alternative,
-  // so listing ATS first would bury what the applicant came for.
-  const TRACK = ['sea','eu','gulf'];
-  const order = TMPL_GROUPS.slice().sort(function(a,b){
-    const at = TRACK.indexOf(a[0]) >= 0 && list.some(function(t){ return t.group===a[0]; });
-    const bt = TRACK.indexOf(b[0]) >= 0 && list.some(function(t){ return t.group===b[0]; });
-    return (bt ? 1 : 0) - (at ? 1 : 0);
-  });
-  order.forEach(function(g){
-    const items = list.filter(function(t){ return t.group === g[0]; });
-    if(items.length) out.push({ key:g[0], label:g[1], blurb:g[2], items:items });
-  });
-  const known = TMPL_GROUPS.map(function(g){ return g[0]; });
-  const rest = list.filter(function(t){ return known.indexOf(t.group) < 0; });
-  if(rest.length) out.push({ key:'other', label:'Other', blurb:'', items:rest });
-  return out;
-}
-
 const TMPL_SCOPE = {
   seaman: [16, 17],
-  europe: [18, 19],
-  // Gulf agencies expect the personal data Europe deliberately omits, so the
-  // two tracks cannot share a layout in either direction. 22 rides along
-  // because a Gulf applicant often applies to Canada or Australia as well.
-  gulf:   [20, 21, 22]
+  europe: [18, 19]
 };
 
 // Layouts available to a given track. Anything scoped to another track is
 // excluded, so the standard and fresh-graduate tracks share T1–T15.
 function templatesFor(lvl){
-  // A retired layout is hidden from anyone choosing fresh, but stays visible to
-  // a customer whose pack already includes it — they paid for that one, and
-  // dropping it from the strip would take away what they bought.
-  // ownsTemplate() is the wrong test here: before payment it returns true for
-  // everything, which would leave the retired layout on offer to new customers.
-  const live = t => !t.retired
-    || paidTemplates.map(Number).includes(t.num)
-    || Number(selectedTmpl) === t.num;
   const scoped = TMPL_SCOPE[lvl];
-  if(scoped) return TMPL_INFO.filter(t => scoped.includes(t.num) && live(t));
-  // 22 is listed under the Gulf track but is not exclusive to it — a
-  // photo-free ATS layout is what the US, Canada, Australia and New Zealand
-  // all want, so the standard and fresh-graduate tracks keep it too.
-  const SHARED = [22];
-  const reserved = Object.values(TMPL_SCOPE).flat().filter(n => !SHARED.includes(n));
-  return TMPL_INFO.filter(t => !reserved.includes(t.num) && live(t));
+  if(scoped) return TMPL_INFO.filter(t => scoped.includes(t.num));
+  const reserved = Object.values(TMPL_SCOPE).flat();
+  return TMPL_INFO.filter(t => !reserved.includes(t.num));
 }
 
 function onFormat(){
@@ -4677,9 +3681,7 @@ function onFormat(){
 
   $('photoHint').textContent = photoIsPrinted()
     ? 'Use a clear headshot in casual or formal attire. Everything here appears at the top of your CV.'
-    : selectedTmpl === 22
-      ? 'This layout prints no photo on purpose \u2014 US, Canadian and Australian employers expect it left off.'
-      : 'European CVs usually leave the photo off. Upload one only if you tick "Include my photo" in the Europe section.';
+    : 'European CVs usually leave the photo off. Upload one only if you tick "Include my photo" in the Europe section.';
 
   buildStrip();
   renderPreview();
@@ -4687,14 +3689,14 @@ function onFormat(){
 
 // Templates 18 and 19 print a photo only on request; every other layout has a
 // photo frame that looks broken when empty.
-const photoIsPrinted = () => ![18, 19, 22].includes(selectedTmpl);
+const photoIsPrinted = () => !(selectedTmpl === 18 || selectedTmpl === 19);
 
 /* ─── TEMPLATE STRIP ────────────────────────────────────────────────────── */
 function buildStrip(){
   const list = templatesFor(eduLevel());
   const packed = paidTemplates.length > 0;
 
-  const swatch = t => {
+  $('pvStrip').innerHTML = list.map(t => {
     const owns = ownsTemplate(t.num);
     const cls = 'tsw'
       + (t.num === selectedTmpl ? ' on' : '')
@@ -4708,12 +3710,7 @@ function buildStrip(){
             onclick="pickTmpl(${t.num})" title="${escHtml(tip)}"
             aria-pressed="${t.num === selectedTmpl}"
             style="background:${t.bg};color:${t.color};${t.border ? 'border-color:' + t.color : ''}">${t.num}</button>`;
-  };
-  $('pvStrip').innerHTML = groupTemplates(list).map(g => `
-    <div class="tgrp">
-      <div class="tgrp-h">${g.label}</div>
-      <div class="tgrp-row">${g.items.map(swatch).join('')}</div>
-    </div>`).join('');
+  }).join('');
 
   const info = list.find(t => t.num === selectedTmpl);
   const suffix = packed
@@ -4768,16 +3765,19 @@ function pickTmpl(n){
 function syncSections(){
   const lvl = eduLevel();
 
+  // Seafarers log sea service instead of ordinary jobs, and fresh graduates
+  // have none yet — every other track (including Europe, whose template does
+  // render an employment section) keeps Work Experience on screen.
+  const ojtTracks = lvl === 'fresh' || lvl === 'college' || lvl === 'highschool';
+
   $('s-work').classList.toggle('hide', lvl === 'fresh' || lvl === 'seaman');
-  $('s-ojt').classList.toggle('hide', !(lvl === 'fresh' || lvl === 'college'));
+  $('s-ojt').classList.toggle('hide', !ojtTracks);
   $('s-seaman').classList.toggle('hide', lvl !== 'seaman');
   $('s-europe').classList.toggle('hide', lvl !== 'europe');
-  $('s-gulf').classList.toggle('hide', lvl !== 'gulf');
-  $('trainingsField').classList.toggle('hide', lvl === 'seaman');
 
   if(lvl === 'seaman' && !$('docList').children.length){ addDoc(); addCert(); addVax(); addSea(); }
   if(lvl === 'europe' && !$('euLangList').children.length){ addEuLang(); addEuLang(); }
-  if((lvl === 'fresh' || lvl === 'college') && !$('ojtList').children.length) addOjt();
+  if(ojtTracks && !$('ojtList').children.length) addOjt();
 
   document.querySelectorAll('#rail a').forEach(a =>
     a.classList.toggle('hide', $(a.dataset.sec).classList.contains('hide')));
@@ -4801,26 +3801,25 @@ function collectData(){
   {
     seaman = {
       rank: val('sm-rank'), lastRank: val('sm-lastRank'),
+      highestLicense: val('sm-highestLicense'),
       height: val('sm-height'), weight: val('sm-weight'), bmi: val('sm-bmi'),
       eyes: val('sm-eyes'), hair: val('sm-hair'), blood: val('sm-blood'),
       shoe: val('sm-shoe'), coverall: val('sm-coverall'), religion: val('sm-religion'),
-      birthPlace: val('sm-birthPlace'), govIds: val('sm-govIds'), nok: val('sm-nok'),
+      birthPlace: val('sm-birthPlace'),
+      sss: val('sm-sss'), tin: val('sm-tin'),
+      pagibig: val('sm-pagibig'), philhealth: val('sm-philhealth'),
+      src: val('sm-src'), phone2: val('sm-phone2'),
+      nok: val('sm-nok'),
+      mailingAddress: val('sm-mailingAddress'),
+      children: val('sm-children'),
+      healthFlag: val('sm-healthFlag'), healthIssued: val('sm-healthIssued'),
+      healthValid: val('sm-healthValid'), healthClinic: val('sm-healthClinic'),
+      medResult: val('sm-medResult'), medIssued: val('sm-medIssued'),
+      medValid: val('sm-medValid'), medClinic: val('sm-medClinic'),
       documents:    readRows('docList', ROW_KEYS.doc),
       certificates: readRows('certList', ROW_KEYS.cert),
       vaccinations: readRows('vaxList', ROW_KEYS.vax),
       seaService:   readRows('seaList', ROW_KEYS.sea)
-    };
-  }
-
-  let overseas = null;
-  {
-    overseas = {
-      country: val('gf-country'), visaStatus: val('gf-visaStatus'),
-      passportNo: val('gf-passportNo'), passportExpiry: val('gf-passportExpiry'),
-      religion: val('gf-religion'), dependants: val('gf-dependants'),
-      availability: val('gf-availability'), notice: val('gf-notice'),
-      expectedSalary: val('gf-expectedSalary'),
-      workAuth: val('gf-workAuth'), relocate: val('gf-relocate')
     };
   }
 
@@ -4857,8 +3856,6 @@ function collectData(){
   // Dropped only when it is both unused and empty, so switching template never
   // discards records and a plain order never carries a hollow block.
   const seamanLive = !$('s-seaman').classList.contains('hide') || anyValue(seaman);
-  const overseasLive = !$('s-gulf').classList.contains('hide') || anyValue(overseas);
-  if(!overseasLive) overseas = null;
   const europeLive = !$('s-europe').classList.contains('hide')
                      || anyValue({ ...europe, gdprLine: '', show: '' });
   if(!seamanLive) seaman = null;
@@ -4902,8 +3899,8 @@ function collectData(){
     // every existing renderer keeps working unchanged.
     templates: { purchased: packTemplates(), base: SELF_SERVICE_PRICE,
                  extraFee: EXTRA_TMPL_PRICE },
-    seaman, europe, overseas, skills, languages, references,
-    hobbies: val('hobbies'), awards: val('awards'), trainings: val('trainings'),
+    seaman, europe, skills, languages, references,
+    hobbies: val('hobbies'), awards: val('awards'),
     templatePref: String(selectedTmpl),
     specialInstructions: '',
     coverLetter: { requested: false },
@@ -4959,9 +3956,8 @@ function updateRailTicks(d){
     's-ojt': !!d.ojt.length,
     's-seaman': !!(d.seaman && d.seaman.rank),
     's-europe': !!(d.europe && d.europe.cefrLanguages.length),
-    's-gulf': !!(d.overseas && (d.overseas.country || d.overseas.passportNo)),
     's-skills': !!(skills.length || languages.length),
-    's-extra': !!(d.hobbies || d.awards || d.trainings),
+    's-extra': !!(d.hobbies || d.awards),
     's-refs': !!d.references.length
   };
   document.querySelectorAll('#rail a').forEach(a =>
@@ -5127,6 +4123,362 @@ function prepScanImage(file, maxEdge = 1600, quality = 0.82){
   });
 }
 
+/* ─── PASTE TEXT PATH ───────────────────────────────────────────────────────
+   Text is exact where a photo is a guess, so when the customer can copy their
+   CGIS out of a PDF this beats scanning it. A CGIS is a fixed tab-delimited
+   layout, so it is parsed here with plain regex — no model call, no timeout,
+   no quota. Anything that is not a recognisable CGIS falls through to the AI.
+   ────────────────────────────────────────────────────────────────────────── */
+
+function togglePastePanel(){
+  const panel = $('pastePanel');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  $('pasteToggle').textContent = open ? '✕ Hide the paste box' : '📄 Or paste the text instead';
+  if(open) $('pasteText').focus();
+}
+
+// Dates must reach a date input as YYYY-MM-DD or the browser silently discards
+// them. CGIS sheets mix DD/MM/YYYY with "17 May 1992", so both are handled.
+function cgisYMD(v){
+  if(!v || !v.trim()) return '';
+  v = v.trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+  let m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(m) return m[3] + '-' + m[2].padStart(2,'0') + '-' + m[1].padStart(2,'0');
+  const MO = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+              jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+  m = v.match(/^(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})$/);
+  if(m){ const mo = MO[m[2].toLowerCase().slice(0,3)];
+         return mo ? m[3] + '-' + mo + '-' + m[1].padStart(2,'0') : ''; }
+  return '';
+}
+
+function parseCGISText(text){
+  // "Label: value" anywhere in the sheet. Em dashes and N/A mean "not stated".
+  const lv = (label) => {
+    const m = text.match(new RegExp('(?:^|\\n)[ \\t]*' + label + '[ \\t]*[:\\-][ \\t]*(.+)', 'im'));
+    if(!m) return '';
+    const v = m[1].trim();
+    return /^[\-\u2014]$|^N\/A$|^NA$/i.test(v) ? '' : v;
+  };
+  // Everything between a section heading and the next one. Scanned line by
+  // line rather than with one big regex: a case-insensitive regex treats the
+  // table's own header row ("Vaccine  Issued  Validity") as the next heading
+  // and hands back nothing, which is exactly the bug this replaces.
+  const lines = text.split('\n');
+  // A heading is a short, standalone line that is either fully upper-case or a
+  // known CGIS heading. The named list matters because a few real headings are
+  // mixed case ("VISAs", "Medical Examination") and would otherwise be read as
+  // part of the section above, duplicating its rows.
+  const KNOWN = ['PERSONAL INFORMATION','STATUTORY INFO','CONTACT INFOS','EDUCATION',
+    'OTHER DOCUMENTS / ID','OTHER DOCUMENTS/ID','HEALTH DESCRIPTION','PASAPORT',
+    'CREW VACCINES','PRE MEDICAL','MEDICAL EXAMINATION','BOOKS','VISAS','VISA',
+    'QUALIFICATIONS CERTIFICATE','TRAINING / UPGRADING','TRAINING/UPGRADING',
+    'WORK EXPERIENCES','SEA SERVICE','REFERENCES','SKILLS','LANGUAGES'];
+  const isHeading = (ln) => {
+    const t = ln.trim();
+    if(t.length < 2 || t.length > 48 || ln.includes('\t') || t.includes(':')) return false;
+    return KNOWN.includes(t.toUpperCase()) || /^[A-Z][A-Z0-9 \/&()'.\-]*$/.test(t);
+  };
+  const section = (...heads) => {
+    const want = heads.map(h => h.trim().toUpperCase());
+    for(let i = 0; i < lines.length; i++){
+      if(!want.includes(lines[i].trim().toUpperCase())) continue;
+      const body = [];
+      for(let j = i + 1; j < lines.length; j++){
+        if(isHeading(lines[j])) break;
+        body.push(lines[j]);
+      }
+      const out = body.join('\n').trim();
+      if(out) return out;
+    }
+    return '';
+  };
+  // Tab-delimited body rows, with the column header row dropped.
+  const rows = (sec, skip) => sec.split('\n').filter(l => l.trim())
+    .map(l => l.split('\t').map(c => c.trim())).slice(skip === undefined ? 1 : skip);
+
+  const r = {
+    fullName: lv('Name'), position: lv('Position'),
+    address: lv('Current Address'), mailingAddress: lv('Mailing Address'),
+    civilStatus: lv('Civil Status'),
+    dob: cgisYMD(lv('Birthdate') || lv('Date of Birth')),
+    birthPlace: lv('Birthplace'),
+    height: lv('Height'), weight: lv('Weight'), religion: lv('Religion'),
+    eyeColor: lv('Color of Eyes'), hairColor: lv('Color of Hair'),
+    bloodType: lv('Blood Type'), src: lv('SRC'), nok: lv('Next of Kin'),
+    sss: lv('SSS No\\.'), tin: lv('TIN'),
+    philhealth: lv('PhilHealth No'), pagibig: lv('Pag-Ibig No\\.'),
+    highestLicense: lv('Highest License Held')
+  };
+  if(r.mailingAddress === r.address) r.mailingAddress = '';
+
+  // The crew's own mobile is not always the first row — the mother's often is.
+  let phone = '', phone2 = '', email = '';
+  rows(section('CONTACT INFOS')).forEach(row => {
+    if(row.length < 3) return;
+    const num = row[0], typ = (row[1] || '').toLowerCase(), who = (row[2] || '').toLowerCase();
+    if(who.includes('crew') && typ.includes('mobile') && !phone) phone = num;
+    else if(typ.includes('mobile') && !phone2) phone2 = num;
+    else if(typ.includes('mail')) email = num;
+  });
+  if(!phone && phone2){ phone = phone2; phone2 = ''; }
+  r.phone = phone; r.phone2 = phone2; r.email = email;
+
+  const hm = section('HEALTH DESCRIPTION')
+    .match(/Issued:\s*([\d\/]+).*?Validity:\s*([\d\/]+).*?Clinic:\s*(.+)/i);
+  if(hm){ r.healthIssued = cgisYMD(hm[1]); r.healthValid = cgisYMD(hm[2]); r.healthClinic = hm[3].trim(); }
+
+  for(const row of rows(section('PRE MEDICAL'))){
+    if(!row.some(Boolean)) continue;
+    r.medResult = row[1] || ''; r.medIssued = cgisYMD(row[2] || '');
+    r.medValid  = cgisYMD(row[3] || ''); r.medClinic = row[4] || '';
+    break;
+  }
+
+  const es = section('EDUCATION');
+  const school = (function(){
+    const m = es.match(/(?:^|\n)[ \t]*School[ \t]*[:\-][ \t]*(.+)/i); return m ? m[1].trim() : '';
+  })();
+  const degree = (function(){
+    const m = es.match(/(?:^|\n)[ \t]*Degree[ \t]*[:\-][ \t]*(.+)/i); return m ? m[1].trim() : '';
+  })();
+  const yg = (function(){
+    const m = es.match(/(?:^|\n)[ \t]*Year Graduated[ \t]*[:\-][ \t]*(.+)/i); return m ? m[1].trim() : '';
+  })();
+  r.education = school ? [{ school, degree, yearGrad: yg, yearStart: '', honors: '' }] : [];
+
+  // A CGIS often carries an unnamed first vaccine row; it would render blank.
+  r.vaccinations = rows(section('CREW VACCINES')).filter(x => x[0]).map(x => ({
+    name: x[0] || '', placeIssued: x[3] || '',
+    dateGiven: cgisYMD(x[1] || ''), validUntil: cgisYMD(x[2] || '')
+  }));
+
+  // Books, other IDs and visas are all travel documents on this form.
+  const docs = [];
+  rows(section('OTHER DOCUMENTS / ID', 'OTHER DOCUMENTS/ID')).forEach(x => {
+    if(!x[1]) return;
+    docs.push({ type: x[0] || 'Document', number: x[1],
+      dateIssued: cgisYMD(x[2] || ''), dateExpiry: cgisYMD(x[3] || ''), placeIssued: x[4] || '' });
+  });
+  rows(section('BOOKS')).forEach(x => {
+    const btype = x[1] || '', num = x[2] || '';
+    if(!btype || !num) return;
+    docs.push({ type: x[0] ? x[0] + ' ' + btype : btype, number: num,
+      dateIssued: cgisYMD(x[3] || ''), dateExpiry: cgisYMD(x[4] || ''), placeIssued: '' });
+  });
+  rows(section('VISAs', 'VISAS')).forEach(x => {
+    if(!x[2]) return;
+    docs.push({ type: ((x[0] || '') + ' ' + (x[1] || '')).trim(), number: x[2],
+      dateIssued: cgisYMD(x[3] || ''), dateExpiry: cgisYMD(x[4] || ''), placeIssued: '' });
+  });
+  r.documents = docs;
+
+  // Both tables are certificates as far as the CV is concerned.
+  const certs = [];
+  ['QUALIFICATIONS CERTIFICATE', 'TRAINING / UPGRADING', 'TRAINING/UPGRADING'].forEach(h => {
+    rows(section(h)).forEach(x => {
+      if(!x[0]) return;
+      certs.push({ name: x[0], issuedBy: x[1] || '', number: x[2] || '',
+        dateIssued: cgisYMD(x[3] || ''), validUntil: cgisYMD(x[4] || '') });
+    });
+  });
+  r.certificates = certs;
+
+  // From | To | Months | Pos | Vessel/IMO | AMOSUP | Type | GRT | DWT | Engine
+  // | BHP | Agencies | Principal | Reason | Year built
+  r.seaService = rows(section('WORK EXPERIENCES')).filter(x => x.some(Boolean)).map(x => {
+    const raw = x[4] || '', cut = raw.lastIndexOf('/');
+    return {
+      vessel: cut >= 0 ? raw.slice(0, cut).trim() : raw.trim(),
+      imoNo:  cut >= 0 ? raw.slice(cut + 1).trim() : '',
+      rank: x[3] || '', vesselType: x[6] || '',
+      grt: x[7] || '', dwt: x[8] || '', kw: x[10] || '',
+      engineType: x[9] || '', tradeArea: '',
+      company: x[11] || '', principal: x[12] || '',
+      amosup: /^(N\/A|NA|)$/i.test(x[5] || '') ? '' : (x[5] || ''),
+      signOffReason: x[13] || '',
+      signOn: cgisYMD(x[0] || ''), signOff: cgisYMD(x[1] || '')
+    };
+  });
+
+  return r;
+}
+
+// A CGIS gives ranks as codes. The rank box is free text, so the full title is
+// written in — clearer on the finished CV and it matches the dropdown wording.
+const RANK_CODES = {
+  'MAS':'Master','MST':'Master','CAPT':'Master',
+  'C/O':'Chief Officer','CHO':'Chief Officer','2/O':'Second Officer',
+  '3/O':'Third Officer','D/C':'Deck Cadet','BSN':'Bosun',
+  'AB':'Able Seaman (AB)','ABS':'Able Seaman (AB)','OS':'Ordinary Seaman (OS)',
+  'DF':'Deck Fitter','C/E':'Chief Engineer','2/E':'Second Engineer',
+  '3/E':'Third Engineer','4/E':'Fourth Engineer','E/C':'Engine Cadet',
+  'ETO':'Electrician / ETO','FTR':'Fitter','OLR':'Oiler','WPR':'Wiper',
+  'MTM':'Motorman','CCK':'Chief Cook','2CK':'Second Cook',
+  'MSM':'Messman','STW':'Steward'
+};
+function expandRank(raw){
+  if(!raw) return '';
+  const up = raw.trim().toUpperCase();
+  return RANK_CODES[up] || raw;
+}
+
+// Picks the matching option however the source cased or punctuated it, and
+// keeps the value as a new option rather than dropping it on no match.
+function pickOption(el, raw){
+  if(!el || !raw) return;
+  const norm = s => s.toUpperCase().replace(/[\s\/]+/g, ' ').trim();
+  const want = norm(raw);
+  for(const o of el.options) if(norm(o.value) === want || norm(o.text) === want){ el.value = o.value; return; }
+  for(const o of el.options){
+    const t = norm(o.text);
+    if(t && (t.includes(want) || want.includes(t))){ el.value = o.value; return; }
+  }
+  el.add(new Option(raw, raw)); el.value = raw;
+}
+
+async function parsePastedText(){
+  const raw = ($('pasteText')?.value || '').trim();
+  const box = $('scanStat');
+  const say = (cls, msg) => { box.className = 'stat ' + cls + ' show'; box.innerHTML = msg; };
+
+  if(raw.length < 10){ say('err', 'Paste some text first — a few lines is enough to start.'); return; }
+
+  say('wait', 'Reading the text…');
+
+  const up = raw.toUpperCase();
+  const isSeaman = /SEAMAN|SEAFARER|CGIS|SIRB|SEA SERVICE|VESSEL|MANNING|AMOSUP|WIPER|BOSUN|OILER|ABLE SEAMAN|CHIEF ENGINEER/.test(up);
+
+  try {
+    if(isSeaman){
+      const d = parseCGISText(raw);
+      const got = d.fullName || d.sss || (d.certificates || []).length || (d.seaService || []).length;
+      if(!got){ say('err', 'That does not look like a CGIS I can read. Try the photo scan instead.'); return; }
+
+      const lvl = document.querySelector('input[name="eduLevel"][value="seaman"]');
+      if(lvl){ lvl.checked = true; onFormat(); syncSections(); }
+
+      const set = (id, v) => { const el = $(id); if(el && v) el.value = v; };
+
+      if(d.fullName){
+        const parts = d.fullName.trim().split(/\s+/).filter(Boolean);
+        const PARTICLE = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
+        set('firstName', parts[0] || '');
+        if(parts.length >= 3){
+          let cut = parts.length - 1;
+          while(cut > 1 && PARTICLE.has(parts[cut - 1].toLowerCase())) cut--;
+          set('lastName', parts.slice(cut).join(' '));
+          set('middleName', parts.slice(1, cut).join(' '));
+        } else set('lastName', parts.slice(1).join(' '));
+      }
+      set('dob', d.dob); set('address', d.address);
+      set('phone', d.phone); set('email', d.email);
+      set('jobTitle', expandRank(d.position));
+      set('nationality', 'Filipino');
+      if(d.civilStatus) pickOption($('civilStatus'), d.civilStatus);
+      if(d.position)    pickOption($('sm-rank'), expandRank(d.position));
+
+      [['sm-lastRank','lastRank'],['sm-highestLicense','highestLicense'],
+       ['sm-height','height'],['sm-weight','weight'],['sm-blood','bloodType'],
+       ['sm-eyes','eyeColor'],['sm-hair','hairColor'],['sm-religion','religion'],
+       ['sm-birthPlace','birthPlace'],['sm-sss','sss'],['sm-tin','tin'],
+       ['sm-pagibig','pagibig'],['sm-philhealth','philhealth'],['sm-src','src'],
+       ['sm-phone2','phone2'],['sm-nok','nok'],['sm-mailingAddress','mailingAddress'],
+       ['sm-children','children'],['sm-healthFlag','healthFlag'],
+       ['sm-healthIssued','healthIssued'],['sm-healthValid','healthValid'],
+       ['sm-healthClinic','healthClinic'],['sm-medResult','medResult'],
+       ['sm-medIssued','medIssued'],['sm-medValid','medValid'],
+       ['sm-medClinic','medClinic']].forEach(([id, k]) => set(id, d[k]));
+
+      if((d.education || []).length) fillRows('eduList', addEdu, ROW_KEYS.edu, d.education);
+      if((d.documents || []).length) fillRows('docList', addDoc, ROW_KEYS.doc, d.documents);
+      if((d.certificates || []).length) fillRows('certList', addCert, ROW_KEYS.cert, d.certificates);
+      if((d.vaccinations || []).length) fillRows('vaxList', addVax, ROW_KEYS.vax, d.vaccinations);
+      if((d.seaService || []).length){
+        const sea = d.seaService.map(v => ({ ...v, rank: expandRank(v.rank) }));
+        fillRows('seaList', addSea, ROW_KEYS.sea, sea);
+      }
+
+      const bits = [];
+      if(d.fullName) bits.push('name');
+      if((d.documents || []).length)    bits.push((d.documents).length + ' documents');
+      if((d.certificates || []).length) bits.push((d.certificates).length + ' certificates');
+      if((d.vaccinations || []).length) bits.push((d.vaccinations).length + ' vaccinations');
+      if((d.seaService || []).length)   bits.push((d.seaService).length + ' vessels');
+      say('good', 'Filled from your CGIS — ' + bits.join(', ') +
+        '. Check every field before you pay; anything the sheet left blank is still blank here.');
+      queuePreview(); saveDraft();
+      return;
+    }
+
+    // Not a CGIS — hand the text to the model with the ordinary CV schema.
+    const prompt = 'Extract this CV into JSON. Return ONLY the JSON object, no markdown.\n' +
+      '{"fullName":"","dob":"","address":"","phone":"","email":"","jobTitle":"",' +
+      '"civilStatus":"","gender":"","social":"","linkedin":"","aboutMe":"","hobbies":"","awards":"",' +
+      '"education":[{"school":"","degree":"","yearStart":"","yearGrad":"","honors":""}],' +
+      '"workExperience":[{"company":"","position":"","dateStart":"","dateEnd":"","location":"","responsibilities":""}],' +
+      '"ojt":[{"company":"","department":"","role":"","dateStart":"","dateEnd":"","location":"","hours":"","tasks":"","tools":""}],' +
+      '"skills":[],"languages":[],' +
+      '"references":[{"name":"","position":"","company":"","contact":""}]}\n' +
+      'Dates: keep month-year wording as written (e.g. "Jan 2022"), except dob which is YYYY-MM-DD.\n' +
+      'responsibilities and tasks: one duty per line, newline separated.\n' +
+      'Leave a field "" and an array [] when the text does not say.\n\nTEXT:\n' + raw.slice(0, 12000);
+
+    const res = await ssFetch(AI_PROXY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 5000 } })
+    }, 45000);
+    if(!res.ok) throw new Error('The reader is busy (status ' + res.status + ')');
+    const j = await res.json();
+    if(j.error) throw new Error(j.error.message || 'The reader could not process that');
+
+    let txt = j.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    txt = txt.replace(/```json|```/g, '').trim();
+    const a = txt.indexOf('{'), b = txt.lastIndexOf('}');
+    if(a < 0 || b < 0) throw new Error('No readable CV data came back');
+    const d = JSON.parse(txt.slice(a, b + 1));
+
+    const isFresh = (d.ojt || []).length && !(d.workExperience || []).length;
+    const lvl = document.querySelector('input[name="eduLevel"][value="' + (isFresh ? 'fresh' : 'college') + '"]');
+    if(lvl){ lvl.checked = true; onFormat(); syncSections(); }
+
+    const set = (id, v) => { const el = $(id); if(el && v) el.value = v; };
+    if(d.fullName){
+      const parts = d.fullName.trim().split(/\s+/).filter(Boolean);
+      set('firstName', parts[0] || '');
+      if(parts.length >= 3){
+        set('lastName', parts[parts.length - 1]);
+        set('middleName', parts.slice(1, -1).join(' '));
+      } else set('lastName', parts.slice(1).join(' '));
+    }
+    ['dob','address','phone','email','jobTitle','social','linkedin','aboutMe','hobbies','awards']
+      .forEach(k => set(k, d[k]));
+    if(d.civilStatus) pickOption($('civilStatus'), d.civilStatus);
+    if(d.gender)      pickOption($('gender'), d.gender);
+
+    if(Array.isArray(d.skills) && d.skills.length){ skills = d.skills.slice(); drawTags('skill'); }
+    if(Array.isArray(d.languages) && d.languages.length){ languages = d.languages.slice(); drawTags('lang'); }
+
+    if((d.education || []).length)      fillRows('eduList',  addEdu,  ROW_KEYS.edu,  d.education);
+    if((d.workExperience || []).length) fillRows('workList', addWork, ROW_KEYS.work, d.workExperience);
+    if((d.ojt || []).length)            fillRows('ojtList',  addOjt,  ROW_KEYS.ojt,  d.ojt);
+    if((d.references || []).length)     fillRows('refList',  addRef,  ROW_KEYS.ref,  d.references);
+
+    say('good', 'Filled from your text. Check every field before you pay — the reader gets most of it right but not all of it.');
+    queuePreview(); saveDraft();
+
+  } catch(err){
+    console.error('parsePastedText:', err);
+    say('err', (err.name === 'AbortError'
+      ? 'That took too long. Try pasting a shorter section.'
+      : (err.message || 'Could not read that text.')) +
+      ' <button type="button" class="x-btn" style="margin-top:7px" onclick="parsePastedText()">Try again</button>');
+  }
+}
+
 async function scanOldCV(input){
   if(!input.files || !input.files.length) return;
 
@@ -5168,7 +4520,7 @@ async function scanOldCV(input){
 {
   "fullName": "", "email": "", "phone": "", "address": "", "linkedin": "",
   "jobTitle": "", "summary": "", "skills": "", "languages": "",
-  "certifications": "", "trainings": "", "achievements": "", "interests": "",
+  "certifications": "", "achievements": "", "interests": "",
   "workHistory": [{"company":"","position":"","startDate":"","endDate":"","location":"","description":""}],
   "education": [{"school":"","degree":"","field":"","startYear":"","endYear":"","gwa":""}],
   "references": [{"name":"","title":"","company":"","contact":""}]
@@ -5176,7 +4528,6 @@ async function scanOldCV(input){
 
 Rules:
 - skills and languages: comma-separated lists
-- trainings: seminars, workshops and short courses attended, ONE PER LINE. Put licences and certificates under certifications instead
 - description: the person's duties, ONE PER LINE, separated by newline characters
 - If a field is not visible in the CV, leave it as an empty string ""
 - workHistory and education must be arrays even if there is only one item
@@ -5300,10 +4651,9 @@ function applyScan(d){
   set('linkedin', d.linkedin);
   set('jobTitle', d.jobTitle);
   set('profileSummary', d.summary);
-  set('awards', d.achievements);
-  // Certifications used to be folded in with achievements because there was
-  // nowhere else to put them. They belong with the trainings now.
-  set('trainings', [d.trainings, d.certifications].filter(Boolean).join('\n'));
+  // index.html folds certifications in with achievements rather than dropping
+  // them, and a licence or training certificate is worth as much on a CV.
+  set('awards', [d.achievements, d.certifications].filter(Boolean).join('\n'));
   set('hobbies', d.interests);
 
   const addTags = (raw, kind) => {
@@ -5477,7 +4827,6 @@ async function generateSummary(){
       .map(o => [o.role, o.company, o.hours].filter(Boolean).join(', ')).join(' | ')),
     skills.length && ('Skills: ' + skills.join(', ')),
     languages.length && ('Languages: ' + languages.join(', ')),
-    d.trainings && ('Trainings & seminars: ' + d.trainings.replace(/\n/g,'; ')),
     d.awards && ('Awards: ' + d.awards),
     d.eduLevel === 'fresh' && 'This person is a fresh graduate with no paid work experience yet.',
     d.eduLevel === 'seaman' && ('Applying as a seafarer' + (d.seaman?.rank ? ' for the rank of ' + d.seaman.rank : '') + '.'),
@@ -5587,35 +4936,28 @@ function saveDraft(){
   } catch(e){ /* quota full or private mode — the form still works */ }
 }
 
-// When this browser last wrote its own copy of the form. Used to decide whether
-// a stored record is newer than what the customer has in front of them.
-function draftSavedAt(){
-  try { return Number(JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}').savedAt) || 0; }
-  catch(e){ return 0; }
-}
-
-// Pulls an admin-corrected record back into the form on load \u2014 but only when
-// the stored copy is newer than this browser's draft. Applying it
-// unconditionally would wipe whatever the customer is part-way through typing,
-// which is why the reload path never pulled anything before.
-function syncFromRecord(rec){
-  if(!rec || !rec.updatedAt) return false;
-  const when = Date.parse(rec.updatedAt);
-  if(isNaN(when)) return false;
-  const mine = draftSavedAt();
-  if(mine && when <= mine) return false;      // their typing is the newer copy
-  applyData(rec);
-  saveDraft();                                 // the pulled copy is now the draft
-  toast('Your CV was updated by Arroyo CV Builder \u2014 showing the latest version.');
-  return true;
-}
-
 function loadDraft(){
   let raw;
   try { raw = localStorage.getItem(DRAFT_KEY); } catch(e){ return false; }
   if(!raw) return false;
   try { applyData(JSON.parse(raw).data); return true; }
   catch(e){ console.warn('Draft unreadable:', e); return false; }
+}
+
+// Replaces every row in a list from an array of records. Fields are matched by
+// NAME via the keys array, never by the object's own property order, because
+// orders created in index.html store keys in a different order than this form
+// lays them out. Shared by the draft restore and the CGIS text parser.
+function fillRows(listId, adder, keys, rows){
+  const list = $(listId);
+  if(!list) return;
+  list.innerHTML = '';
+  (rows || []).forEach(r => {
+    adder();
+    const fields = list.lastElementChild.querySelectorAll('input, textarea, select');
+    keys.forEach((k, i) => { if(fields[i]) fields[i].value = r[k] || ''; });
+  });
+  if(!list.children.length) adder();
 }
 
 // Rebuilds the whole form from a saved record. Used by the draft restore and
@@ -5648,7 +4990,6 @@ function applyData(d){
   set('aboutMe', d.aboutMe);
   set('hobbies', d.hobbies);
   set('awards', d.awards);
-  set('trainings', d.trainings);
 
   skills    = Array.isArray(d.skills) ? d.skills.slice() : [];
   languages = Array.isArray(d.languages) ? d.languages.slice() : [];
@@ -5657,15 +4998,7 @@ function applyData(d){
   // Fields are matched by NAME, not by position. Orders created in index.html
   // store OJT keys in a different order than this form lays them out, so
   // walking the object's own values would put the hours into the role box.
-  const fill = (listId, adder, keys, rows) => {
-    $(listId).innerHTML = '';
-    (rows || []).forEach(r => {
-      adder();
-      const fields = $(listId).lastElementChild.querySelectorAll('input, textarea, select');
-      keys.forEach((k, i) => { if(fields[i]) fields[i].value = r[k] || ''; });
-    });
-    if(!$(listId).children.length) adder();
-  };
+  const fill = fillRows;
 
   fill('eduList',  addEdu,  ROW_KEYS.edu,  d.education);
   fill('workList', addWork, ROW_KEYS.work, d.workExperience);
@@ -5673,22 +5006,15 @@ function applyData(d){
   fill('refList',  addRef,  ROW_KEYS.ref,  d.references);
 
   if(d.seaman){
-    ['rank','lastRank','height','weight','bmi','eyes','hair','blood','shoe','coverall',
-     'religion','birthPlace','govIds','nok'].forEach(k => set('sm-' + k, d.seaman[k]));
+    ['rank','lastRank','highestLicense','height','weight','bmi','eyes','hair','blood',
+     'shoe','coverall','religion','birthPlace','sss','tin','pagibig','philhealth','src',
+     'phone2','nok','mailingAddress','children','healthFlag','healthIssued','healthValid',
+     'healthClinic','medResult','medIssued','medValid','medClinic']
+      .forEach(k => set('sm-' + k, d.seaman[k]));
     fill('docList',  addDoc,  ROW_KEYS.doc,  d.seaman.documents);
     fill('certList', addCert, ROW_KEYS.cert, d.seaman.certificates);
     fill('vaxList',  addVax,  ROW_KEYS.vax,  d.seaman.vaccinations);
     fill('seaList',  addSea,  ROW_KEYS.sea,  d.seaman.seaService);
-  }
-
-  if(d.overseas){
-    const G = d.overseas;
-    set('gf-country', G.country);             set('gf-visaStatus', G.visaStatus);
-    set('gf-passportNo', G.passportNo);       set('gf-passportExpiry', G.passportExpiry);
-    set('gf-religion', G.religion);           set('gf-dependants', G.dependants);
-    set('gf-availability', G.availability);   set('gf-notice', G.notice);
-    set('gf-expectedSalary', G.expectedSalary);
-    set('gf-workAuth', G.workAuth);           set('gf-relocate', G.relocate);
   }
 
   if(d.europe){
@@ -5874,7 +5200,7 @@ function screenConfirm(){
   // The pack is what is being bought, so it is chosen HERE, once, as a picker
   // rather than described in a line of text. A moment later the strip locks to
   // exactly this set, and that is far easier to accept when you picked it.
-  const packSw = t => {
+  const picker = templatesFor(eduLevel()).map(t => {
     const isMain = t.num === selectedTmpl;
     const on = extraTemplates.includes(t.num);
     const tip = isMain ? t.desc + ' \u2014 your main template'
@@ -5885,10 +5211,7 @@ function screenConfirm(){
         ${isMain ? '' : `onclick="toggleExtra(${t.num})"`}
         title="${escHtml(tip)}"
         style="background:${t.bg};color:${t.color}">${t.num}</button>`;
-  };
-  const picker = groupTemplates(templatesFor(eduLevel())).map(g => `
-    <div class="pack-h">${g.label}</div>
-    <div class="pack-grid">${g.items.map(packSw).join('')}</div>`).join('');
+  }).join('');
 
   paint('Unlock Save & Print',
     'Choose your templates, pay by GCash, and we verify it \u2014 then every template in your pack opens here.',
@@ -5907,7 +5230,7 @@ function screenConfirm(){
          Once you pay, this pack is fixed \u2014 the rest lock, and you can download
          every template you chose as many times as you like.
        </div>
-       ${picker}
+       <div class="pack-grid">${picker}</div>
      </div>
 
      <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
@@ -5935,14 +5258,10 @@ function screenConfirm(){
    later — so it cannot be something they were defaulted into.
    ─────────────────────────────────────────────────────────────── */
 function screenPickMain(){
-  const mainSw = t => `<button type="button"
+  const grid = templatesFor(eduLevel()).map(t => `<button type="button"
       class="pack-sw${t.num === selectedTmpl ? ' pick' : ''}"
       onclick="pickMainTmpl(${t.num})" title="${escHtml(t.desc)}"
-      style="background:${t.bg};color:${t.color}">${t.num}</button>`;
-  const grid = groupTemplates(templatesFor(eduLevel())).map(g => `
-    <div class="pack-h">${g.label}</div>
-    <div class="pack-b">${g.blurb}</div>
-    <div class="pack-grid">${g.items.map(mainSw).join('')}</div>`).join('');
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
 
   const info = tmplInfo(selectedTmpl);
   paint('Which template do you want?',
@@ -5952,7 +5271,7 @@ function screenPickMain(){
        Tap one to see it in the preview behind this box. Whatever you choose is
        what you pay for and what unlocks \u2014 so take a look first.
      </div>
-     ${grid}
+     <div class="pack-grid">${grid}</div>
      <div class="pay-row" style="margin-top:12px">
        <div class="ic">\ud83c\udfa8</div>
        <div><div class="v">Template ${selectedTmpl}</div>
@@ -6008,7 +5327,6 @@ function jumpTo(id){
 
 /* ─── SEND ORDER ────────────────────────────────────────────────────────── */
 async function sendOrder(){
-  flushTags();
   paint('Sending your CV', 'This takes a few seconds.',
     `<div style="text-align:center;padding:26px 0">
        <div class="spin" style="width:26px;height:26px;border-width:3px;margin:0 auto 14px"></div>
@@ -6065,30 +5383,13 @@ async function pushOrder(data){
       if(isNew) list.push(data);
       // Never overwrite the payment block: the admin may have ticked it paid
       // between the customer's first send and this one.
-      else {
-        const prev = list[at];
-        // An admin correction made after this browser last saved its draft is
-        // newer than anything on screen, and spreading the form over it would
-        // silently undo the correction with nobody told. This happens when the
-        // tab was left open through the edit, so a reload is the fix and the
-        // message says so.
-        const adminNewer = prev && prev.updatedBy === 'admin' && prev.updatedAt
-          && Date.parse(prev.updatedAt) > draftSavedAt();
-        if(adminNewer){
-          const stale = new Error('We updated your CV a moment ago. Reload this page to '
-            + 'pull the latest version, then send again \u2014 nothing you typed is lost.');
-          stale.staleAdminEdit = true;
-          throw stale;
-        }
-        list[at] = { ...prev, ...data, payment: prev.payment || { paid: false } };
-      }
+      else list[at] = { ...list[at], ...data, payment: list[at].payment || { paid: false } };
 
       trimToFit(list, data.id);
       await writeBin({ ...record, submissions: list });
       return { isNew };
     } catch(e){
       lastErr = e;
-      if(e && e.staleAdminEdit) break;
       if(attempt === 1) await new Promise(r => setTimeout(r, 1200));
     }
   }
@@ -7113,20 +6414,17 @@ function screenAddTemplates(){
   }
 
   const fee = EXTRA_TMPL_PRICE * topUpPick.length;
-  const upSw = t => `<button type="button"
+  const grid = avail.map(t => `<button type="button"
       class="pack-sw${topUpPick.includes(t.num) ? ' pick' : ''}"
       onclick="toggleTopUp(${t.num})" title="${escHtml(t.desc)}"
-      style="background:${t.bg};color:${t.color}">${t.num}</button>`;
-  const grid = groupTemplates(avail).map(g => `
-    <div class="pack-h">${g.label}</div>
-    <div class="pack-grid">${g.items.map(upSw).join('')}</div>`).join('');
+      style="background:${t.bg};color:${t.color}">${t.num}</button>`).join('');
 
   paint('Add templates',
     peso(EXTRA_TMPL_PRICE) + ' each \u2014 same CV, same details, a different design.',
     `<div style="font-size:11.5px;color:var(--muted);line-height:1.6">
        Already yours: <strong>${pack.join(', ')}</strong>. Tap the ones you want to add.
      </div>
-     ${grid}
+     <div class="pack-grid">${grid}</div>
 
      <div class="pay-row" style="border-color:var(--gold);background:rgba(200,168,75,.06);margin-top:14px">
        <div class="ic">\ud83d\udcb0</div>
@@ -7437,7 +6735,7 @@ async function restoreUnlock(){
     // Restored before openTheLock() so the identity check has something to
     // compare against on a page that was reloaded rather than freshly filled.
     if(order?.paid && saved.email) paidEmail = String(saved.email).toLowerCase();
-    if(order?.paid){ syncFromRecord(order.record); openTheLock(order.record); return; }
+    if(order?.paid){ openTheLock(order.record); return; }
     if(order && !order.paid && saved.paid){
       // The admin reversed it. Say so plainly rather than silently re-locking.
       toast('This order is marked unpaid again. Message ' + GCASH_NUMBER + ' if that is wrong.', true);
@@ -8012,4 +7310,46 @@ function init(){
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
 </script>
+
+<!-- Autocomplete sources for the seafarer rows. Same lists as index.html so a
+     customer sees identical suggestions whichever form they use. -->
+<datalist id="docTypeList">
+  <option>Passport</option><option>Seaman's Book (SIRB)</option><option>US Visa (C1/D)</option>
+  <option>Schengen Visa</option><option>Yellow Fever Card</option>
+  <option>Seafarer's Registration Certificate (SRC)</option>
+  <option>Seafarer's Identity Document (SID)</option><option>Panama Licence</option>
+  <option>Liberian Licence</option><option>Marshall Islands Licence</option>
+  <option>OFW e-Card</option><option>NBI Clearance</option><option>Australian MCV</option>
+</datalist>
+<datalist id="vesselTypeList">
+  <option>Bulk Carrier</option><option>Container</option><option>General Cargo</option>
+  <option>Oil Tanker</option><option>Chemical Tanker</option><option>Product Tanker</option>
+  <option>LPG Tanker</option><option>LNG Tanker</option><option>Car Carrier / PCTC</option>
+  <option>Passenger / Cruise</option><option>Reefer</option><option>Ro-Ro</option>
+  <option>Tug Boat</option><option>Offshore Supply Vessel</option><option>Heavy Lift</option>
+  <option>Livestock Carrier</option><option>Dredger</option><option>Fishing Vessel</option>
+</datalist>
+<datalist id="certNameList">
+  <option>Basic Training (BT)</option>
+  <option>Proficiency in Survival Craft &amp; Rescue Boats (PSCRB)</option>
+  <option>Advanced Fire Fighting (AFF)</option><option>Medical First Aid (MEFA)</option>
+  <option>Medical Care</option><option>Security Awareness Training (SAT)</option>
+  <option>Designated Security Duties (SDSD)</option><option>Ship Security Officer (SSO)</option>
+  <option>Radar Observation &amp; Plotting (ROP)</option><option>ARPA</option>
+  <option>ECDIS</option><option>Bridge Resource Management (BRM)</option>
+  <option>Engine Room Resource Management (ERM)</option>
+  <option>Rating Forming Part of a Navigational Watch (RFPNW)</option>
+  <option>Rating Forming Part of an Engineering Watch (RFPEW)</option>
+  <option>Able Seafarer Deck</option><option>Able Seafarer Engine</option>
+  <option>Tanker Familiarization</option><option>Advanced Oil Tanker</option>
+  <option>Advanced Chemical Tanker</option><option>Advanced Liquefied Gas Tanker</option>
+  <option>Anti-Piracy Awareness Training</option><option>Crowd Management</option>
+  <option>Crisis Management &amp; Human Behaviour</option>
+</datalist>
+<datalist id="vaxNameList">
+  <option>Yellow Fever</option><option>Hepatitis A</option><option>Hepatitis B</option>
+  <option>Tetanus / Td</option><option>Typhoid</option><option>COVID-19</option>
+  <option>Influenza</option><option>Measles / MMR</option><option>Polio</option>
+  <option>Diphtheria</option><option>Cholera</option><option>Meningococcal</option>
+</datalist>
 </body></html>
