@@ -1003,12 +1003,35 @@
       <img id="cgisPreview" class="cgis-preview" alt="CGIS Preview">
       <div class="cgis-card-text">
         <h3>🚢 Have a CGIS / Agency Record?</h3>
-        <p>Upload <strong style="color:#6ee7b7;">1–6 photos</strong> of your CGIS — select all pages at once. Jebsen PTC, DOLE, or any manning agency. Auto-fills all seafarer details in seconds.</p>
+        <p>Scan photos <strong style="color:#6ee7b7;">or paste copied text</strong> — from Google Lens, PDF copy, or any OCR app. Auto-fills all seafarer details in seconds.</p>
       </div>
-      <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()">
-        📋 Scan CGIS (1–6 photos)
-      </button>
+      <div style="display:flex;flex-direction:column;gap:8px;flex-shrink:0;">
+        <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()">
+          📋 Scan Photos (1–6)
+        </button>
+        <button class="cgis-upload-btn" onclick="toggleCgisPaste()" id="cgisPasteToggleBtn"
+          style="background:rgba(52,211,153,0.18);color:#6ee7b7;border:1.5px solid rgba(52,211,153,0.5);">
+          📄 Paste Text
+        </button>
+      </div>
       <input type="file" id="cgisScanInput" accept="image/*" multiple style="display:none" onchange="scanCGIS(this)">
+
+      <!-- Paste text panel — hidden by default -->
+      <div id="cgisPastePanel" style="display:none;width:100%;margin-top:4px;">
+        <textarea id="cgisPasteText" rows="7"
+          placeholder="Paste your CGIS or resume text here — from Google Lens, PDF copy, or any OCR app. Include everything: personal info, documents, certificates, sea service records."
+          style="width:100%;padding:11px 13px;border-radius:10px;border:1.5px solid rgba(52,211,153,0.5);background:rgba(0,0,0,0.3);color:#e0f7ef;font-size:12.5px;line-height:1.65;font-family:Inter,sans-serif;resize:vertical;outline:none;box-sizing:border-box;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button onclick="parseCGISText()" class="cgis-upload-btn" style="flex:1;">
+            ✨ Auto-fill from Text
+          </button>
+          <button onclick="document.getElementById('cgisPasteText').value=''" 
+            style="padding:10px 14px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;">
+            Clear
+          </button>
+        </div>
+      </div>
+
       <div class="cgis-status" id="cgisStatus"></div>
     </div>
 
@@ -4383,6 +4406,269 @@ Rules:
 // the Seafarer sections: personal info, documents, certs,
 // vaccinations, and sea service record.
 // ─────────────────────────────────────────────────────────────
+// ─── SHARED CGIS FORM-FILL HELPER ────────────────────────────────────────────
+// Called by both the image scanner and the paste-text parser after getting data.
+// Returns the number of sections filled so the caller can show a summary.
+function fillCGISData(data, statusEl, scanLabel, extraNote='') {
+  // Switch to seafarer form first
+  const seamanRadio = document.querySelector('input[name="eduLevel"][value="seaman"]');
+  if (seamanRadio && !seamanRadio.checked) { seamanRadio.checked = true; handleEduChange(); }
+
+  const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
+
+  // Personal
+  if (data.fullName) {
+    const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
+    const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
+    set('firstName', pts[0] || '');
+    if (pts.length >= 3) {
+      let s = pts.length - 1;
+      while (s > 1 && PAR.has(pts[s-1].toLowerCase())) s--;
+      set('lastName', pts.slice(s).join(' '));
+      set('middleName', pts.slice(1, s).join(' '));
+    } else { set('lastName', pts.slice(1).join(' ') || ''); }
+  }
+  set('dob', data.dob); set('address', data.address);
+  set('phone', data.phone); set('email', data.email);
+  set('jobTitle', data.position); set('nationality', data.nationality || 'Filipino');
+  if (data.civilStatus) {
+    const cs = document.getElementById('civilStatus');
+    if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
+  }
+  set('sm-birthPlace', data.birthPlace); set('sm-height', data.height);
+  set('sm-weight', data.weight); set('sm-blood', data.bloodType);
+  set('sm-eyes', data.eyeColor); set('sm-hair', data.hairColor);
+  set('sm-religion', data.religion); set('sm-shoe', data.shoeSize);
+  set('sm-coverall', data.coverallSize); set('sm-sss', data.sss);
+  set('sm-tin', data.tin); set('sm-pagibig', data.pagibig);
+  set('sm-philhealth', data.philhealth); set('sm-src', data.src);
+  set('sm-highestLicense', data.highestLicense); set('sm-phone2', data.phone2);
+  set('sm-nok', data.nok); set('sm-mailingAddress', data.mailingAddress);
+  set('sm-children', data.children);
+  set('sm-healthFlag', data.healthFlag); set('sm-healthIssued', data.healthIssued);
+  set('sm-healthValid', data.healthValid); set('sm-healthClinic', data.healthClinic);
+  set('sm-medResult', data.medResult); set('sm-medIssued', data.medIssued);
+  set('sm-medValid', data.medValid); set('sm-medClinic', data.medClinic);
+
+  // Education
+  if (data.education?.length) {
+    while (document.querySelectorAll('#eduEntries .exp-entry').length < data.education.length) addEduEntry();
+    data.education.forEach((edu, i) => {
+      const e = document.getElementById(`edu-${i+1}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[0]) inp[0].value = edu.school || '';
+      if (inp[1]) inp[1].value = edu.degree || '';
+      if (inp[2]) inp[2].value = edu.yearGrad || '';
+    });
+  }
+
+  // Travel Documents
+  if (data.documents?.length) {
+    document.querySelectorAll('#docEntries .exp-entry').forEach(el => el.remove());
+    docCount = 0;
+    data.documents.forEach(doc => {
+      addDocEntry(doc.type || '');
+      const e = document.getElementById(`doc-${docCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[1]) inp[1].value = doc.number || '';
+      if (inp[2]) inp[2].value = doc.dateIssued || '';
+      if (inp[3]) inp[3].value = doc.dateExpiry || '';
+      if (inp[4]) inp[4].value = doc.placeIssued || '';
+    });
+  }
+
+  // Certificates
+  if (data.certificates?.length) {
+    document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
+    certCount = 0;
+    data.certificates.forEach(cert => {
+      addCertEntry();
+      const e = document.getElementById(`cert-${certCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[0]) inp[0].value = cert.name || '';
+      if (inp[1]) inp[1].value = cert.number || '';
+      if (inp[2]) inp[2].value = cert.issuedBy || '';
+      if (inp[3]) inp[3].value = cert.dateIssued || '';
+      if (inp[4]) inp[4].value = cert.validUntil || '';
+    });
+  }
+
+  // Vaccinations
+  if (data.vaccinations?.length) {
+    document.querySelectorAll('#vaxEntries .exp-entry').forEach(el => el.remove());
+    vaxCount = 0;
+    data.vaccinations.forEach(vax => {
+      addVaxEntry();
+      const e = document.getElementById(`vax-${vaxCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      if (inp[0]) inp[0].value = vax.name || '';
+      if (inp[1]) inp[1].value = vax.placeIssued || '';
+      if (inp[2]) inp[2].value = vax.dateGiven || '';
+      if (inp[3]) inp[3].value = vax.validUntil || '';
+    });
+  }
+
+  // Sea Service
+  if (data.seaService?.length) {
+    document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
+    seaCount = 0;
+    data.seaService.forEach(v => {
+      addSeaEntry();
+      const e = document.getElementById(`sea-${seaCount}`); if (!e) return;
+      const inp = e.querySelectorAll('input');
+      const sel = e.querySelector('select');
+      if (inp[0])  inp[0].value  = v.vessel     || '';
+      if (inp[1])  inp[1].value  = v.imoNo      || '';
+      if (inp[2])  inp[2].value  = v.rank       || '';
+      if (inp[3])  inp[3].value  = v.vesselType || '';
+      if (inp[4])  inp[4].value  = v.grt        || '';
+      if (inp[5])  inp[5].value  = v.dwt        || '';
+      if (inp[6])  inp[6].value  = v.kw         || '';
+      if (inp[7])  inp[7].value  = v.engineType || '';
+      if (inp[8])  inp[8].value  = v.tradeArea  || '';
+      if (inp[9])  inp[9].value  = v.agency     || '';
+      if (inp[10]) inp[10].value = v.principal  || '';
+      if (inp[11]) inp[11].value = v.amosup     || '';
+      if (sel && v.signOffReason) {
+        const opt = [...sel.options].find(o => o.value === v.signOffReason || o.text === v.signOffReason);
+        if (opt) sel.value = opt.value;
+        else { const no = new Option(v.signOffReason, v.signOffReason); sel.add(no); sel.value = no.value; }
+      }
+      if (inp[12]) inp[12].value = v.signOn  || '';
+      if (inp[13]) inp[13].value = v.signOff || '';
+    });
+  }
+
+  // Summary
+  const filled = [data.fullName, data.dob, data.address, data.sss||data.tin,
+    data.documents?.length, data.certificates?.length, data.vaccinations?.length,
+    data.seaService?.length, data.education?.length].filter(Boolean).length;
+
+  const label = scanLabel || '✅ Done';
+  statusEl.className = 'cgis-status success';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = `${label} — ${filled} section${filled===1?'':'s'} filled. Review each field before submitting.${extraNote}`;
+
+  showNotif(`✅ Auto-fill complete — ${filled} sections filled. Please review.`);
+  setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
+  return filled;
+}
+
+// ─── CGIS PASTE TEXT PARSER ───────────────────────────────────────────────────
+// Accepts raw text (from OCR, PDF copy, Google Lens) and extracts seafarer
+// data using the same JSON schema and field-fill logic as the image scanner.
+
+function toggleCgisPaste() {
+  const panel = document.getElementById('cgisPastePanel');
+  const btn   = document.getElementById('cgisPasteToggleBtn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.style.background = open
+    ? 'rgba(52,211,153,0.35)' : 'rgba(52,211,153,0.18)';
+  if (open) document.getElementById('cgisPasteText').focus();
+}
+
+async function parseCGISText() {
+  const rawText = (document.getElementById('cgisPasteText')?.value || '').trim();
+  const status  = document.getElementById('cgisStatus');
+
+  if (!rawText || rawText.length < 30) {
+    status.className = 'cgis-status error';
+    status.style.display = 'block';
+    status.innerHTML = '❌ Please paste some text first (at least a few lines of your CGIS or resume).';
+    return;
+  }
+
+  status.className = 'cgis-status loading';
+  status.style.display = 'block';
+  status.innerHTML = '⏳ Reading text — extracting seafarer details…';
+
+  const SCHEMA = `{
+  "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
+  "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
+  "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
+  "shoeSize":"","coverallSize":"",
+  "sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
+  "nok":"","children":"",
+  "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
+  "medResult":"","medIssued":"","medValid":"","medClinic":"",
+  "education":[{"school":"","degree":"","yearGrad":""}],
+  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
+  "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
+  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}],
+  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
+    "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
+    "signOn":"","signOff":""}]
+}`;
+
+  const prompt = `You are a maritime data extractor for Philippine manning agencies.
+Extract ALL seafarer information from the text below and return ONLY a valid JSON object matching this exact schema (no markdown, no backticks, no explanation):
+
+${SCHEMA}
+
+Rules:
+- Dates → YYYY-MM-DD. Month/year only → use first of month.
+- "Pos" or "Position" column in sea service = rank field
+- "Date of Serv (From)" = signOn; "Date of Serv (To)" = signOff
+- "BHP" = kw; "DWT" = dwt; "Engine" column = engineType
+- "Agencies" = agency (manning agency); "Principal" = principal (shipowner)
+- "AMOSUP CBA" = amosup; "Reason for Sign-off" = signOffReason
+- "Vessel / IMO No." combined: split into vessel + imoNo
+- Qualifications Certificate "Highest License Held" = highestLicense
+- Health Declaration: issuer/flag = healthFlag, dates = healthIssued/healthValid, clinic = healthClinic
+- Pre Medical: result = medResult, dates = medIssued/medValid, clinic = medClinic
+- Books / documents section: type = document name (Passport, SIRB, SID, etc.)
+- Children = "Name — DOB" format combined into one string
+- Nearest relative / Next of kin = nok
+- Contact Infos: first mobile = phone, second mobile = phone2
+- Extract EVERY row from every table — never skip rows
+- Leave empty string if not found — never invent
+
+TEXT TO EXTRACT FROM:
+---
+${rawText.slice(0, 12000)}
+---`;
+
+  try {
+    // Single pass — text is already structured, no vision ambiguity
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 40000);
+    let res;
+    try {
+      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.05, maxOutputTokens: 7000 }
+        })
+      });
+    } finally { clearTimeout(tid); }
+
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'API error');
+
+    let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (typeof txt !== 'string') txt = JSON.stringify(txt);
+    const jsonStr = extractFirstJSON(txt);
+    if (!jsonStr) throw new Error('No JSON in response');
+    const data = JSON.parse(jsonStr);
+
+    // ── Fill form using shared helper ─────────────────────────────────────
+    fillCGISData(data, status, '✅ Parsed from text');
+
+  } catch (err) {
+    console.error('Paste parse error:', err);
+    status.className = 'cgis-status error';
+    const tip = (err.name === 'AbortError' || (err.message||'').includes('abort'))
+      ? '⏱️ Timed out. Try pasting less text at once, or retry.'
+      : '❌ Could not parse the text. Make sure it contains readable seafarer data.';
+    status.innerHTML = tip + `<br><small style="opacity:.7">(${err.message||'Unknown error'})</small>`;
+  }
+}
+
 // ─── CGIS SCANNER ─────────────────────────────────────────────────────────────
 // Two-pass strategy: runs Pass 1 (personal/identity) and Pass 2 (tables) in
 // parallel on the same pages. Gemini handles each focused prompt fully instead
@@ -4585,148 +4871,11 @@ Leave empty if not visible. Never invent.`;
 
     status.innerHTML = `⏳ Filling in form…`;
 
-    // ── Switch to Seafarer ─────────────────────────────────────────────────
-    const seamanRadio = document.querySelector('input[name="eduLevel"][value="seaman"]');
-    if (seamanRadio && !seamanRadio.checked) { seamanRadio.checked = true; handleEduChange(); }
-
-    const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
-
-    // ── Personal info ──────────────────────────────────────────────────────
-    if (data.fullName) {
-      const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
-      const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
-      set('firstName', pts[0] || '');
-      if (pts.length >= 3) {
-        let s = pts.length - 1;
-        while (s > 1 && PAR.has(pts[s-1].toLowerCase())) s--;
-        set('lastName', pts.slice(s).join(' '));
-        set('middleName', pts.slice(1, s).join(' '));
-      } else {
-        set('lastName', pts.slice(1).join(' ') || '');
-      }
-    }
-    set('dob', data.dob); set('address', data.address);
-    set('phone', data.phone); set('email', data.email);
-    set('jobTitle', data.position); set('nationality', data.nationality || 'Filipino');
-    if (data.civilStatus) {
-      const cs = document.getElementById('civilStatus');
-      if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
-    }
-    set('sm-birthPlace', data.birthPlace); set('sm-height', data.height);
-    set('sm-weight', data.weight); set('sm-blood', data.bloodType);
-    set('sm-eyes', data.eyeColor); set('sm-hair', data.hairColor);
-    set('sm-religion', data.religion); set('sm-shoe', data.shoeSize);
-    set('sm-coverall', data.coverallSize); set('sm-sss', data.sss);
-    set('sm-tin', data.tin); set('sm-pagibig', data.pagibig);
-    set('sm-philhealth', data.philhealth); set('sm-src', data.src);
-    set('sm-highestLicense', data.highestLicense); set('sm-phone2', data.phone2);
-    set('sm-nok', data.nok); set('sm-mailingAddress', data.mailingAddress);
-    set('sm-children', data.children);
-    set('sm-healthFlag', data.healthFlag); set('sm-healthIssued', data.healthIssued);
-    set('sm-healthValid', data.healthValid); set('sm-healthClinic', data.healthClinic);
-    set('sm-medResult', data.medResult); set('sm-medIssued', data.medIssued);
-    set('sm-medValid', data.medValid); set('sm-medClinic', data.medClinic);
-
-    // ── Education ──────────────────────────────────────────────────────────
-    if (data.education?.length) {
-      while (document.querySelectorAll('#eduEntries .exp-entry').length < data.education.length) addEduEntry();
-      data.education.forEach((edu, i) => {
-        const e = document.getElementById(`edu-${i+1}`); if (!e) return;
-        const inp = e.querySelectorAll('input');
-        if (inp[0]) inp[0].value = edu.school || '';
-        if (inp[1]) inp[1].value = edu.degree || '';
-        if (inp[2]) inp[2].value = edu.yearGrad || '';
-      });
-    }
-
-    // ── Travel Documents ───────────────────────────────────────────────────
-    if (data.documents?.length) {
-      document.querySelectorAll('#docEntries .exp-entry').forEach(el => el.remove());
-      docCount = 0;
-      data.documents.forEach(doc => {
-        addDocEntry(doc.type || '');
-        const e = document.getElementById(`doc-${docCount}`); if (!e) return;
-        const inp = e.querySelectorAll('input');
-        if (inp[1]) inp[1].value = doc.number || '';
-        if (inp[2]) inp[2].value = doc.dateIssued || '';
-        if (inp[3]) inp[3].value = doc.dateExpiry || '';
-        if (inp[4]) inp[4].value = doc.placeIssued || '';
-      });
-    }
-
-    // ── Certificates ───────────────────────────────────────────────────────
-    if (data.certificates?.length) {
-      document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
-      certCount = 0;
-      data.certificates.forEach(cert => {
-        addCertEntry();
-        const e = document.getElementById(`cert-${certCount}`); if (!e) return;
-        const inp = e.querySelectorAll('input');
-        if (inp[0]) inp[0].value = cert.name || '';
-        if (inp[1]) inp[1].value = cert.number || '';
-        if (inp[2]) inp[2].value = cert.issuedBy || '';
-        if (inp[3]) inp[3].value = cert.dateIssued || '';
-        if (inp[4]) inp[4].value = cert.validUntil || '';
-      });
-    }
-
-    // ── Vaccinations ───────────────────────────────────────────────────────
-    if (data.vaccinations?.length) {
-      document.querySelectorAll('#vaxEntries .exp-entry').forEach(el => el.remove());
-      vaxCount = 0;
-      data.vaccinations.forEach(vax => {
-        addVaxEntry();
-        const e = document.getElementById(`vax-${vaxCount}`); if (!e) return;
-        const inp = e.querySelectorAll('input');
-        if (inp[0]) inp[0].value = vax.name || '';
-        if (inp[1]) inp[1].value = vax.placeIssued || '';
-        if (inp[2]) inp[2].value = vax.dateGiven || '';
-        if (inp[3]) inp[3].value = vax.validUntil || '';
-      });
-    }
-
-    // ── Sea Service ────────────────────────────────────────────────────────
-    if (data.seaService?.length) {
-      document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
-      seaCount = 0;
-      data.seaService.forEach(v => {
-        addSeaEntry();
-        const e = document.getElementById(`sea-${seaCount}`); if (!e) return;
-        const inp = e.querySelectorAll('input');
-        const sel = e.querySelector('select');
-        if (inp[0])  inp[0].value  = v.vessel       || '';
-        if (inp[1])  inp[1].value  = v.imoNo        || '';
-        if (inp[2])  inp[2].value  = v.rank         || '';
-        if (inp[3])  inp[3].value  = v.vesselType   || '';
-        if (inp[4])  inp[4].value  = v.grt          || '';
-        if (inp[5])  inp[5].value  = v.dwt          || '';
-        if (inp[6])  inp[6].value  = v.kw           || '';
-        if (inp[7])  inp[7].value  = v.engineType   || '';
-        if (inp[8])  inp[8].value  = v.tradeArea    || '';
-        if (inp[9])  inp[9].value  = v.agency       || '';
-        if (inp[10]) inp[10].value = v.principal    || '';
-        if (inp[11]) inp[11].value = v.amosup       || '';
-        if (sel && v.signOffReason) {
-          const opt = [...sel.options].find(o => o.value === v.signOffReason || o.text === v.signOffReason);
-          if (opt) sel.value = opt.value;
-          else { const no = new Option(v.signOffReason, v.signOffReason); sel.add(no); sel.value = no.value; }
-        }
-        if (inp[12]) inp[12].value = v.signOn  || '';
-        if (inp[13]) inp[13].value = v.signOff || '';
-      });
-    }
-
-    // ── Summary ────────────────────────────────────────────────────────────
-    let filled = [data.fullName, data.dob, data.address, data.sss||data.tin,
-      data.documents?.length, data.certificates?.length, data.vaccinations?.length,
-      data.seaService?.length, data.education?.length].filter(Boolean).length;
-
-    status.className = 'cgis-status success';
+    // ── Fill form using shared helper ─────────────────────────────────────
     const cappedNote = capped ? ` <small style="opacity:.7">Only first ${MAX_PAGES} pages read.</small>` : '';
-    status.innerHTML = `✅ Scanned ${pages.length} page${pages.length>1?'s':''} in 2 passes — ${filled} section${filled===1?'':'s'} filled. Review each field before submitting.${cappedNote}`;
-
-    showNotif(`✅ CGIS scan done — ${filled} sections filled. Please review.`);
-    setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 800);
+    const filled = fillCGISData(data, status,
+      `✅ Scanned ${pages.length} page${pages.length>1?'s':''} in 2 passes`,
+      cappedNote);
 
   } catch (err) {
     console.error('CGIS scan error:', err);
