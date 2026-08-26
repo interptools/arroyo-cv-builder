@@ -4414,9 +4414,107 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
   const seamanRadio = document.querySelector('input[name="eduLevel"][value="seaman"]');
   if (seamanRadio && !seamanRadio.checked) { seamanRadio.checked = true; handleEduChange(); }
 
-  const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
+  // ── Date normaliser ──────────────────────────────────────────────────────
+  // Browser date inputs require strict YYYY-MM-DD. AI can return many formats.
+  function toYMD(v) {
+    if (!v || typeof v !== 'string') return '';
+    v = v.trim();
+    // Already correct
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    // Strip time component
+    if (v.includes('T')) v = v.split('T')[0];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    // DD/MM/YYYY or DD-MM-YYYY
+    let m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    // MM/YYYY or MM-YYYY → use day 01
+    m = v.match(/^(\d{1,2})[\/\-](\d{4})$/);
+    if (m) return `${m[2]}-${m[1].padStart(2,'0')}-01`;
+    // "17 May 1992" or "May 17, 1992"
+    const MONTHS = {jan:'01',feb:'02',mar:'03',apr:'04',may:'05',jun:'06',
+                    jul:'07',aug:'08',sep:'09',oct:'10',nov:'11',dec:'12'};
+    m = v.match(/^(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})$/);
+    if (m) { const mo = MONTHS[m[2].toLowerCase().slice(0,3)]; return mo ? `${m[3]}-${mo}-${m[1].padStart(2,'0')}` : ''; }
+    m = v.match(/^([A-Za-z]{3})\w*\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (m) { const mo = MONTHS[m[1].toLowerCase().slice(0,3)]; return mo ? `${m[3]}-${mo}-${m[2].padStart(2,'0')}` : ''; }
+    return ''; // unrecognised — leave blank rather than set wrong value
+  }
 
-  // Personal
+  // ── Rank abbreviation map ────────────────────────────────────────────────
+  const RANK_MAP = {
+    'MAS':'Master','MST':'Master','CAPT':'Master','CAPTAIN':'Master',
+    'C/O':'Chief Officer','CHO':'Chief Officer','CHIEFMATE':'Chief Officer','CHIEF MATE':'Chief Officer',
+    '2/O':'Second Officer','2O':'Second Officer','2ND MATE':'Second Officer',
+    '3/O':'Third Officer','3O':'Third Officer','3RD MATE':'Third Officer',
+    'D/C':'Deck Cadet','DC':'Deck Cadet','DECK CADET':'Deck Cadet',
+    'BSN':'Bosun','BOSUN':'Bosun',
+    'AB':'Able Seaman (AB)','ABS':'Able Seaman (AB)','ABLE SEAMAN':'Able Seaman (AB)',
+    'OS':'Ordinary Seaman (OS)','ORD SEAMAN':'Ordinary Seaman (OS)','ORDINARY SEAMAN':'Ordinary Seaman (OS)',
+    'DF':'Deck Fitter','DECK FITTER':'Deck Fitter',
+    'C/E':'Chief Engineer','CE':'Chief Engineer','CHIEF ENGINEER':'Chief Engineer',
+    '2/E':'Second Engineer','2E':'Second Engineer','SECOND ENGINEER':'Second Engineer',
+    '3/E':'Third Engineer','3E':'Third Engineer','THIRD ENGINEER':'Third Engineer',
+    '4/E':'Fourth Engineer','4E':'Fourth Engineer','FOURTH ENGINEER':'Fourth Engineer',
+    'E/C':'Engine Cadet','EC':'Engine Cadet','ENGINE CADET':'Engine Cadet',
+    'ETO':'Electrician / ETO','ELEC':'Electrician / ETO','ELECTRICIAN':'Electrician / ETO',
+    'FTR':'Fitter','FITTER':'Fitter',
+    'OLR':'Oiler','OILER':'Oiler',
+    'WPR':'Wiper','WIPER':'Wiper',
+    'MTM':'Motorman','MM':'Motorman','MOTORMAN':'Motorman',
+    'CCK':'Chief Cook','CH COOK':'Chief Cook','CHIEF COOK':'Chief Cook',
+    '2CK':'Second Cook','SECOND COOK':'Second Cook',
+    'MSM':'Messman','MESSMAN':'Messman',
+    'STW':'Steward','STEW':'Steward','STEWARD':'Steward',
+  };
+
+  function resolveRank(raw) {
+    if (!raw) return '';
+    const up = raw.trim().toUpperCase().replace(/\s+/g,' ');
+    if (RANK_MAP[up]) return RANK_MAP[up];
+    // Try partial: if raw matches start of any key
+    for (const [k,v] of Object.entries(RANK_MAP)) {
+      if (up.startsWith(k) || k.startsWith(up)) return v;
+    }
+    return raw; // return as-is if no match — it goes into the text input
+  }
+
+  // ── Select matcher — case-insensitive fuzzy ──────────────────────────────
+  function setSelect(el, raw) {
+    if (!el || !raw) return;
+    const up = raw.trim().toUpperCase().replace(/[\s\/]+/g,' ');
+    // Exact value match first
+    for (const opt of el.options) {
+      if (opt.value.toUpperCase() === raw.trim().toUpperCase()) { el.value = opt.value; return; }
+    }
+    // Normalised text match
+    for (const opt of el.options) {
+      if (opt.text.toUpperCase().replace(/[\s\/]+/g,' ') === up) { el.value = opt.value; return; }
+    }
+    // Partial/contains match
+    for (const opt of el.options) {
+      const ot = opt.text.toUpperCase().replace(/[\s\/]+/g,' ');
+      if (ot.includes(up) || up.includes(ot)) { el.value = opt.value; return; }
+    }
+    // Not found — add as custom option so value is preserved
+    const no = new Option(raw, raw);
+    el.add(no); el.value = raw;
+  }
+
+  // ── Plain text setter ────────────────────────────────────────────────────
+  const set = (id, val) => {
+    if (!val && val !== 0) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = val;
+  };
+
+  // ── Date setter — normalises before setting ──────────────────────────────
+  const setDate = (id, val) => {
+    const d = toYMD(val);
+    if (d) set(id, d);
+  };
+
+  // ── Personal ─────────────────────────────────────────────────────────────
   if (data.fullName) {
     const pts = data.fullName.trim().split(/\s+/).filter(Boolean);
     const PAR = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
@@ -4428,13 +4526,17 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
       set('middleName', pts.slice(1, s).join(' '));
     } else { set('lastName', pts.slice(1).join(' ') || ''); }
   }
-  set('dob', data.dob); set('address', data.address);
+  setDate('dob', data.dob);
+  set('address', data.address);
   set('phone', data.phone); set('email', data.email);
   set('jobTitle', data.position); set('nationality', data.nationality || 'Filipino');
-  if (data.civilStatus) {
-    const cs = document.getElementById('civilStatus');
-    if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
-  }
+
+  // Civil status — case-insensitive select match
+  if (data.civilStatus) setSelect(document.getElementById('civilStatus'), data.civilStatus);
+
+  // Gender — case-insensitive select match
+  if (data.gender) setSelect(document.getElementById('gender'), data.gender);
+
   set('sm-birthPlace', data.birthPlace); set('sm-height', data.height);
   set('sm-weight', data.weight); set('sm-blood', data.bloodType);
   set('sm-eyes', data.eyeColor); set('sm-hair', data.hairColor);
@@ -4445,81 +4547,93 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
   set('sm-highestLicense', data.highestLicense); set('sm-phone2', data.phone2);
   set('sm-nok', data.nok); set('sm-mailingAddress', data.mailingAddress);
   set('sm-children', data.children);
-  set('sm-healthFlag', data.healthFlag); set('sm-healthIssued', data.healthIssued);
-  set('sm-healthValid', data.healthValid); set('sm-healthClinic', data.healthClinic);
-  set('sm-medResult', data.medResult); set('sm-medIssued', data.medIssued);
-  set('sm-medValid', data.medValid); set('sm-medClinic', data.medClinic);
 
-  // Education
+  // sm-rank: use RANK_MAP then fuzzy match the select
+  if (data.position) {
+    const rankEl = document.getElementById('sm-rank');
+    if (rankEl) setSelect(rankEl, resolveRank(data.position));
+  }
+
+  // Health & Medical — all date inputs
+  set('sm-healthFlag', data.healthFlag);
+  setDate('sm-healthIssued', data.healthIssued);
+  setDate('sm-healthValid', data.healthValid);
+  set('sm-healthClinic', data.healthClinic);
+  set('sm-medResult', data.medResult);
+  setDate('sm-medIssued', data.medIssued);
+  setDate('sm-medValid', data.medValid);
+  set('sm-medClinic', data.medClinic);
+
+  // ── Education ─────────────────────────────────────────────────────────────
   if (data.education?.length) {
     while (document.querySelectorAll('#eduEntries .exp-entry').length < data.education.length) addEduEntry();
     data.education.forEach((edu, i) => {
       const e = document.getElementById(`edu-${i+1}`); if (!e) return;
       const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = edu.school || '';
-      if (inp[1]) inp[1].value = edu.degree || '';
+      if (inp[0]) inp[0].value = edu.school   || '';
+      if (inp[1]) inp[1].value = edu.degree   || '';
       if (inp[2]) inp[2].value = edu.yearGrad || '';
     });
   }
 
-  // Travel Documents
+  // ── Travel Documents ──────────────────────────────────────────────────────
   if (data.documents?.length) {
     document.querySelectorAll('#docEntries .exp-entry').forEach(el => el.remove());
     docCount = 0;
-    data.documents.forEach(doc => {
+    data.documents.filter(d => d.type || d.number).forEach(doc => {
       addDocEntry(doc.type || '');
       const e = document.getElementById(`doc-${docCount}`); if (!e) return;
       const inp = e.querySelectorAll('input');
-      if (inp[1]) inp[1].value = doc.number || '';
-      if (inp[2]) inp[2].value = doc.dateIssued || '';
-      if (inp[3]) inp[3].value = doc.dateExpiry || '';
+      if (inp[1]) inp[1].value = doc.number   || '';
+      if (inp[2]) inp[2].value = toYMD(doc.dateIssued)  || '';
+      if (inp[3]) inp[3].value = toYMD(doc.dateExpiry)  || '';
       if (inp[4]) inp[4].value = doc.placeIssued || '';
     });
   }
 
-  // Certificates
+  // ── Certificates ──────────────────────────────────────────────────────────
   if (data.certificates?.length) {
     document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
     certCount = 0;
-    data.certificates.forEach(cert => {
+    data.certificates.filter(c => c.name).forEach(cert => {
       addCertEntry();
       const e = document.getElementById(`cert-${certCount}`); if (!e) return;
       const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = cert.name || '';
-      if (inp[1]) inp[1].value = cert.number || '';
-      if (inp[2]) inp[2].value = cert.issuedBy || '';
-      if (inp[3]) inp[3].value = cert.dateIssued || '';
-      if (inp[4]) inp[4].value = cert.validUntil || '';
+      if (inp[0]) inp[0].value = cert.name      || '';
+      if (inp[1]) inp[1].value = cert.number    || '';
+      if (inp[2]) inp[2].value = cert.issuedBy  || '';
+      if (inp[3]) inp[3].value = toYMD(cert.dateIssued) || '';
+      if (inp[4]) inp[4].value = toYMD(cert.validUntil) || '';
     });
   }
 
-  // Vaccinations
+  // ── Vaccinations ──────────────────────────────────────────────────────────
   if (data.vaccinations?.length) {
     document.querySelectorAll('#vaxEntries .exp-entry').forEach(el => el.remove());
     vaxCount = 0;
-    data.vaccinations.forEach(vax => {
+    data.vaccinations.filter(v => v.name).forEach(vax => {
       addVaxEntry();
       const e = document.getElementById(`vax-${vaxCount}`); if (!e) return;
       const inp = e.querySelectorAll('input');
-      if (inp[0]) inp[0].value = vax.name || '';
+      if (inp[0]) inp[0].value = vax.name        || '';
       if (inp[1]) inp[1].value = vax.placeIssued || '';
-      if (inp[2]) inp[2].value = vax.dateGiven || '';
-      if (inp[3]) inp[3].value = vax.validUntil || '';
+      if (inp[2]) inp[2].value = toYMD(vax.dateGiven)  || '';
+      if (inp[3]) inp[3].value = toYMD(vax.validUntil) || '';
     });
   }
 
-  // Sea Service
+  // ── Sea Service ───────────────────────────────────────────────────────────
   if (data.seaService?.length) {
     document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
     seaCount = 0;
-    data.seaService.forEach(v => {
+    data.seaService.filter(v => v.vessel || v.signOn).forEach(v => {
       addSeaEntry();
       const e = document.getElementById(`sea-${seaCount}`); if (!e) return;
       const inp = e.querySelectorAll('input');
       const sel = e.querySelector('select');
       if (inp[0])  inp[0].value  = v.vessel     || '';
       if (inp[1])  inp[1].value  = v.imoNo      || '';
-      if (inp[2])  inp[2].value  = v.rank       || '';
+      if (inp[2])  inp[2].value  = resolveRank(v.rank) || ''; // rank is a text input — expand abbrev
       if (inp[3])  inp[3].value  = v.vesselType || '';
       if (inp[4])  inp[4].value  = v.grt        || '';
       if (inp[5])  inp[5].value  = v.dwt        || '';
@@ -4529,17 +4643,14 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
       if (inp[9])  inp[9].value  = v.agency     || '';
       if (inp[10]) inp[10].value = v.principal  || '';
       if (inp[11]) inp[11].value = v.amosup     || '';
-      if (sel && v.signOffReason) {
-        const opt = [...sel.options].find(o => o.value === v.signOffReason || o.text === v.signOffReason);
-        if (opt) sel.value = opt.value;
-        else { const no = new Option(v.signOffReason, v.signOffReason); sel.add(no); sel.value = no.value; }
-      }
-      if (inp[12]) inp[12].value = v.signOn  || '';
-      if (inp[13]) inp[13].value = v.signOff || '';
+      // signOffReason — fuzzy match the select
+      if (sel && v.signOffReason) setSelect(sel, v.signOffReason);
+      if (inp[12]) inp[12].value = toYMD(v.signOn)  || '';
+      if (inp[13]) inp[13].value = toYMD(v.signOff) || '';
     });
   }
 
-  // Summary
+  // ── Summary ───────────────────────────────────────────────────────────────
   const filled = [data.fullName, data.dob, data.address, data.sss||data.tin,
     data.documents?.length, data.certificates?.length, data.vaccinations?.length,
     data.seaService?.length, data.education?.length].filter(Boolean).length;
@@ -4583,7 +4694,6 @@ async function parseCGISText() {
   status.style.display = 'block';
   status.innerHTML = '⏳ Reading text — extracting seafarer details…';
 
-  // ── Gemini text call with retry ────────────────────────────────────────────
   async function callGemini(promptText, maxTok, timeoutMs) {
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -4595,7 +4705,7 @@ async function parseCGISText() {
         signal: ctrl.signal,
         body: JSON.stringify({
           contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
+          generationConfig: { temperature: 0.0, maxOutputTokens: maxTok }
         })
       });
     } finally { clearTimeout(tid); }
@@ -4604,88 +4714,113 @@ async function parseCGISText() {
     if (d.error) throw new Error(d.error.message || 'API error');
     let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (typeof txt !== 'string') txt = JSON.stringify(txt);
-    console.log('[parseCGISText] raw response:', txt.slice(0, 500));
+    console.log('[parseCGISText] raw:', txt.slice(0, 600));
     return txt;
   }
 
-  // ── Full prompt — works when the text has enough context ──────────────────
-  const fullPrompt = `You are a maritime data extractor for Philippine manning agencies.
-Extract ALL visible seafarer information from the text below.
-Return ONLY a valid JSON object — extract whatever fields are present, leave others as empty string.
-No markdown, no backticks, no explanation. Only the JSON.
+  // ── Pass 1: Personal / scalar fields ──────────────────────────────────────
+  const pass1 = `You extract Philippine seafarer CGIS data. Return ONLY valid JSON, no markdown, no explanation.
 
-{
-  "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
-  "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
-  "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
-  "shoeSize":"","coverallSize":"",
-  "sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
-  "nok":"","children":"",
-  "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
-  "medResult":"","medIssued":"","medValid":"","medClinic":"",
-  "education":[{"school":"","degree":"","yearGrad":""}],
-  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-  "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}],
-  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"","engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"","signOn":"","signOff":""}]
-}
+RULES:
+- All dates → YYYY-MM-DD (handle "17 May 1992", "DD/MM/YYYY", "MM/DD/YYYY")
+- "Name:" or first line = fullName
+- "Birthdate:" or "Date of Birth:" = dob
+- "Birthplace:" = birthPlace
+- "Current Address:" = address; "Mailing Address:" = mailingAddress
+- "Civil Status:" = civilStatus
+- "Position:" or "Rank:" = position
+- "Height:" = height; "Weight:" = weight; "Blood Type:" = bloodType
+- "Color of Eyes:" = eyeColor; "Color of Hair:" or "Hair Color:" = hairColor
+- "Religion:" = religion; "Shoe Size:" = shoeSize; "Coverall Size:" = coverallSize
+- CONTACT INFOS table: find the row where Contact Person contains "Crew" → that Mobile = phone
+  find the row where Contact Person contains family title (MOTHER/FATHER/SPOUSE/WIFE/etc.) → that Mobile = phone2
+  Email row = email
+- "SSS No.:" = sss; "TIN:" = tin; "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig; "SRC:" = src
+- "Highest License Held:" = highestLicense (skip if value is "—" or blank)
+- "Next of Kin:" = nok
+- HEALTH DESCRIPTION section: "Issued:" = healthIssued; "Validity:" = healthValid; "Clinic:" = healthClinic
+  Flag/issuing body if present = healthFlag
+- PRE MEDICAL section: "Results:" or result value (e.g. "Fit For Sea Duty") = medResult
+  "Issued:" = medIssued; "Validity:" = medValid; "Clinic:" = medClinic
+- CREW VACCINES table columns: Vaccine | Issued | Validity | Clinic
+  → vaccinations array: name=Vaccine, dateGiven=Issued, validUntil=Validity, placeIssued=Clinic
+  Skip rows where Vaccine name is blank/empty
+- EDUCATION section: School | Degree | Year Graduated → education array
 
-Field hints (only apply what's visible):
+Return JSON:
+{"fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
+"phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
+"height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
+"shoeSize":"","coverallSize":"","sss":"","tin":"","pagibig":"","philhealth":"","src":"",
+"highestLicense":"","nok":"","children":"",
+"healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
+"medResult":"","medIssued":"","medValid":"","medClinic":"",
+"education":[{"school":"","degree":"","yearGrad":""}],
+"vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]}
+
+TEXT:
+---
+${rawText.slice(0, 9000)}
+---`;
+
+  // ── Pass 2: Documents, Certificates, Sea Service ───────────────────────────
+  const pass2 = `You extract Philippine seafarer CGIS table data. Return ONLY valid JSON, no markdown.
+
+RULES for DOCUMENTS (all go into documents array, type + number + dates):
+- BOOKS table: columns are Country | Book Type | Number | Issued | Validity
+  type = Book Type value (e.g. "Seafarer Identification and Record Book – Flag", "Passport")
+  If Book Type is blank, infer from context: SIRB = "Seaman's Book (SIRB)"
+  Add country prefix if foreign: "Liberia Passport", "Philippines SIRB"
+- OTHER DOCUMENTS / ID table: first column may be blank or have a label (OFW, SID, NBI, Passport)
+  Use that label as type; if blank use "Document"
+- VISAs table: columns Country | Type | No. | Issued | Validity
+  type = Country + " " + Type (e.g. "Australian MCV", "US C1/D Visa")
+- PASAPORT section if present: type = "Passport"
+- Medical Examination certificate: type = "Medical Examination Certificate", number from Number column
+
+RULES for CERTIFICATES (merge BOTH tables into one certificates array):
+- QUALIFICATIONS CERTIFICATE table: License Capacity = name; Issuing Ofc = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
+- TRAINING / UPGRADING table: Course Title = name; Issuing Office = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
+- Extract EVERY row from both tables. Skip blank rows.
 - Dates → YYYY-MM-DD
-- Vaccination table rows → vaccinations array (name, dateGiven, validUntil, placeIssued)
-- Pre Medical / PRE MEDICAL row → medResult, medIssued, medValid, medClinic
-- Health Declaration → healthFlag, healthIssued, healthValid, healthClinic
-- Sea service rows → seaService array
-- Certificate / training rows → certificates array
-- Books / passport / SIRB / SID rows → documents array
-- Extract EVERY row — never skip. Leave fields empty if not in the text.
+
+RULES for SEA SERVICE (WORK EXPERIENCES table):
+- "Date of Serv. (From)" = signOn; "Date of Serv. (To)" = signOff (blank if not present)
+- "Pos" = rank; "Vessel / IMO No." → split on "/" or last space before number: vessel name + imoNo
+  If IMO is blank or missing, imoNo = ""
+- "Type" = vesselType; "GRT" = grt; "DWT" = dwt; "BHP" = kw; "Engine" = engineType
+- "Agencies" = agency; "Principal" = principal; "AMOSUP CBA" = amosup
+- "Reason for Sign-off" = signOffReason; skip "N/A" values → use ""
+- Extract ALL rows including partial ones (no signOff date is fine)
+- Dates → YYYY-MM-DD
+
+Return JSON:
+{"documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
+"certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
+"seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"","engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"","signOn":"","signOff":""}]}
 
 TEXT:
 ---
 ${rawText.slice(0, 14000)}
 ---`;
 
-  // ── Fallback prompt — minimal, used when full prompt gets no JSON ──────────
-  const fallbackPrompt = `Extract seafarer data from this text. Return ONLY valid JSON, nothing else.
-If you see vaccination rows, put them in "vaccinations". If you see sea service rows, put them in "seaService". Fill only what you can see.
-
-{"fullName":"","dob":"","address":"","phone":"","email":"","position":"",
-"sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
-"nok":"","healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
-"medResult":"","medIssued":"","medValid":"","medClinic":"",
-"documents":[],"certificates":[],"vaccinations":[],"seaService":[]}
-
-TEXT: ${rawText.slice(0, 8000)}`;
-
   try {
-    let jsonStr = null;
-    let data    = null;
+    status.innerHTML = '⏳ Reading text — Pass 1: personal info &amp; Pass 2: tables (running together)…';
 
-    // Attempt 1 — full schema
-    try {
-      status.innerHTML = '⏳ Reading text (attempt 1)…';
-      const txt1 = await callGemini(fullPrompt, 7000, 45000);
-      jsonStr = extractFirstJSON(txt1);
-    } catch(e1) {
-      console.warn('Text parse attempt 1 failed:', e1.message);
-    }
+    const [txt1, txt2] = await Promise.all([
+      callGemini(pass1, 3500, 45000),
+      callGemini(pass2, 6000, 50000)
+    ]);
 
-    // Attempt 2 — simpler fallback prompt
-    if (!jsonStr) {
-      status.innerHTML = '⏳ Retrying with simplified extraction…';
-      await new Promise(r => setTimeout(r, 1500));
-      try {
-        const txt2 = await callGemini(fallbackPrompt, 3000, 30000);
-        jsonStr = extractFirstJSON(txt2);
-      } catch(e2) {
-        console.warn('Text parse attempt 2 failed:', e2.message);
-      }
-    }
+    const js1 = extractFirstJSON(txt1);
+    const js2 = extractFirstJSON(txt2);
 
-    if (!jsonStr) throw new Error('Could not extract data. Try pasting more complete text, or use Scan Photos instead.');
-    data = JSON.parse(jsonStr);
+    if (!js1 && !js2) throw new Error('Could not extract data. Try pasting more complete CGIS text.');
 
-    // Fill form
+    const d1 = js1 ? JSON.parse(js1) : {};
+    const d2 = js2 ? JSON.parse(js2) : {};
+    const data = { ...d1, ...d2 };
+
     fillCGISData(data, status, '✅ Parsed from text');
 
   } catch (err) {
@@ -4695,7 +4830,7 @@ TEXT: ${rawText.slice(0, 8000)}`;
     status.innerHTML = (isTimeout
       ? '⏱️ Timed out — try pasting less text, or retry.'
       : `❌ ${err.message || 'Could not parse the text.'}`) +
-      `<br><small style="opacity:.7">Tip: paste the full CGIS text for best results. For just a section (e.g. vaccinations only), the scanner works better with photos.</small><br>
+      `<br><small style="opacity:.7">Tip: paste the full CGIS text for best results.</small><br>
       <button onclick="parseCGISText()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`;
   }
 }
@@ -4831,7 +4966,7 @@ async function scanCGIS(input) {
     // ── PASS 1 — Personal info, identity, health, education, documents ─────
     const pass1Prompt = `CGIS data extractor — Pass 1: personal details only.
 ${pageNote}
-Dates → YYYY-MM-DD. Return ONLY valid JSON, no markdown:
+Dates → YYYY-MM-DD (handle "17 May 1992", "DD/MM/YYYY", "MM/DD/YYYY"). Return ONLY valid JSON, no markdown:
 {
   "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
   "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
@@ -4842,51 +4977,49 @@ Dates → YYYY-MM-DD. Return ONLY valid JSON, no markdown:
   "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
   "medResult":"","medIssued":"","medValid":"","medClinic":"",
   "education":[{"school":"","degree":"","yearGrad":""}],
-  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}]
+  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
+  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]
 }
 Notes:
-- fullName: as printed (surname last OR first — take from "Name:" label)
-- civilStatus: look for SINGLE/MARRIED/WIDOWED/SEPARATED
-- Contact Infos table: first Mobile = phone, second Mobile = phone2, Email = email
-- Statutory Info: SSS No, TIN, Pag-Ibig No, PhilHealth No, SRC
-- Highest License Held: from "Qualifications Certificate" or header line
-- Books section AND Other Documents/ID section → documents array
-  (types: Passport, Seaman's Book (SIRB), SID, NBI, OFW, Australian MCV, etc.)
-- Health Declaration row → healthFlag/healthIssued/healthValid/healthClinic
-- Pre Medical / Medical Examination row → medResult/medIssued/medValid/medClinic
-- Nearest Relative / Next of Kin → nok (Name · Relationship · Contact)
-- Children section → children (e.g. "Name — DOB")
-- Mailing Address only if DIFFERENT from Current Address
+- fullName: from "Name:" label
+- CONTACT INFOS table: find row where Contact Person says "Crew" → that Mobile = phone.
+  Row where Contact Person has family title (MOTHER/FATHER/SPOUSE/WIFE) → that Mobile = phone2. Email = email.
+- "Birthdate:" or "Date of Birth:" = dob; "Birthplace:" = birthPlace
+- "Color of Eyes:" = eyeColor; "Color of Hair:" = hairColor
+- "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig; "SRC:" = src
+- Highest License Held: skip if value is "—" or blank
+- HEALTH DESCRIPTION section: Issued = healthIssued; Validity = healthValid; Clinic = healthClinic; flag/body = healthFlag
+- PRE MEDICAL section: result (e.g. "Fit For Sea Duty") = medResult; Issued = medIssued; Validity = medValid; Clinic = medClinic
+- CREW VACCINES table: Vaccine=name, Issued=dateGiven, Validity=validUntil, Clinic=placeIssued. Skip rows with blank Vaccine name.
+- BOOKS table: columns Country | Book Type | Number | Issued | Validity
+  type = Book Type (e.g. "Seafarer Identification and Record Book – Flag"). Add country prefix for foreign: "Liberia Passport".
+  dateIssued=Issued, dateExpiry=Validity
+- OTHER DOCUMENTS / ID table: label in first column = type (OFW, SID, NBI, Passport, etc.)
+- VISAs table: columns Country | Type | No. | Issued | Validity → type = Country+" "+Type (e.g. "Australian MCV")
+- Nearest Relative / Next of Kin → nok. Children section → children ("Name — DOB").
 - Leave empty if not visible. Never invent.`;
 
-    // ── PASS 2 — Certificates, training, vaccinations, sea service ─────────
-    const pass2Prompt = `CGIS data extractor — Pass 2: tables only.
+    // ── PASS 2 — Certificates, training, sea service ────────────────────────
+    const pass2Prompt = `CGIS data extractor — Pass 2: certificates and sea service only.
 ${pageNote}
 Dates → YYYY-MM-DD. Return ONLY valid JSON, no markdown:
 {
   "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}],
   "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
     "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
     "signOn":"","signOff":""}]
 }
-Notes for certificates/training:
-- Look in BOTH "Qualifications Certificate" table AND "Training / Upgrading" table
-- Extract EVERY row from both tables — do not skip any
-- name = License Capacity or Course Title; number = cert/licence number
-- issuedBy = "Issuing Ofc" column (e.g. MARINA,PHI or DMMA)
-- dateIssued = "Issued" column; validUntil = "Validity" column
-Notes for vaccinations:
-- "Crew Vaccines" section — every row (Yellow Fever, Polio, COVID etc.)
-- dateGiven = "Issued" column; validUntil = "Validity" column; placeIssued = "Clinic"
-Notes for sea service:
-- "Work Experiences" table — every row, most recent first
-- vessel = "Vessel / IMO No." (split name and IMO number into separate fields)
-- rank = "Pos" column; signOn = "Date of Serv (From)"; signOff = "Date of Serv (To)"
-- vesselType = "Type"; grt = "GRT"; dwt = "DWT"; kw = "BHP" column
-- engineType = "Engine" column text; agency = "Agencies"; principal = "Principal"
-- amosup = "AMOSUP CBA"; signOffReason = "Reason for Sign-off"
-- Extract ALL rows — if a row is cut off at page edge, include what is visible
+Notes for certificates — merge BOTH tables:
+- QUALIFICATIONS CERTIFICATE table: License Capacity = name; Issuing Ofc = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
+- TRAINING / UPGRADING table: Course Title = name; Issuing Office = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
+- Extract EVERY row from both tables — do not skip any. Leave validUntil blank if not present.
+Notes for sea service (WORK EXPERIENCES table):
+- "Date of Serv. (From)" or "Date of Serv (From)" = signOn; "Date of Serv. (To)" = signOff (blank if missing)
+- "Pos" = rank; "Vessel / IMO No." → split: vessel name (before /) + imoNo (number after /)
+- "Type" = vesselType; "GRT" = grt; "DWT" = dwt; "BHP" = kw; "Engine" = engineType
+- "Agencies" = agency; "Principal" = principal; "AMOSUP CBA" = amosup (use "" if N/A)
+- "Reason for Sign-off" = signOffReason (use "" if N/A or blank)
+- Extract ALL rows including those with missing signOff.
 Leave empty if not visible. Never invent.`;
 
     // ── Run both passes in parallel ────────────────────────────────────────
