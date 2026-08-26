@@ -4572,10 +4572,10 @@ async function parseCGISText() {
   const rawText = (document.getElementById('cgisPasteText')?.value || '').trim();
   const status  = document.getElementById('cgisStatus');
 
-  if (!rawText || rawText.length < 30) {
+  if (!rawText || rawText.length < 10) {
     status.className = 'cgis-status error';
     status.style.display = 'block';
-    status.innerHTML = '❌ Please paste some text first (at least a few lines of your CGIS or resume).';
+    status.innerHTML = '❌ Please paste some text first.';
     return;
   }
 
@@ -4583,7 +4583,38 @@ async function parseCGISText() {
   status.style.display = 'block';
   status.innerHTML = '⏳ Reading text — extracting seafarer details…';
 
-  const SCHEMA = `{
+  // ── Gemini text call with retry ────────────────────────────────────────────
+  async function callGemini(promptText, maxTok, timeoutMs) {
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
+    let res;
+    try {
+      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: ctrl.signal,
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
+        })
+      });
+    } finally { clearTimeout(tid); }
+    if (!res.ok) throw new Error('API error ' + res.status);
+    const d = await res.json();
+    if (d.error) throw new Error(d.error.message || 'API error');
+    let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    if (typeof txt !== 'string') txt = JSON.stringify(txt);
+    console.log('[parseCGISText] raw response:', txt.slice(0, 500));
+    return txt;
+  }
+
+  // ── Full prompt — works when the text has enough context ──────────────────
+  const fullPrompt = `You are a maritime data extractor for Philippine manning agencies.
+Extract ALL visible seafarer information from the text below.
+Return ONLY a valid JSON object — extract whatever fields are present, leave others as empty string.
+No markdown, no backticks, no explanation. Only the JSON.
+
+{
   "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
   "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
   "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
@@ -4596,76 +4627,76 @@ async function parseCGISText() {
   "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
   "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
   "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}],
-  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
-    "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
-    "signOn":"","signOff":""}]
-}`;
+  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"","engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"","signOn":"","signOff":""}]
+}
 
-  const prompt = `You are a maritime data extractor for Philippine manning agencies.
-Extract ALL seafarer information from the text below and return ONLY a valid JSON object matching this exact schema (no markdown, no backticks, no explanation):
+Field hints (only apply what's visible):
+- Dates → YYYY-MM-DD
+- Vaccination table rows → vaccinations array (name, dateGiven, validUntil, placeIssued)
+- Pre Medical / PRE MEDICAL row → medResult, medIssued, medValid, medClinic
+- Health Declaration → healthFlag, healthIssued, healthValid, healthClinic
+- Sea service rows → seaService array
+- Certificate / training rows → certificates array
+- Books / passport / SIRB / SID rows → documents array
+- Extract EVERY row — never skip. Leave fields empty if not in the text.
 
-${SCHEMA}
-
-Rules:
-- Dates → YYYY-MM-DD. Month/year only → use first of month.
-- "Pos" or "Position" column in sea service = rank field
-- "Date of Serv (From)" = signOn; "Date of Serv (To)" = signOff
-- "BHP" = kw; "DWT" = dwt; "Engine" column = engineType
-- "Agencies" = agency (manning agency); "Principal" = principal (shipowner)
-- "AMOSUP CBA" = amosup; "Reason for Sign-off" = signOffReason
-- "Vessel / IMO No." combined: split into vessel + imoNo
-- Qualifications Certificate "Highest License Held" = highestLicense
-- Health Declaration: issuer/flag = healthFlag, dates = healthIssued/healthValid, clinic = healthClinic
-- Pre Medical: result = medResult, dates = medIssued/medValid, clinic = medClinic
-- Books / documents section: type = document name (Passport, SIRB, SID, etc.)
-- Children = "Name — DOB" format combined into one string
-- Nearest relative / Next of kin = nok
-- Contact Infos: first mobile = phone, second mobile = phone2
-- Extract EVERY row from every table — never skip rows
-- Leave empty string if not found — never invent
-
-TEXT TO EXTRACT FROM:
+TEXT:
 ---
-${rawText.slice(0, 12000)}
+${rawText.slice(0, 14000)}
 ---`;
 
+  // ── Fallback prompt — minimal, used when full prompt gets no JSON ──────────
+  const fallbackPrompt = `Extract seafarer data from this text. Return ONLY valid JSON, nothing else.
+If you see vaccination rows, put them in "vaccinations". If you see sea service rows, put them in "seaService". Fill only what you can see.
+
+{"fullName":"","dob":"","address":"","phone":"","email":"","position":"",
+"sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
+"nok":"","healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
+"medResult":"","medIssued":"","medValid":"","medClinic":"",
+"documents":[],"certificates":[],"vaccinations":[],"seaService":[]}
+
+TEXT: ${rawText.slice(0, 8000)}`;
+
   try {
-    // Single pass — text is already structured, no vision ambiguity
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 40000);
-    let res;
+    let jsonStr = null;
+    let data    = null;
+
+    // Attempt 1 — full schema
     try {
-      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.05, maxOutputTokens: 7000 }
-        })
-      });
-    } finally { clearTimeout(tid); }
+      status.innerHTML = '⏳ Reading text (attempt 1)…';
+      const txt1 = await callGemini(fullPrompt, 7000, 45000);
+      jsonStr = extractFirstJSON(txt1);
+    } catch(e1) {
+      console.warn('Text parse attempt 1 failed:', e1.message);
+    }
 
-    if (!res.ok) throw new Error('API error ' + res.status);
-    const d = await res.json();
-    if (d.error) throw new Error(d.error.message || 'API error');
+    // Attempt 2 — simpler fallback prompt
+    if (!jsonStr) {
+      status.innerHTML = '⏳ Retrying with simplified extraction…';
+      await new Promise(r => setTimeout(r, 1500));
+      try {
+        const txt2 = await callGemini(fallbackPrompt, 3000, 30000);
+        jsonStr = extractFirstJSON(txt2);
+      } catch(e2) {
+        console.warn('Text parse attempt 2 failed:', e2.message);
+      }
+    }
 
-    let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (typeof txt !== 'string') txt = JSON.stringify(txt);
-    const jsonStr = extractFirstJSON(txt);
-    if (!jsonStr) throw new Error('No JSON in response');
-    const data = JSON.parse(jsonStr);
+    if (!jsonStr) throw new Error('Could not extract data. Try pasting more complete text, or use Scan Photos instead.');
+    data = JSON.parse(jsonStr);
 
-    // ── Fill form using shared helper ─────────────────────────────────────
+    // Fill form
     fillCGISData(data, status, '✅ Parsed from text');
 
   } catch (err) {
     console.error('Paste parse error:', err);
     status.className = 'cgis-status error';
-    const tip = (err.name === 'AbortError' || (err.message||'').includes('abort'))
-      ? '⏱️ Timed out. Try pasting less text at once, or retry.'
-      : '❌ Could not parse the text. Make sure it contains readable seafarer data.';
-    status.innerHTML = tip + `<br><small style="opacity:.7">(${err.message||'Unknown error'})</small>`;
+    const isTimeout = err.name === 'AbortError' || (err.message||'').includes('abort');
+    status.innerHTML = (isTimeout
+      ? '⏱️ Timed out — try pasting less text, or retry.'
+      : `❌ ${err.message || 'Could not parse the text.'}`) +
+      `<br><small style="opacity:.7">Tip: paste the full CGIS text for best results. For just a section (e.g. vaccinations only), the scanner works better with photos.</small><br>
+      <button onclick="parseCGISText()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`;
   }
 }
 
