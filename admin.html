@@ -845,7 +845,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
   </div>
   <!-- CV preview frame -->
   <div style="flex:1;overflow:auto;background:#333;padding:24px;display:flex;justify-content:center;align-items:flex-start;">
-    <iframe id="pageEditorFrame" sandbox="allow-scripts" style="border:none;width:210mm;background:white;box-shadow:0 4px 30px rgba(0,0,0,.6);display:block;" scrolling="yes"></iframe>
+    <iframe id="pageEditorFrame" sandbox="allow-scripts allow-modals" style="border:none;width:210mm;background:white;box-shadow:0 4px 30px rgba(0,0,0,.6);display:block;" scrolling="yes"></iframe>
   </div>
 </div>
 
@@ -8541,7 +8541,10 @@ function closePageEditor() {
 function printFromPageEditor() {
   const frame = document.getElementById('pageEditorFrame');
   if (!frame || !frame.contentWindow) return;
-  frame.contentWindow.print();
+  // The frame is sandboxed without allow-same-origin, so reaching into
+  // contentWindow.print() is blocked and fails silently. It has to print
+  // itself, over the same postMessage channel used for sizing.
+  frame.contentWindow.postMessage({ type: 'pe-print' }, '*');
 }
 
 function _peRender() {
@@ -8596,6 +8599,16 @@ function _peRender() {
       });
     });
   }
+
+  // The dashboard cannot call print() through the sandbox, so it asks and the
+  // frame prints itself. Section outlines come off first: they are editing aids,
+  // not part of the CV.
+  window.addEventListener('message', function(e){
+    if(!e.data || e.data.type !== 'pe-print') return;
+    var outlined = document.querySelectorAll('.sh, .band');
+    [].slice.call(outlined).forEach(function(el){ el.style.outline = 'none'; });
+    window.print();
+  });
 
   function reportSize(){
     var h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
