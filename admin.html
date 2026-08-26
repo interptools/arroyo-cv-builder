@@ -3214,7 +3214,21 @@ function viewSubmission(idx){
   }
   if(s.eduLevel!=='fresh'&&s.eduLevel!=='seaman'&&s.workExperience?.length){html+=`<div class="info-group"><h4>Work Experience</h4>`;s.workExperience.forEach(w=>{if(w.company)html+=`<div style="margin-bottom:10px;padding:10px;background:var(--off-white);border-radius:8px;font-size:13px;"><strong>${w.company}</strong> — ${w.position}<br><span style="color:var(--gray)">${w.dateStart}–${w.dateEnd} · ${w.location}</span><br>${w.responsibilities}</div>`;});html+='</div>';}
 
-  // ── Seafarer panels ────────────────────────────────────────────────────────
+  // Character references — collected for every CV type
+  if(s.references?.length){
+    const refs_=(s.references||[]).filter(r=>r.name);
+    if(refs_.length){
+      html+=`<div class="info-group"><h4>🤝 Character References</h4>`;
+      refs_.forEach(r=>{
+        html+=`<div style="margin-bottom:8px;padding:9px 12px;background:var(--off-white);border-radius:8px;font-size:13px;display:flex;gap:12px;flex-wrap:wrap;">
+          <span style="font-weight:700;color:var(--navy);min-width:150px;">${hEsc(r.name)}</span>
+          <span style="color:var(--gray);">${hEsc(r.position||'')}${r.company?' · '+hEsc(r.company):''}</span>
+          ${r.contact?`<span style="color:var(--navy);margin-left:auto;">${hEsc(r.contact)}</span>`:''}
+        </div>`;
+      });
+      html+='</div>';
+    }
+  }
   // Rendered as tables rather than the usual label/value rows: the whole point
   // of these sections is that they're checked column by column against expiry.
   if(s.eduLevel==='seaman' && s.seaman){
@@ -5229,6 +5243,59 @@ function buildEditHTML(idx){
   const addBtn = (label, onclick) =>
     `<button type="button" onclick="${onclick}" style="padding:5px 14px;background:var(--navy);color:white;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">＋ ${label}</button>`;
 
+  // ── Seafarer repeating sections ──
+  const docEntries = s.eduLevel==='seaman' ? (s.seaman?.documents||[]).map((d,i)=>`
+    <div id="doc_block_${i}" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:#f7f8fc;border-radius:8px;border:1px solid var(--gray-light);margin-top:4px;">
+      ${i>0?removeBtn(`removeEditEntry('doc',${i},${idx})`): ''}
+      ${fld(`e_doc_type_${i}`,'Document Type',d.type,'text',true)}
+      ${fld(`e_doc_number_${i}`,'Number',d.number)}
+      ${fld(`e_doc_issued_${i}`,'Date Issued',d.dateIssued,'date')}
+      ${fld(`e_doc_expiry_${i}`,'Date Expiry',d.dateExpiry,'date')}
+      ${fld(`e_doc_place_${i}`,'Place Issued',d.placeIssued)}
+    </div>`).join('') : '';
+
+  const certEntries = s.eduLevel==='seaman' ? (s.seaman?.certificates||[]).map((c,i)=>`
+    <div id="cert_block_${i}" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:#f7f8fc;border-radius:8px;border:1px solid var(--gray-light);margin-top:4px;">
+      ${i>0?removeBtn(`removeEditEntry('cert',${i},${idx})`): ''}
+      ${fld(`e_cert_name_${i}`,'Certificate / Course Name',c.name,'text',true)}
+      ${fld(`e_cert_number_${i}`,'Certificate No.',c.number)}
+      ${fld(`e_cert_issuedBy_${i}`,'Issued By',c.issuedBy,'text',true)}
+      ${fld(`e_cert_issued_${i}`,'Date Issued',c.dateIssued,'date')}
+      ${fld(`e_cert_valid_${i}`,'Valid Until',c.validUntil,'date')}
+    </div>`).join('') : '';
+
+  const vaxEntries = s.eduLevel==='seaman' ? (s.seaman?.vaccinations||[]).map((v,i)=>`
+    <div id="vax_block_${i}" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:#f7f8fc;border-radius:8px;border:1px solid var(--gray-light);margin-top:4px;">
+      ${i>0?removeBtn(`removeEditEntry('vax',${i},${idx})`): ''}
+      ${fld(`e_vax_name_${i}`,'Vaccine',v.name,'text',true)}
+      ${fld(`e_vax_place_${i}`,'Place / Clinic',v.placeIssued)}
+      ${fld(`e_vax_given_${i}`,'Date Given',v.dateGiven,'date')}
+      ${fld(`e_vax_valid_${i}`,'Valid Until',v.validUntil,'date')}
+    </div>`).join('') : '';
+
+  const seaEntries = s.eduLevel==='seaman' ? (s.seaman?.seaService||[]).map((v,i)=>`
+    <div id="sea_block_${i}" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:#f7f8fc;border-radius:8px;border:1px solid var(--gray-light);margin-top:4px;">
+      ${i>0?removeBtn(`removeEditEntry('sea',${i},${idx})`): ''}
+      ${fld(`e_sea_vessel_${i}`,'Vessel Name',v.vessel,'text',true)}
+      ${fld(`e_sea_imo_${i}`,'IMO No.',v.imoNo)}
+      ${fld(`e_sea_rank_${i}`,'Rank on Board',v.rank)}
+      ${fld(`e_sea_type_${i}`,'Vessel Type',v.vesselType)}
+      ${fld(`e_sea_grt_${i}`,'GRT / GT',v.grt)}
+      ${fld(`e_sea_dwt_${i}`,'DWT',v.dwt)}
+      ${fld(`e_sea_kw_${i}`,'KW / BHP',v.kw)}
+      ${fld(`e_sea_engine_${i}`,'Engine Type',v.engineType,'text',true)}
+      ${fld(`e_sea_trade_${i}`,'Trade Area',v.tradeArea)}
+      ${fld(`e_sea_agency_${i}`,'Manning Agency',v.company,'text',true)}
+      ${fld(`e_sea_principal_${i}`,'Principal / Shipowner',v.principal,'text',true)}
+      ${fld(`e_sea_amosup_${i}`,'AMOSUP / CBA',v.amosup)}
+      <div><label style="font-size:11px;font-weight:700;color:var(--navy);display:block;margin-bottom:4px;">Reason for Sign-off</label>
+        <select id="e_sea_reason_${i}" style="width:100%;padding:9px 12px;border:1.5px solid var(--gray-light);border-radius:8px;font-size:13px;font-family:Inter,sans-serif;outline:none;">
+          ${['','End of Contract','Sign Off / Finished Contract','Medical','Repatriation','Mutual Consent','Vessel Sold','Other'].map(o=>`<option ${(v.signOffReason||'')=== o?'selected':''}>${o}</option>`).join('')}
+        </select></div>
+      ${fld(`e_sea_signon_${i}`,'Sign On',v.signOn,'date')}
+      ${fld(`e_sea_signoff_${i}`,'Sign Off',v.signOff,'date')}
+    </div>`).join('') : '';
+
   return `
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
 
@@ -5270,6 +5337,57 @@ function buildEditHTML(idx){
       ${refEntries}
     </div>
 
+    ${s.eduLevel === 'seaman' ? `
+    ${secHead('⚓ Rank & Physical (Seafarer)')}
+    ${sel('e_sm_rank','Rank Applied For',['','Master','Chief Officer','Second Officer','Third Officer','Deck Cadet','Bosun','Able Seaman (AB)','Ordinary Seaman (OS)','Deck Fitter','Chief Engineer','Second Engineer','Third Engineer','Fourth Engineer','Engine Cadet','Electrician / ETO','Fitter','Oiler','Wiper','Motorman','Chief Cook','Second Cook','Messman','Steward'],s.seaman?.rank||'')}
+    ${fld('e_sm_lastRank','Last Rank Held',s.seaman?.lastRank)}
+    ${fld('e_sm_highestLicense','Highest License / COC Held',s.seaman?.highestLicense,'text',true)}
+    ${fld('e_sm_height','Height',s.seaman?.height)}
+    ${fld('e_sm_weight','Weight',s.seaman?.weight)}
+    ${fld('e_sm_bmi','BMI',s.seaman?.bmi)}
+    ${fld('e_sm_eyes','Colour of Eyes',s.seaman?.eyes)}
+    ${fld('e_sm_hair','Colour of Hair',s.seaman?.hair)}
+    ${fld('e_sm_blood','Blood Type',s.seaman?.blood)}
+    ${fld('e_sm_shoe','Shoe Size',s.seaman?.shoe)}
+    ${fld('e_sm_coverall','Coverall Size',s.seaman?.coverall)}
+    ${fld('e_sm_religion','Religion',s.seaman?.religion)}
+    ${fld('e_sm_birthPlace','Place of Birth',s.seaman?.birthPlace)}
+    ${fld('e_sm_sss','SSS No.',s.seaman?.sss)}
+    ${fld('e_sm_tin','TIN No.',s.seaman?.tin)}
+    ${fld('e_sm_pagibig','Pag-IBIG No.',s.seaman?.pagibig)}
+    ${fld('e_sm_philhealth','PhilHealth No.',s.seaman?.philhealth)}
+    ${fld('e_sm_src','SRC No.',s.seaman?.src)}
+    ${fld('e_sm_phone2','Alternative Phone / Viber',s.seaman?.phone2)}
+    ${fld('e_sm_nok','Nearest Relative / Next of Kin',s.seaman?.nok,'text',true)}
+    ${fld('e_sm_mailingAddress','Mailing Address (if different)',s.seaman?.mailingAddress,'text',true)}
+    ${fld('e_sm_children','Children (name and DOB)',s.seaman?.children,'text',true)}
+
+    ${secHead('🏥 Health & Medical')}
+    ${fld('e_sm_healthFlag','Health Declaration — Flag/Issuer',s.seaman?.healthFlag,'text',true)}
+    ${fld('e_sm_healthIssued','Health Issued',s.seaman?.healthIssued,'date')}
+    ${fld('e_sm_healthValid','Health Valid Until',s.seaman?.healthValid,'date')}
+    ${fld('e_sm_healthClinic','Health Clinic',s.seaman?.healthClinic,'text',true)}
+    ${fld('e_sm_medResult','Pre-Medical Result',s.seaman?.medResult,'text',true)}
+    ${fld('e_sm_medIssued','Pre-Medical Issued',s.seaman?.medIssued,'date')}
+    ${fld('e_sm_medValid','Pre-Medical Valid Until',s.seaman?.medValid,'date')}
+    ${fld('e_sm_medClinic','Pre-Medical Clinic',s.seaman?.medClinic,'text',true)}
+    ` : ''}
+
+    ${s.eduLevel === 'seaman' ? `
+
+    ${secHead('🛂 Travel Documents', addBtn('Add Document',`addEditEntry('doc',${idx})`))}
+    <div id="doc_entries_wrap" style="grid-column:1/-1;display:contents;">${docEntries}</div>
+
+    ${secHead('📜 Certificates & Training', addBtn('Add Certificate',`addEditEntry('cert',${idx})`))}
+    <div id="cert_entries_wrap" style="grid-column:1/-1;display:contents;">${certEntries}</div>
+
+    ${secHead('💉 Vaccinations', addBtn('Add Vaccination',`addEditEntry('vax',${idx})`))}
+    <div id="vax_entries_wrap" style="grid-column:1/-1;display:contents;">${vaxEntries}</div>
+
+    ${secHead('🚢 Sea Service Record', addBtn('Add Vessel',`addEditEntry('sea',${idx})`))}
+    <div id="sea_entries_wrap" style="grid-column:1/-1;display:contents;">${seaEntries}</div>
+
+    ` : ''}
     <div style="grid-column:1/-1;margin-top:12px;">
       <button onclick="saveEdits(${idx})"
         style="width:100%;padding:14px;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">
@@ -5292,6 +5410,23 @@ function addEditEntry(type, idx){
   } else if(type === 'ref'){
     if(!s.references) s.references = [];
     s.references.push({name:'',position:'',company:'',contact:''});
+  } else if(type === 'doc'){
+    if(!s.seaman) s.seaman = {};
+    if(!s.seaman.documents) s.seaman.documents = [];
+    s.seaman.documents.push({type:'',number:'',dateIssued:'',dateExpiry:'',placeIssued:''});
+  } else if(type === 'cert'){
+    if(!s.seaman) s.seaman = {};
+    if(!s.seaman.certificates) s.seaman.certificates = [];
+    s.seaman.certificates.push({name:'',number:'',issuedBy:'',dateIssued:'',validUntil:''});
+  } else if(type === 'vax'){
+    if(!s.seaman) s.seaman = {};
+    if(!s.seaman.vaccinations) s.seaman.vaccinations = [];
+    s.seaman.vaccinations.push({name:'',placeIssued:'',dateGiven:'',validUntil:''});
+  } else if(type === 'sea'){
+    if(!s.seaman) s.seaman = {};
+    if(!s.seaman.seaService) s.seaman.seaService = [];
+    s.seaman.seaService.push({vessel:'',imoNo:'',rank:'',vesselType:'',grt:'',dwt:'',kw:'',
+      engineType:'',tradeArea:'',company:'',principal:'',amosup:'',signOffReason:'',signOn:'',signOff:''});
   }
   // Re-render modal
   document.getElementById('editModalBody').innerHTML = buildEditHTML(idx);
@@ -5307,6 +5442,10 @@ function removeEditEntry(type, i, idx){
   if(type === 'edu') s.education.splice(i, 1);
   else if(type === 'work') s.workExperience.splice(i, 1);
   else if(type === 'ref') s.references.splice(i, 1);
+  else if(type === 'doc')  s.seaman?.documents?.splice(i, 1);
+  else if(type === 'cert') s.seaman?.certificates?.splice(i, 1);
+  else if(type === 'vax')  s.seaman?.vaccinations?.splice(i, 1);
+  else if(type === 'sea')  s.seaman?.seaService?.splice(i, 1);
   document.getElementById('editModalBody').innerHTML = buildEditHTML(idx);
 }
 
@@ -5362,6 +5501,86 @@ function syncEditFields(idx){
     if(gv(`e_ref_company_${i}`)!==undefined) r.company = g(`e_ref_company_${i}`);
     if(gv(`e_ref_contact_${i}`)!==undefined) r.contact = g(`e_ref_contact_${i}`);
   });
+
+  // Seafarer-specific scalar fields
+  if(s.eduLevel === 'seaman'){
+    if(!s.seaman) s.seaman = {};
+    const m = s.seaman;
+    const smf = (key, id) => { const v = gv(id); if(v !== undefined) m[key] = v; };
+    smf('rank',           'e_sm_rank');
+    smf('lastRank',       'e_sm_lastRank');
+    smf('highestLicense', 'e_sm_highestLicense');
+    smf('height',         'e_sm_height');
+    smf('weight',         'e_sm_weight');
+    smf('bmi',            'e_sm_bmi');
+    smf('eyes',           'e_sm_eyes');
+    smf('hair',           'e_sm_hair');
+    smf('blood',          'e_sm_blood');
+    smf('shoe',           'e_sm_shoe');
+    smf('coverall',       'e_sm_coverall');
+    smf('religion',       'e_sm_religion');
+    smf('birthPlace',     'e_sm_birthPlace');
+    smf('sss',            'e_sm_sss');
+    smf('tin',            'e_sm_tin');
+    smf('pagibig',        'e_sm_pagibig');
+    smf('philhealth',     'e_sm_philhealth');
+    smf('src',            'e_sm_src');
+    smf('phone2',         'e_sm_phone2');
+    smf('nok',            'e_sm_nok');
+    smf('mailingAddress', 'e_sm_mailingAddress');
+    smf('children',       'e_sm_children');
+    smf('healthFlag',     'e_sm_healthFlag');
+    smf('healthIssued',   'e_sm_healthIssued');
+    smf('healthValid',    'e_sm_healthValid');
+    smf('healthClinic',   'e_sm_healthClinic');
+    smf('medResult',      'e_sm_medResult');
+    smf('medIssued',      'e_sm_medIssued');
+    smf('medValid',       'e_sm_medValid');
+    smf('medClinic',      'e_sm_medClinic');
+
+    // Travel documents
+    (m.documents||[]).forEach((d,i)=>{
+      if(gv(`e_doc_type_${i}`)!==undefined)   d.type       = g(`e_doc_type_${i}`);
+      if(gv(`e_doc_number_${i}`)!==undefined) d.number     = g(`e_doc_number_${i}`);
+      if(gv(`e_doc_issued_${i}`)!==undefined) d.dateIssued = g(`e_doc_issued_${i}`);
+      if(gv(`e_doc_expiry_${i}`)!==undefined) d.dateExpiry = g(`e_doc_expiry_${i}`);
+      if(gv(`e_doc_place_${i}`)!==undefined)  d.placeIssued= g(`e_doc_place_${i}`);
+    });
+    // Certificates
+    (m.certificates||[]).forEach((c,i)=>{
+      if(gv(`e_cert_name_${i}`)!==undefined)     c.name      = g(`e_cert_name_${i}`);
+      if(gv(`e_cert_number_${i}`)!==undefined)   c.number    = g(`e_cert_number_${i}`);
+      if(gv(`e_cert_issuedBy_${i}`)!==undefined) c.issuedBy  = g(`e_cert_issuedBy_${i}`);
+      if(gv(`e_cert_issued_${i}`)!==undefined)   c.dateIssued= g(`e_cert_issued_${i}`);
+      if(gv(`e_cert_valid_${i}`)!==undefined)    c.validUntil= g(`e_cert_valid_${i}`);
+    });
+    // Vaccinations
+    (m.vaccinations||[]).forEach((v,i)=>{
+      if(gv(`e_vax_name_${i}`)!==undefined)  v.name        = g(`e_vax_name_${i}`);
+      if(gv(`e_vax_place_${i}`)!==undefined) v.placeIssued = g(`e_vax_place_${i}`);
+      if(gv(`e_vax_given_${i}`)!==undefined) v.dateGiven   = g(`e_vax_given_${i}`);
+      if(gv(`e_vax_valid_${i}`)!==undefined) v.validUntil  = g(`e_vax_valid_${i}`);
+    });
+    // Sea service
+    (m.seaService||[]).forEach((v,i)=>{
+      if(gv(`e_sea_vessel_${i}`)!==undefined)    v.vessel        = g(`e_sea_vessel_${i}`);
+      if(gv(`e_sea_imo_${i}`)!==undefined)       v.imoNo         = g(`e_sea_imo_${i}`);
+      if(gv(`e_sea_rank_${i}`)!==undefined)      v.rank          = g(`e_sea_rank_${i}`);
+      if(gv(`e_sea_type_${i}`)!==undefined)      v.vesselType    = g(`e_sea_type_${i}`);
+      if(gv(`e_sea_grt_${i}`)!==undefined)       v.grt           = g(`e_sea_grt_${i}`);
+      if(gv(`e_sea_dwt_${i}`)!==undefined)       v.dwt           = g(`e_sea_dwt_${i}`);
+      if(gv(`e_sea_kw_${i}`)!==undefined)        v.kw            = g(`e_sea_kw_${i}`);
+      if(gv(`e_sea_engine_${i}`)!==undefined)    v.engineType    = g(`e_sea_engine_${i}`);
+      if(gv(`e_sea_trade_${i}`)!==undefined)     v.tradeArea     = g(`e_sea_trade_${i}`);
+      if(gv(`e_sea_agency_${i}`)!==undefined)    v.company       = g(`e_sea_agency_${i}`);
+      if(gv(`e_sea_principal_${i}`)!==undefined) v.principal     = g(`e_sea_principal_${i}`);
+      if(gv(`e_sea_amosup_${i}`)!==undefined)    v.amosup        = g(`e_sea_amosup_${i}`);
+      const selReason = document.getElementById(`e_sea_reason_${i}`);
+      if(selReason) v.signOffReason = selReason.value;
+      if(gv(`e_sea_signon_${i}`)!==undefined)  v.signOn  = g(`e_sea_signon_${i}`);
+      if(gv(`e_sea_signoff_${i}`)!==undefined) v.signOff = g(`e_sea_signoff_${i}`);
+    });
+  }
 }
 
 async function saveEdits(idx){
