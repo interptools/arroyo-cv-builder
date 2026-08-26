@@ -8435,11 +8435,6 @@ function T16(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const nm  = fullName(p);
 
   // ── continuation mini-header shown on pages 2+ ──────────────────────────────
-  const contHdr = `<div class="cont-hdr no-pg1">
-    <span class="cont-name">${nm}</span>
-    ${m.rank?`<span class="cont-rank">⚓ ${m.rank}</span>`:''}
-    <span class="cont-label">Seafarer Résumé — continued</span>
-  </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -8468,15 +8463,8 @@ ${pc}
               font-weight:900;padding:2px 10px;text-transform:uppercase;letter-spacing:.8px;}
   .hc{font-size:8.5px;color:rgba(255,255,255,.8);margin-top:7px;line-height:1.65;}
   .hc b{color:#ffd166;font-weight:700;}
-  .brand{text-align:right;font-size:7px;color:rgba(255,255,255,.35);letter-spacing:1.5px;
-         text-transform:uppercase;align-self:flex-start;flex-shrink:0;line-height:1.8;}
 
   /* ── continuation header (pages 2+) ── */
-  .cont-hdr{background:#0b2545;color:white;padding:6px 18px;display:flex;
-            gap:12px;align-items:center;border-bottom:2px solid #ffd166;}
-  .cont-name{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.3px;color:#ffd166;}
-  .cont-rank{font-size:9px;font-weight:700;color:rgba(255,255,255,.7);}
-  .cont-label{font-size:8px;color:rgba(255,255,255,.4);margin-left:auto;letter-spacing:.5px;}
 
   /* ── body ── */
   .body{padding:11px 18px 14px;}
@@ -8527,8 +8515,6 @@ ${pc}
   @media screen{
     body{background:#555;padding:30px 0 60px;}
     .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);margin:0 auto;}
-    /* hide the cont-header on first page in screen preview */
-    .no-pg1{display:none;}
     /* admin page-break shows as a visible rule on screen */
     .pg-break{border-top:3px dashed #ef4444;margin:4px 0;page-break-before:always;break-before:page;}
   }
@@ -8536,14 +8522,15 @@ ${pc}
   /* ── print ── */
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;}
     .no-print{display:none!important;}
-    @page{margin:10mm 12mm;size:A4 portrait;}
+    /* A zero page margin is deliberate: the browser prints its own date, title
+       and file:// path INTO that margin, and there is no CSS that hides them.
+       With no margin there is nowhere to draw them, so the sheet comes out
+       clean. The white border the page still needs becomes padding below. */
+    @page{margin:0;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:11mm 12mm!important;}
     /* thead already repeats via display:table-header-group */
-    /* cont-hdr is visible on print but hidden on first screen page */
-    .no-pg1{display:flex;}
-    /* first cont-hdr (immediately after main hdr) — suppress on print too */
-    .hdr + .no-pg1{display:none!important;}
   }
 </style></head><body>${pb}
 <div class="sea-doc">
@@ -8563,7 +8550,6 @@ ${pc}
         ${m.highestLicense?`<br><b>Highest License</b> ${m.highestLicense}`:''}
       </div>
     </div>
-    <div class="brand">Seafarer<br>Résumé</div>
   </div>
 
   <div class="body">
@@ -8609,8 +8595,6 @@ ${pc}
       :`<div class="none">No travel documents on record.</div>`}
     </div>
 
-    <!-- CONTINUATION HEADER — browser shows this before certs section on pg 2+ -->
-    ${contHdr}
 
     <!-- CERTS -->
     <div class="sec">
@@ -8644,8 +8628,6 @@ ${pc}
       </table>
     </div>`:''}
 
-    <!-- CONTINUATION HEADER before sea service -->
-    ${contHdr}
 
     <!-- SEA SERVICE -->
     <div class="sec">
@@ -8771,11 +8753,6 @@ function T17(p,s,ph,edu,work,refs,isFresh,pb,pc){
     (m.healthFlag||m.medResult) ? `<tr><th>Health Decl.</th><td>${m.healthFlag||''}${m.healthValid?' (valid '+fmtD(m.healthValid)+')':''}</td><th>Pre-Medical</th><td>${m.medResult||''}${m.medValid?' (valid '+fmtD(m.medValid)+')':''}</td></tr>` : '',
   ].filter(Boolean).join('');
 
-  const contHdr = `<div class="cont-hdr no-pg1">
-    <span class="cont-name">${nm}</span>
-    ${m.rank?`<span class="cont-rank">Applying for: ${m.rank}</span>`:''}
-    <span class="cont-label">Seafarer CV — continued</span>
-  </div>`;
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -8792,10 +8769,6 @@ ${pc}
   .apply b{color:#1f2937;font-weight:700;}
   .ct{font-size:8px;color:#374151;line-height:1.7;}
   .ct span{display:block;}
-  .cont-hdr{background:#1f3864;color:white;padding:5px 18px;display:flex;gap:14px;align-items:center;border-bottom:2px solid #9aa7bb;}
-  .cont-name{font-size:10px;font-weight:800;text-transform:uppercase;color:#cfe2f3;}
-  .cont-rank{font-size:8.5px;color:rgba(255,255,255,.7);}
-  .cont-label{font-size:7.5px;color:rgba(255,255,255,.4);margin-left:auto;letter-spacing:.5px;}
   .band{background:#cfe2f3;border:1px solid #9aa7bb;border-bottom:none;text-align:center;
         font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
         color:#1f3864;padding:3px 0;page-break-after:avoid;break-after:avoid;}
@@ -8820,16 +8793,16 @@ ${pc}
   @media screen{
     body{background:#555;padding:30px 0 60px;}
     .sea-doc{box-shadow:0 4px 30px rgba(0,0,0,.5);}
-    .no-pg1{display:none;}
     .pg-break{border-top:3px dashed #ef4444;margin:4px 0;}
   }
   @media print{
     body{background:white!important;padding:0!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;}
     .no-print{display:none!important;}
-    @page{margin:10mm 12mm;size:A4 portrait;}
-    .no-pg1{display:flex;}
-    .top + .no-pg1{display:none!important;}
+    /* Zero margin so the browser cannot print its own header and footer into
+       it — see the note in T16. The page's white border is padding instead. */
+    @page{margin:0;size:A4 portrait;}
+    .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
+             padding:11mm 12mm!important;}
   }
 </style></head><body>${pb}
 <div class="sea-doc">
@@ -8881,7 +8854,6 @@ ${pc}
     </table>
   </div>
 
-  ${contHdr}
 
   <div class="wrap sec">
     <div class="band">Vaccination</div>
@@ -8905,7 +8877,6 @@ ${pc}
     ${(docs.length||certs.length||vax.length)?`<div class="cert">Shaded red has expired · amber expires within 90 days.</div>`:''}
   </div>
 
-  ${contHdr}
 
   <div class="wrap sec">
     <div class="band">Sea Service Record</div>
