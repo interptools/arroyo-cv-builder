@@ -5405,54 +5405,300 @@ function extractFirstJSON(raw) {
   return null; // never closed
 }
 
-async function cgisGeminiCall(pages, prompt, maxTok, statusEl, passLabel) {
-  const parts = [{ text: prompt }];
-  pages.forEach((pg, i) => {
-    if (pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
-    parts.push({ inline_data: { mime_type: 'image/jpeg', data: pg.base64 } });
+// ═══════════════════════════════════════════════════════════════════════════
+// CGIS PHOTO SCANNER — tiled, page-at-a-time
+//
+// The old version resized the whole sheet to 2000px and sent every page in one
+// request. At that size the certificate and sea-service text is only a few
+// pixels tall, so the model was guessing. This version cuts each page into
+// overlapping horizontal strips and sends the strips alongside the full page,
+// which puts the table text in front of the model 2–3x larger. One request per
+// page keeps its attention on one sheet, and the results are merged with a
+// dedupe because the strips deliberately overlap.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Renders a file to a canvas once, then hands back the full page plus N
+// overlapping strips. Strips overlap by OVERLAP so a table row sitting on a cut
+// line still appears whole in one of them.
+function prepScanTiles(file, opts = {}) {
+  const MAX_EDGE = opts.maxEdge || 4200;   // keep a good phone photo's detail
+  const STRIPS   = opts.strips  || 3;
+  const OVERLAP  = opts.overlap || 0.12;   // fraction of a strip's height
+  const QUALITY  = opts.quality || 0.94;
+
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Could not read ' + file.name));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Not a readable image: ' + file.name));
+      img.onload = () => {
+        // Draw once at native size (capped) — every crop comes off this canvas.
+        let w = img.width, h = img.height;
+        const k = Math.min(1, MAX_EDGE / Math.max(w, h));
+        w = Math.round(w * k); h = Math.round(h * k);
+
+        const base = document.createElement('canvas');
+        base.width = w; base.height = h;
+        const bx = base.getContext('2d');
+        bx.fillStyle = '#fff'; bx.fillRect(0, 0, w, h);
+        bx.drawImage(img, 0, 0, w, h);
+
+        const jpg = (cv) => cv.toDataURL('image/jpeg', QUALITY);
+        const b64 = (url) => url.split(',')[1];
+
+        // Full page, downscaled — gives the model the overall layout.
+        const fullCv = document.createElement('canvas');
+        const fk = Math.min(1, 1600 / Math.max(w, h));
+        fullCv.width = Math.round(w * fk); fullCv.height = Math.round(h * fk);
+        fullCv.getContext('2d').drawImage(base, 0, 0, fullCv.width, fullCv.height);
+        const fullUrl = jpg(fullCv);
+
+        // Overlapping strips, each upscaled so small print gets bigger.
+        const stripH = Math.ceil(h / STRIPS);
+        const pad    = Math.round(stripH * OVERLAP);
+        const strips = [];
+        for (let i = 0; i < STRIPS; i++) {
+          const y0 = Math.max(0, i * stripH - pad);
+          const y1 = Math.min(h, (i + 1) * stripH + pad);
+          const sh = y1 - y0;
+          if (sh < 40) continue;
+          // Aim for ~2000px of band width, but never shrink below native: a
+          // 3000px phone photo already has the detail, and downscaling it here
+          // would throw away exactly what tiling is meant to preserve.
+          const sk = Math.max(1, Math.min(2.5, 2000 / w));
+          const cv = document.createElement('canvas');
+          cv.width = Math.round(w * sk); cv.height = Math.round(sh * sk);
+          const cx = cv.getContext('2d');
+          cx.imageSmoothingEnabled = true;
+          cx.imageSmoothingQuality = 'high';
+          cx.drawImage(base, 0, y0, w, sh, 0, 0, cv.width, cv.height);
+          strips.push({ base64: b64(jpg(cv)), band: i + 1 });
+        }
+
+        resolve({ dataUrl: fullUrl, base64: b64(fullUrl), strips, name: file.name });
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+// The rules that made the difference by hand. The row-offset warning matters
+// most: on Jebsen-family sheets the label in Crew Vaccines and Books sits one
+// row BELOW its dates, so a literal read pairs every row with the wrong data.
+const CGIS_RULES = `
+HOW TO READ THIS FORM — these quirks are specific to Philippine manning-agency
+CGIS sheets and cause most mistakes:
+
+1. ROW OFFSET. In "Crew Vaccines" and "Books" the text label often prints one
+   row LOWER than the dates it belongs to. The giveaway is a first data row with
+   no label and a last label with no data. When you see that, shift the labels UP
+   one row. Sanity checks that confirm it:
+     - Yellow Fever validity is 10 years. 08/09/2016 -> 08/09/2026 is Yellow Fever.
+     - A flag-state SIRB pairs with that flag's country (Liberia SIRB, not a
+       Liberian passport for a Filipino crew member).
+2. DATES are DD/MM/YYYY unless the month is spelled ("17 May 1992"). Convert all
+   to YYYY-MM-DD. Never swap day and month.
+3. BLANK vs DASH. An em dash, "N/A" or "NA" means not stated — return "".
+4. SKIP rows whose main label is empty after applying rule 1.
+5. CERTIFICATES live in TWO tables, "Qualifications Certificate" and
+   "Training / Upgrading". Both go in the certificates array. Column names
+   differ ("License Capacity" vs "Course Title", "Issuing Ofc" vs
+   "Issuing Office") but they mean the same thing.
+6. DOCUMENTS come from THREE places, all into the documents array:
+   "Other Documents / Id", "Books", and "VISAs". For Books, type is the Book
+   Type with the country in front if foreign. For VISAs, type is country + type.
+7. SEA SERVICE columns run: Date From | Date To | Months | Pos | Vessel/IMO |
+   AMOSUP CBA | Type | GRT | DWT | Engine | BHP | Agencies | Principal |
+   Reason for Sign-off | Year Built. Pos is the rank. Split Vessel/IMO on the
+   last "/" — the number after it is the IMO. BHP goes in kw. DWT is often
+   genuinely blank; leave it "".
+8. CONTACT INFOS. Take the mobile whose Contact Person says "Crew" as phone.
+   A mobile against a family label (MOTHER/FATHER/SPOUSE) is phone2.
+9. CROSSED-OUT entries: use the correction written beside them, not the
+   struck-through text.
+10. Copy numbers EXACTLY, including letters and dashes. Do not tidy them.`;
+
+const CGIS_SCHEMA = `{
+"fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
+"phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
+"height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
+"shoeSize":"","coverallSize":"","sss":"","tin":"","pagibig":"","philhealth":"","src":"",
+"highestLicense":"","nok":"","children":"",
+"healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
+"medResult":"","medIssued":"","medValid":"","medClinic":"",
+"education":[{"school":"","degree":"","yearGrad":""}],
+"documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
+"certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
+"vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}],
+"seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
+  "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
+  "signOn":"","signOff":""}]}`;
+
+// One page, its strips, one request.
+async function cgisReadPage(page, pageNo, pageCount, statusEl) {
+  const prompt = `You are reading page ${pageNo} of ${pageCount} of a seafarer's
+Crew General Information Sheet (CGIS).
+
+You are given the whole page first, then ${page.strips.length} enlarged horizontal
+bands covering it top to bottom. The bands overlap on purpose. Use the bands to
+read small print; use the full page to understand the layout. A row appearing in
+two bands is the SAME row — report it once.
+
+Extract only what is actually visible on THIS page. Leave anything not on this
+page as "" or []. Do not carry over or invent data from other pages.
+
+Return ONLY this JSON object, no markdown, no commentary:
+${CGIS_SCHEMA}
+${CGIS_RULES}`;
+
+  const parts = [{ text: prompt }, { text: '--- FULL PAGE ---' },
+                 { inline_data: { mime_type: 'image/jpeg', data: page.base64 } }];
+  page.strips.forEach(s => {
+    parts.push({ text: `--- BAND ${s.band} OF ${page.strips.length} (enlarged) ---` });
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: s.base64 } });
   });
 
-  // Give generous time and tokens — truncation is what causes bad JSON
-  const timeoutMs = Math.min(30000 + (pages.length - 1) * 8000, 70000);
+  // One page holds far less than six, so this is comfortably inside the limit.
+  const json = await cgisCall(parts, 8000, 60000, `Page ${pageNo}`);
+  return json;
+}
 
-  async function doFetch() {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), timeoutMs);
-    let res;
-    try {
-      res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: ctrl.signal,
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { temperature: 0.05, maxOutputTokens: maxTok }
-        })
-      });
-    } finally { clearTimeout(tid); }
-    if (!res.ok) throw new Error(`${passLabel} HTTP ${res.status}`);
-    const d = await res.json();
-    if (d.error) throw new Error(d.error.message || `${passLabel} API error`);
-    let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if (typeof text !== 'string') text = JSON.stringify(text);
-    return text;
-  }
-
-  // Try up to 2 times — network blip or a truncated response on first attempt
+// Shared proxy call. Retries once, because a truncated first reply is common.
+async function cgisCall(parts, maxTok, timeoutMs, label) {
   let lastErr;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
-      const rawText = await doFetch();
-      const jsonStr = extractFirstJSON(rawText);
-      if (!jsonStr) throw new Error(`${passLabel}: no valid JSON object in response`);
-      return JSON.parse(jsonStr);
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), timeoutMs);
+      let res;
+      try {
+        res = await fetch('https://gemini-proxy.areymar36.workers.dev', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { temperature: 0, maxOutputTokens: maxTok }
+          })
+        });
+      } finally { clearTimeout(tid); }
+      if (!res.ok) throw new Error(`${label}: HTTP ${res.status}`);
+      const d = await res.json();
+      if (d.error) throw new Error(d.error.message || `${label}: API error`);
+      let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (typeof txt !== 'string') txt = JSON.stringify(txt);
+      const js = extractFirstJSON(txt);
+      if (!js) throw new Error(`${label}: no JSON in reply`);
+      return JSON.parse(js);
     } catch (e) {
-      console.warn(`${passLabel} attempt ${attempt} failed:`, e.message);
+      console.warn(`[cgisCall] ${label} attempt ${attempt}:`, e.message);
       lastErr = e;
-      if (attempt < 2) await new Promise(r => setTimeout(r, 3000));
+      if (attempt < 2) await new Promise(r => setTimeout(r, 2500));
     }
   }
   throw lastErr;
+}
+
+// Merge page results. Scalars: first page that actually filled it wins.
+// Arrays: concatenate, then drop duplicates the overlap produced.
+function cgisMerge(results) {
+  const out = {};
+  const ARRAYS = ['education','documents','certificates','vaccinations','seaService'];
+  const norm = v => String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, ' ');
+
+  // Scalars
+  results.forEach(r => {
+    Object.keys(r || {}).forEach(k => {
+      if (ARRAYS.includes(k)) return;
+      const v = (r[k] == null ? '' : String(r[k])).trim();
+      if (v && !/^(n\/a|na|-|—)$/i.test(v) && !out[k]) out[k] = v;
+    });
+  });
+
+  // Arrays, deduped on the fields that actually identify a row
+  const KEYOF = {
+    education:    r => norm(r.school),
+    documents:    r => norm(r.type) + '|' + norm(r.number),
+    certificates: r => norm(r.name)   + '|' + norm(r.number),
+    vaccinations: r => norm(r.name)   + '|' + norm(r.dateGiven),
+    seaService:   r => norm(r.vessel) + '|' + norm(r.signOn)
+  };
+  const REQUIRED = {
+    education: r => r.school, documents: r => r.type || r.number,
+    certificates: r => r.name, vaccinations: r => r.name,
+    seaService: r => r.vessel || r.signOn
+  };
+
+  ARRAYS.forEach(key => {
+    const seen = new Map();
+    results.forEach(r => (r && r[key] || []).forEach(row => {
+      if (!row || !REQUIRED[key](row)) return;
+      const id = KEYOF[key](row);
+      if (!id.replace(/\|/g, '')) return;
+      const prev = seen.get(id);
+      if (!prev) { seen.set(id, { ...row }); return;}
+      // Same row from an overlapping band — keep whichever cell is filled.
+      Object.keys(row).forEach(f => {
+        if (!String(prev[f] || '').trim() && String(row[f] || '').trim()) prev[f] = row[f];
+      });
+    }));
+    out[key] = [...seen.values()];
+  });
+
+  return out;
+}
+
+// Second look. Sends the merged result back with the pages and asks for
+// corrections only — this is what catches the row-offset mistakes.
+async function cgisVerify(pages, merged, statusEl) {
+  const summary = JSON.stringify({
+    vaccinations: merged.vaccinations, documents: merged.documents,
+    seaService: (merged.seaService || []).map(v =>
+      ({ vessel: v.vessel, imoNo: v.imoNo, rank: v.rank, signOn: v.signOn, signOff: v.signOff }))
+  });
+
+  const prompt = `Check this extraction against the CGIS pages shown.
+
+${summary}
+
+Look only for these mistakes:
+- A vaccination, book or document paired with the WRONG dates because the label
+  printed one row below its data (see rule 1).
+- Dates with day and month swapped.
+- A vessel's sign-on/sign-off taken from the neighbouring row.
+- A number transcribed wrongly.
+
+Reply with ONLY a JSON object holding the arrays you would CHANGE, in the same
+shape. Include an array only if something in it is wrong. If everything is
+correct reply exactly {"ok":true}.
+${CGIS_RULES}`;
+
+  const parts = [{ text: prompt }];
+  pages.forEach((p, i) => {
+    parts.push({ text: `--- PAGE ${i + 1} ---` });
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
+    // One mid band per page keeps the request small but still legible.
+    const mid = p.strips[Math.floor(p.strips.length / 2)];
+    if (mid) {
+      parts.push({ text: `--- PAGE ${i + 1} MIDDLE BAND (enlarged) ---` });
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: mid.base64 } });
+    }
+  });
+
+  try {
+    const fix = await cgisCall(parts, 4000, 45000, 'Verify');
+    if (!fix || fix.ok === true) return { merged, changed: [] };
+    const changed = [];
+    ['vaccinations','documents','seaService','certificates'].forEach(k => {
+      if (Array.isArray(fix[k]) && fix[k].length) { merged[k] = fix[k]; changed.push(k); }
+    });
+    return { merged, changed };
+  } catch (e) {
+    // A failed check must never lose a good extraction.
+    console.warn('[cgisVerify] skipped:', e.message);
+    return { merged, changed: [] };
+  }
 }
 
 async function scanCGIS(input) {
@@ -5460,6 +5706,11 @@ async function scanCGIS(input) {
 
   const status  = document.getElementById('cgisStatus');
   const preview = document.getElementById('cgisPreview');
+  const say = (cls, msg) => {
+    status.className = 'cgis-status ' + cls;
+    status.style.display = 'block';
+    status.innerHTML = msg;
+  };
 
   const MAX_PAGES = 6;
   let files = Array.from(input.files);
@@ -5467,25 +5718,18 @@ async function scanCGIS(input) {
   if (files.length > MAX_PAGES) { files = files.slice(0, MAX_PAGES); capped = true; }
 
   if (files.some(f => !f.type.startsWith('image/'))) {
-    status.className = 'cgis-status error';
-    status.style.display = 'block';
-    status.innerHTML = '❌ Please upload photos or screenshots (JPG or PNG) only.';
+    say('error', '❌ Please upload photos or screenshots (JPG or PNG) only.');
     input.value = ''; return;
   }
 
-  status.className = 'cgis-status loading';
-  status.style.display = 'block';
-  status.innerHTML = `⏳ Preparing ${files.length} page${files.length > 1 ? 's' : ''}…`;
-
   let pages = [];
   try {
-    // Use higher quality for CGIS — small table text needs it
+    // ── 1. Cut every page into overlapping bands ────────────────────────────
     for (let i = 0; i < files.length; i++) {
-      status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
-      pages.push(await prepScanImage(files[i], 2000, 0.92));
+      say('loading', `⏳ Preparing page ${i + 1} of ${files.length} — splitting it into bands so the small print is legible…`);
+      pages.push(await prepScanTiles(files[i]));
     }
 
-    // Thumbnail strip
     if (preview) { preview.src = pages[0].dataUrl; preview.style.display = 'block'; }
     let strip = document.getElementById('cgisPagesStrip');
     if (!strip) {
@@ -5502,101 +5746,51 @@ async function scanCGIS(input) {
           </div>`).join('')
       : '';
 
-    const pageNote = pages.length > 1
-      ? `All ${pages.length} CGIS pages are shown in order. Combine data across pages.`
-      : 'Extract all data from this CGIS page.';
+    const bands = pages.reduce((n, p) => n + p.strips.length, 0);
 
-    // ── PASS 1 — Personal info, identity, health, education, documents ─────
-    const pass1Prompt = `CGIS data extractor — Pass 1: personal details only.
-${pageNote}
-Dates → YYYY-MM-DD (handle "17 May 1992", "DD/MM/YYYY", "MM/DD/YYYY"). Return ONLY valid JSON, no markdown:
-{
-  "fullName":"","dob":"","birthPlace":"","civilStatus":"","address":"","mailingAddress":"",
-  "phone":"","phone2":"","email":"","position":"","nationality":"Filipino",
-  "height":"","weight":"","bloodType":"","eyeColor":"","hairColor":"","religion":"",
-  "shoeSize":"","coverallSize":"",
-  "sss":"","tin":"","pagibig":"","philhealth":"","src":"","highestLicense":"",
-  "nok":"","children":"",
-  "healthFlag":"","healthIssued":"","healthValid":"","healthClinic":"",
-  "medResult":"","medIssued":"","medValid":"","medClinic":"",
-  "education":[{"school":"","degree":"","yearGrad":""}],
-  "documents":[{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-  "vaccinations":[{"name":"","dateGiven":"","validUntil":"","placeIssued":""}]
-}
-Notes:
-- fullName: from "Name:" label
-- CONTACT INFOS table: find row where Contact Person says "Crew" → that Mobile = phone.
-  Row where Contact Person has family title (MOTHER/FATHER/SPOUSE/WIFE) → that Mobile = phone2. Email = email.
-- "Birthdate:" or "Date of Birth:" = dob; "Birthplace:" = birthPlace
-- "Color of Eyes:" = eyeColor; "Color of Hair:" = hairColor
-- "PhilHealth No:" = philhealth; "Pag-Ibig No.:" = pagibig; "SRC:" = src
-- Highest License Held: skip if value is "—" or blank
-- HEALTH DESCRIPTION section: Issued = healthIssued; Validity = healthValid; Clinic = healthClinic; flag/body = healthFlag
-- PRE MEDICAL section: result (e.g. "Fit For Sea Duty") = medResult; Issued = medIssued; Validity = medValid; Clinic = medClinic
-- CREW VACCINES table: Vaccine=name, Issued=dateGiven, Validity=validUntil, Clinic=placeIssued. Skip rows with blank Vaccine name.
-- BOOKS table: columns Country | Book Type | Number | Issued | Validity
-  type = Book Type (e.g. "Seafarer Identification and Record Book – Flag"). Add country prefix for foreign: "Liberia Passport".
-  dateIssued=Issued, dateExpiry=Validity
-- OTHER DOCUMENTS / ID table: label in first column = type (OFW, SID, NBI, Passport, etc.)
-- VISAs table: columns Country | Type | No. | Issued | Validity → type = Country+" "+Type (e.g. "Australian MCV")
-- Nearest Relative / Next of Kin → nok. Children section → children ("Name — DOB").
-- Leave empty if not visible. Never invent.`;
+    // ── 2. One request per page, run together ──────────────────────────────
+    say('loading', `⏳ Reading ${pages.length} page${pages.length>1?'s':''} as ${bands} enlarged bands — one request per page…`);
 
-    // ── PASS 2 — Certificates, training, sea service ────────────────────────
-    const pass2Prompt = `CGIS data extractor — Pass 2: certificates and sea service only.
-${pageNote}
-Dates → YYYY-MM-DD. Return ONLY valid JSON, no markdown:
-{
-  "certificates":[{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-  "seaService":[{"vessel":"","imoNo":"","rank":"","vesselType":"","grt":"","dwt":"","kw":"",
-    "engineType":"","tradeArea":"","agency":"","principal":"","amosup":"","signOffReason":"",
-    "signOn":"","signOff":""}]
-}
-Notes for certificates — merge BOTH tables:
-- QUALIFICATIONS CERTIFICATE table: License Capacity = name; Issuing Ofc = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- TRAINING / UPGRADING table: Course Title = name; Issuing Office = issuedBy; Number = number; Issued = dateIssued; Validity = validUntil
-- Extract EVERY row from both tables — do not skip any. Leave validUntil blank if not present.
-Notes for sea service (WORK EXPERIENCES table):
-- "Date of Serv. (From)" or "Date of Serv (From)" = signOn; "Date of Serv. (To)" = signOff (blank if missing)
-- "Pos" = rank; "Vessel / IMO No." → split: vessel name (before /) + imoNo (number after /)
-- "Type" = vesselType; "GRT" = grt; "DWT" = dwt; "BHP" = kw; "Engine" = engineType
-- "Agencies" = agency; "Principal" = principal; "AMOSUP CBA" = amosup (use "" if N/A)
-- "Reason for Sign-off" = signOffReason (use "" if N/A or blank)
-- Extract ALL rows including those with missing signOff.
-Leave empty if not visible. Never invent.`;
+    const settled = await Promise.allSettled(
+      pages.map((p, i) => cgisReadPage(p, i + 1, pages.length, status))
+    );
 
-    // ── Run both passes in parallel ────────────────────────────────────────
-    status.innerHTML = `⏳ Reading ${pages.length} page${pages.length>1?'s':''} — Pass 1: personal info &amp; Pass 2: tables (running together)…`;
+    const good = settled.filter(s => s.status === 'fulfilled').map(s => s.value);
+    const bad  = settled.filter(s => s.status === 'rejected');
+    if (!good.length) {
+      throw new Error(settled[0]?.reason?.message || 'None of the pages could be read.');
+    }
 
-    const [p1, p2] = await Promise.all([
-      cgisGeminiCall(pages, pass1Prompt, 3500, status, 'Pass 1'),
-      cgisGeminiCall(pages, pass2Prompt, 6000, status, 'Pass 2')
-    ]);
+    // ── 3. Merge, dropping the duplicates the overlap creates ──────────────
+    let merged = cgisMerge(good);
+    console.log('[scanCGIS] merged:', JSON.stringify(merged).slice(0, 900));
 
-    // Merge
-    const data = { ...p1, ...p2 };
+    // ── 4. Second look for the row-offset trap ─────────────────────────────
+    say('loading', '⏳ Checking the tables a second time — this is what catches rows paired with the wrong dates…');
+    const { merged: checked, changed } = await cgisVerify(pages, merged, status);
+    merged = checked;
 
-    status.innerHTML = `⏳ Filling in form…`;
+    // ── 5. Fill the form ───────────────────────────────────────────────────
+    const notes = [];
+    if (capped)       notes.push(`Only the first ${MAX_PAGES} pages were read.`);
+    if (bad.length)   notes.push(`${bad.length} page${bad.length>1?'s':''} could not be read — check those sections by hand.`);
+    if (changed.length) notes.push(`Corrected on the second look: ${changed.join(', ')}.`);
+    const note = notes.length
+      ? `<div style="margin-top:6px;font-size:11px;opacity:.85;">${notes.join('<br>')}</div>` : '';
 
-    // ── Fill form using shared helper ─────────────────────────────────────
-    const cappedNote = capped ? ` <small style="opacity:.7">Only first ${MAX_PAGES} pages read.</small>` : '';
-    const filled = fillCGISData(data, status,
-      `✅ Scanned ${pages.length} page${pages.length>1?'s':''} in 2 passes`,
-      cappedNote);
+    fillCGISData(merged, status,
+      `✅ Read ${good.length} page${good.length>1?'s':''} in ${bands} bands`, note);
 
   } catch (err) {
     console.error('CGIS scan error:', err);
-    status.className = 'cgis-status error';
-    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
-    status.innerHTML = (isTimeout
-      ? `⏱️ Timed out reading the CGIS. Try uploading fewer pages at once, or retry.`
-      : `❌ Could not read the CGIS. Make sure photos are clear and well-lit.`) +
-      `<br><small style="opacity:.7">(${err.message || 'Unknown error'})</small><br>
-      <button onclick="document.getElementById('cgisScanInput').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>`;
+    const timedOut = err.name === 'AbortError' || /abort/i.test(err.message || '');
+    say('error', (timedOut
+      ? '⏱️ That took too long. Try scanning one page at a time.'
+      : `❌ ${err.message || 'Could not read the CGIS.'}`) +
+      `<br><small style="opacity:.7">A flat, evenly lit photo taken straight above the page reads best. If you can copy the text out of a PDF instead, use Paste Text — it is exact.</small><br>
+      <button onclick="document.getElementById('cgisScanInput').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;">🔄 Try Again</button>`);
   }
 }
-
-// ─────────────────────────────────────────────────────────────
 
 // ─── EUROPE / EU CV HELPERS ───────────────────────────────────────────────────
 let cefrCount = 0;

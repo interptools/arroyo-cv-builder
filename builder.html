@@ -4479,6 +4479,73 @@ async function parsePastedText(){
   }
 }
 
+/* Cutting a page into overlapping bands and enlarging each one puts small
+   table print in front of the model 2-3x bigger. On a photographed CGIS this is
+   the difference between reading the certificate numbers and guessing them. */
+function prepScanTiles(file, opts = {}) {
+  const MAX_EDGE = opts.maxEdge || 4200;   // keep a good phone photo's detail
+  const STRIPS   = opts.strips  || 3;
+  const OVERLAP  = opts.overlap || 0.12;   // fraction of a strip's height
+  const QUALITY  = opts.quality || 0.94;
+
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error('Could not read ' + file.name));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Not a readable image: ' + file.name));
+      img.onload = () => {
+        // Draw once at native size (capped) — every crop comes off this canvas.
+        let w = img.width, h = img.height;
+        const k = Math.min(1, MAX_EDGE / Math.max(w, h));
+        w = Math.round(w * k); h = Math.round(h * k);
+
+        const base = document.createElement('canvas');
+        base.width = w; base.height = h;
+        const bx = base.getContext('2d');
+        bx.fillStyle = '#fff'; bx.fillRect(0, 0, w, h);
+        bx.drawImage(img, 0, 0, w, h);
+
+        const jpg = (cv) => cv.toDataURL('image/jpeg', QUALITY);
+        const b64 = (url) => url.split(',')[1];
+
+        // Full page, downscaled — gives the model the overall layout.
+        const fullCv = document.createElement('canvas');
+        const fk = Math.min(1, 1600 / Math.max(w, h));
+        fullCv.width = Math.round(w * fk); fullCv.height = Math.round(h * fk);
+        fullCv.getContext('2d').drawImage(base, 0, 0, fullCv.width, fullCv.height);
+        const fullUrl = jpg(fullCv);
+
+        // Overlapping strips, each upscaled so small print gets bigger.
+        const stripH = Math.ceil(h / STRIPS);
+        const pad    = Math.round(stripH * OVERLAP);
+        const strips = [];
+        for (let i = 0; i < STRIPS; i++) {
+          const y0 = Math.max(0, i * stripH - pad);
+          const y1 = Math.min(h, (i + 1) * stripH + pad);
+          const sh = y1 - y0;
+          if (sh < 40) continue;
+          // Aim for ~2000px of band width, but never shrink below native: a
+          // 3000px phone photo already has the detail, and downscaling it here
+          // would throw away exactly what tiling is meant to preserve.
+          const sk = Math.max(1, Math.min(2.5, 2000 / w));
+          const cv = document.createElement('canvas');
+          cv.width = Math.round(w * sk); cv.height = Math.round(sh * sk);
+          const cx = cv.getContext('2d');
+          cx.imageSmoothingEnabled = true;
+          cx.imageSmoothingQuality = 'high';
+          cx.drawImage(base, 0, y0, w, sh, 0, 0, cv.width, cv.height);
+          strips.push({ base64: b64(jpg(cv)), band: i + 1 });
+        }
+
+        resolve({ dataUrl: fullUrl, base64: b64(fullUrl), strips, name: file.name });
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
 async function scanOldCV(input){
   if(!input.files || !input.files.length) return;
 
@@ -4506,8 +4573,9 @@ async function scanOldCV(input){
   try {
     const pages = [];
     for(let i = 0; i < files.length; i++){
-      say('wait', 'Preparing page ' + (i + 1) + ' of ' + files.length + '\u2026');
-      pages.push(await prepScanImage(files[i]));
+      say('wait', 'Preparing page ' + (i + 1) + ' of ' + files.length
+        + ' \u2014 splitting it into bands so small print stays legible\u2026');
+      pages.push(await prepScanTiles(files[i]));
     }
 
     strip.innerHTML = pages.map((p, i) =>
@@ -4534,18 +4602,31 @@ Rules:
 - Extract ALL work experiences and education entries you can see
 - Never invent data. If something is unreadable, leave it empty
 - Do not output duplicate entries
-- Return ONLY the JSON, nothing else`;
+- Return ONLY the JSON, nothing else
+
+About the images: each page is given whole first, then as enlarged horizontal
+bands covering it top to bottom. Read the bands for small print and use the whole
+page for layout. The bands overlap on purpose \u2014 a row showing up in two bands is
+the SAME row, so report it once.
+Dates printed DD/MM/YYYY must not have day and month swapped.
+Where a table label appears to sit one row below its dates, shift the labels up
+one row: the giveaway is a first row with no label and a last label with no data.`;
 
     // All pages go in ONE request. Scanning them separately and merging in JS
     // produces duplicates and drops sections that straddle a page break.
     const parts = [{ text: prompt }];
     pages.forEach((p, i) => {
-      if(pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
+      parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} (whole page) ---` });
       parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
+      // The bands overlap, so a row on a cut line still appears whole in one.
+      p.strips.forEach(st => {
+        parts.push({ text: `--- PAGE ${i + 1}, BAND ${st.band} of ${p.strips.length} (enlarged) ---` });
+        parts.push({ inline_data: { mime_type: 'image/jpeg', data: st.base64 } });
+      });
     });
 
-    const timeoutMs = Math.min(20000 + (pages.length - 1) * 12000, 55000);
-    const maxTokens = Math.min(2000 + (pages.length - 1) * 1200, 6000);
+    const timeoutMs = Math.min(35000 + (pages.length - 1) * 14000, 75000);
+    const maxTokens = Math.min(4000 + (pages.length - 1) * 1500, 9000);
     const label = pages.length > 1 ? pages.length + ' pages' : 'your CV';
 
     let resJson = null, lastErr = null;
