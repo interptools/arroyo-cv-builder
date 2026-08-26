@@ -1003,10 +1003,10 @@
       <img id="cgisPreview" class="cgis-preview" alt="CGIS Preview">
       <div class="cgis-card-text">
         <h3>🚢 Have a CGIS / Agency Record?</h3>
-        <p>Upload a photo of your Crew General Information Sheet (Jebsen PTC, DOLE, or any manning agency). We'll auto-fill your seafarer details — documents, certificates, sea service, and personal info — in seconds.</p>
+        <p>Upload <strong style="color:#6ee7b7;">1–6 photos</strong> of your CGIS — select all pages at once. Jebsen PTC, DOLE, or any manning agency. Auto-fills all seafarer details in seconds.</p>
       </div>
       <button class="cgis-upload-btn" onclick="document.getElementById('cgisScanInput').click()">
-        📋 Scan CGIS
+        📋 Scan CGIS (1–6 photos)
       </button>
       <input type="file" id="cgisScanInput" accept="image/*" multiple style="display:none" onchange="scanCGIS(this)">
       <div class="cgis-status" id="cgisStatus"></div>
@@ -4389,8 +4389,11 @@ async function scanCGIS(input) {
   const status  = document.getElementById('cgisStatus');
   const preview = document.getElementById('cgisPreview');
 
-  const MAX_PAGES = 4;
-  let files = Array.from(input.files).slice(0, MAX_PAGES);
+  // Up to 6 pages — a full CGIS is 3 pages; allow front+back shots of each
+  const MAX_PAGES = 6;
+  let files = Array.from(input.files);
+  let capped = false;
+  if (files.length > MAX_PAGES) { files = files.slice(0, MAX_PAGES); capped = true; }
 
   const bad = files.filter(f => !f.type.startsWith('image/'));
   if (bad.length) {
@@ -4412,14 +4415,28 @@ async function scanCGIS(input) {
       pages.push(await prepScanImage(files[i]));
     }
 
-    if (preview) {
-      preview.src = pages[0].dataUrl;
-      preview.style.display = 'block';
+    // Show preview of first page
+    if (preview) { preview.src = pages[0].dataUrl; preview.style.display = 'block'; }
+
+    // Thumbnail strip for all selected pages
+    let strip = document.getElementById('cgisPagesStrip');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'cgisPagesStrip';
+      strip.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;width:100%;';
+      status.parentNode.insertBefore(strip, status);
     }
+    strip.innerHTML = pages.length > 1
+      ? pages.map((pg, i) =>
+          `<div style="position:relative;width:52px;height:68px;border-radius:5px;overflow:hidden;border:2px solid rgba(52,211,153,0.6);background:#fff;">
+            <img src="${pg.dataUrl}" style="width:100%;height:100%;object-fit:cover;">
+            <span style="position:absolute;bottom:0;right:0;background:rgba(13,59,46,.85);color:#6ee7b7;font-size:9px;font-weight:800;padding:1px 4px;border-radius:4px 0 0 0;">p${i+1}</span>
+          </div>`).join('')
+      : '';
 
     const prompt = `You are a maritime data extractor specialized in Philippine manning agency documents.
 ${pages.length > 1
-  ? `You have ${pages.length} images — consecutive pages of ONE seafarer's CGIS (Crew General Information Sheet). Combine ALL pages into one result.`
+  ? `You have ${pages.length} images — consecutive pages of ONE seafarer's CGIS. Combine ALL pages into one result. A section may continue across pages — join it rather than repeating.`
   : 'Look at this CGIS (Crew General Information Sheet) and extract all visible information.'}
 
 Return ONLY a valid JSON object (no markdown, no backticks, no explanation):
@@ -4460,21 +4477,11 @@ Return ONLY a valid JSON object (no markdown, no backticks, no explanation):
   "medIssued": "",
   "medValid": "",
   "medClinic": "",
-  "education": [
-    {"school": "", "degree": "", "yearGrad": ""}
-  ],
-  "documents": [
-    {"type": "", "number": "", "dateIssued": "", "dateExpiry": "", "placeIssued": ""}
-  ],
-  "certificates": [
-    {"name": "", "number": "", "issuedBy": "", "dateIssued": "", "validUntil": ""}
-  ],
-  "vaccinations": [
-    {"name": "", "dateGiven": "", "validUntil": "", "placeIssued": ""}
-  ],
-  "seaService": [
-    {"vessel": "", "imoNo": "", "rank": "", "vesselType": "", "grt": "", "dwt": "", "kw": "", "engineType": "", "tradeArea": "", "agency": "", "principal": "", "amosup": "", "signOffReason": "", "signOn": "", "signOff": ""}
-  ]
+  "education": [{"school": "", "degree": "", "yearGrad": ""}],
+  "documents": [{"type": "", "number": "", "dateIssued": "", "dateExpiry": "", "placeIssued": ""}],
+  "certificates": [{"name": "", "number": "", "issuedBy": "", "dateIssued": "", "validUntil": ""}],
+  "vaccinations": [{"name": "", "dateGiven": "", "validUntil": "", "placeIssued": ""}],
+  "seaService": [{"vessel": "", "imoNo": "", "rank": "", "vesselType": "", "grt": "", "dwt": "", "kw": "", "engineType": "", "tradeArea": "", "agency": "", "principal": "", "amosup": "", "signOffReason": "", "signOn": "", "signOff": ""}]
 }
 
 Date rules: Convert all dates to YYYY-MM-DD (e.g. "17/12/2023" → "2023-12-17", "17 May 1992" → "1992-05-17"). Month/year only: use first of month.
@@ -4483,85 +4490,97 @@ Field notes:
 - "Pos" column in sea service = rank; "Date of Serv (From)" = signOn; "Date of Serv (To)" = signOff
 - "BHP" column = kw field; "DWT" = dwt; "Engine" column text = engineType
 - "Agencies" column = agency (manning agency); "Principal" column = principal (shipowner)
-- "AMOSUP CBA" column = amosup; "Reason for Sign-off" or "Reason" column = signOffReason; "IMO No." or vessel IMO = imoNo
+- "AMOSUP CBA" column = amosup; "Reason for Sign-off" column = signOffReason; "IMO No." = imoNo
 - "Vessel / IMO No." combined cell: split vessel name and IMO number
-- Qualifications Certificate section: "Highest License Held" label = highestLicense
-- Health Declaration table: issuer/flag = healthFlag, dates = healthIssued/healthValid, clinic = healthClinic
+- Qualifications Certificate section "Highest License Held" = highestLicense
+- Health Declaration: issuer/flag = healthFlag, dates = healthIssued/healthValid, clinic = healthClinic
 - Pre Medical row: result = medResult, dates = medIssued/medValid, clinic = medClinic
-- Books section: include as documents with type = "Seaman's Book (SIRB)", "Liberia SIRB", "Passport" etc.
-- Children section: format as "Name — DD/MM/YYYY" combined into one children string
+- Books section: include as documents (type = "Seaman's Book (SIRB)", "Liberia SIRB", "Passport" etc.)
+- Children section: format as "Name — DD/MM/YYYY" combined into children string
 - Next of kin / nearest relative = nok
 - SSS No., TIN, Pag-Ibig No., PhilHealth No., SRC = their respective fields
 - Contact Infos table: first mobile = phone, second mobile = phone2, email = email
 - Mailing Address if different from Current Address = mailingAddress
 
-Extract ALL rows. Never invent data — leave fields empty if not visible.`;
+Extract ALL rows from every table. Never invent data — leave fields empty if not visible.`;
 
-    status.innerHTML = `⏳ Reading CGIS… (attempt 1/2)`;
+    // ── Gemini proxy (same as CV scanner — no CORS issues) ─────────────────
+    const parts = [{ text: prompt }];
+    pages.forEach((pg, i) => {
+      if (pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
+      parts.push({ inline_data: { mime_type: 'image/jpeg', data: pg.base64 } });
+    });
 
-    // Use the Anthropic API (Claude vision)
-    const buildContent = () => {
-      const content = [];
-      pages.forEach((p, i) => {
-        if (pages.length > 1) content.push({ type: 'text', text: `--- PAGE ${i + 1} of ${pages.length} ---` });
-        content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.base64 } });
-      });
-      content.push({ type: 'text', text: prompt });
-      return content;
-    };
+    const timeoutMs = Math.min(22000 + (pages.length - 1) * 10000, 65000);
+    const maxTokens = Math.min(3000 + (pages.length - 1) * 800, 8000);
+    const label = pages.length > 1 ? `${pages.length} pages` : 'your CGIS';
 
-    let responseText = '';
+    async function fetchWithTimeout(url, opts, ms) {
+      const ctrl = new AbortController();
+      const id = setTimeout(() => ctrl.abort(), ms);
+      try { const r = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(id); return r; }
+      catch (e) { clearTimeout(id); throw e; }
+    }
+
+    let resJson = null;
     for (let attempt = 1; attempt <= 2; attempt++) {
       try {
-        if (attempt === 2) status.innerHTML = `⏳ Still reading… (attempt 2/2)`;
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
+        status.innerHTML = attempt === 1
+          ? `⏳ Reading ${label}… this can take up to ${Math.round(timeoutMs/1000)}s (attempt 1/2)`
+          : `⏳ Still reading ${label}… trying again (attempt 2/2)`;
+
+        const res = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 2000,
-            messages: [{ role: 'user', content: buildContent() }]
+            contents: [{ parts }],
+            generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens }
           })
-        });
-        if (!res.ok) throw new Error('API error ' + res.status);
+        }, timeoutMs);
+
+        if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
         const d = await res.json();
-        responseText = (d.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+        if (d.error) throw new Error(d.error.message || 'API error');
+        resJson = d;
         break;
       } catch (e) {
-        console.warn('CGIS scan attempt', attempt, 'failed:', e.message);
+        console.warn(`CGIS scan attempt ${attempt} failed:`, e.message);
         if (attempt === 2) throw e;
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 2500));
       }
     }
+    if (!resJson) throw new Error('No response from scan service.');
 
-    // Parse JSON
-    let text = responseText.replace(/```json|```/g, '').trim();
+    // ── Parse Gemini response ───────────────────────────────────────────────
+    let text = resJson.candidates && resJson.candidates[0] &&
+               resJson.candidates[0].content && resJson.candidates[0].content.parts &&
+               resJson.candidates[0].content.parts[0]
+               ? resJson.candidates[0].content.parts[0].text || '' : '';
+    if (typeof text !== 'string') text = JSON.stringify(text);
+    text = text.replace(/```json|```/g, '').trim();
     const jStart = text.indexOf('{'), jEnd = text.lastIndexOf('}');
     if (jStart < 0 || jEnd < 0) throw new Error('No JSON in response');
     const data = JSON.parse(text.slice(jStart, jEnd + 1));
 
-    // ── Switch to Seafarer format first ──────────────────────────
+    // ── Switch to Seafarer format first ────────────────────────────────────
     const seamanRadio = document.querySelector('input[name="eduLevel"][value="seaman"]');
-    if (seamanRadio && !seamanRadio.checked) {
-      seamanRadio.checked = true;
-      handleEduChange();
-    }
+    if (seamanRadio && !seamanRadio.checked) { seamanRadio.checked = true; handleEduChange(); }
 
-    // ── Helper ───────────────────────────────────────────────────
+    // ── Helper ─────────────────────────────────────────────────────────────
     const set = (id, val) => { if (val) { const el = document.getElementById(id); if (el) el.value = val; } };
 
-    // ── Personal Info ─────────────────────────────────────────────
+    // ── Personal Info ──────────────────────────────────────────────────────
     if (data.fullName) {
-      const parts = data.fullName.trim().split(/\s+/).filter(Boolean);
+      const parts2 = data.fullName.trim().split(/\s+/).filter(Boolean);
       const PARTICLES = new Set(['de','dela','del','delos','los','la','san','santa','sto','da']);
-      set('firstName', parts[0] || '');
-      if (parts.length >= 3) {
-        let start = parts.length - 1;
-        while (start > 1 && PARTICLES.has(parts[start-1].toLowerCase())) start--;
-        set('lastName', parts.slice(start).join(' '));
-        set('middleName', parts.slice(1, start).join(' '));
+      set('firstName', parts2[0] || '');
+      if (parts2.length >= 3) {
+        let start = parts2.length - 1;
+        while (start > 1 && PARTICLES.has(parts2[start-1].toLowerCase())) start--;
+        set('lastName', parts2.slice(start).join(' '));
+        set('middleName', parts2.slice(1, start).join(' '));
       } else {
-        set('lastName', parts.slice(1).join(' ') || '');
+        set('lastName', parts2.slice(1).join(' ') || '');
       }
     }
     set('dob', data.dob);
@@ -4572,13 +4591,10 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
     set('nationality', data.nationality || 'Filipino');
     if (data.civilStatus) {
       const cs = document.getElementById('civilStatus');
-      if (cs) {
-        const match = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase());
-        if (match) cs.value = match.value;
-      }
+      if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === data.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
     }
 
-    // Seafarer-specific personal fields
+    // Seafarer-specific fields
     set('sm-birthPlace',     data.birthPlace);
     set('sm-height',         data.height);
     set('sm-weight',         data.weight);
@@ -4598,19 +4614,17 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
     set('sm-nok',            data.nok);
     set('sm-mailingAddress', data.mailingAddress);
     set('sm-children',       data.children);
-    // Health / medical
-    set('sm-healthFlag',   data.healthFlag);
-    set('sm-healthIssued', data.healthIssued);
-    set('sm-healthValid',  data.healthValid);
-    set('sm-healthClinic', data.healthClinic);
-    set('sm-medResult',    data.medResult);
-    set('sm-medIssued',    data.medIssued);
-    set('sm-medValid',     data.medValid);
-    set('sm-medClinic',    data.medClinic);
+    set('sm-healthFlag',     data.healthFlag);
+    set('sm-healthIssued',   data.healthIssued);
+    set('sm-healthValid',    data.healthValid);
+    set('sm-healthClinic',   data.healthClinic);
+    set('sm-medResult',      data.medResult);
+    set('sm-medIssued',      data.medIssued);
+    set('sm-medValid',       data.medValid);
+    set('sm-medClinic',      data.medClinic);
 
-    // ── Education ─────────────────────────────────────────────────
+    // ── Education ──────────────────────────────────────────────────────────
     if (data.education && data.education.length) {
-      const existing = document.querySelectorAll('#eduEntries .exp-entry');
       while (document.querySelectorAll('#eduEntries .exp-entry').length < data.education.length) addEduEntry();
       data.education.forEach((edu, i) => {
         const entry = document.getElementById(`edu-${i + 1}`);
@@ -4622,9 +4636,8 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
       });
     }
 
-    // ── Travel Documents ─────────────────────────────────────────
+    // ── Travel Documents ───────────────────────────────────────────────────
     if (data.documents && data.documents.length) {
-      // Remove the default seeded docs and re-seed with CGIS data
       document.querySelectorAll('#docEntries .exp-entry').forEach(el => el.remove());
       docCount = 0;
       data.documents.forEach(doc => {
@@ -4632,8 +4645,6 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
         const entry = document.getElementById(`doc-${docCount}`);
         if (!entry) return;
         const inp = entry.querySelectorAll('input');
-        // inp[0] = type (already set by addDocEntry), inp[1] = number
-        // inp[2] = dateIssued, inp[3] = dateExpiry, inp[4] = placeIssued
         if (inp[1]) inp[1].value = doc.number || '';
         if (inp[2]) inp[2].value = doc.dateIssued || '';
         if (inp[3]) inp[3].value = doc.dateExpiry || '';
@@ -4641,7 +4652,7 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
       });
     }
 
-    // ── Certificates ─────────────────────────────────────────────
+    // ── Certificates ───────────────────────────────────────────────────────
     if (data.certificates && data.certificates.length) {
       document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
       certCount = 0;
@@ -4650,7 +4661,6 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
         const entry = document.getElementById(`cert-${certCount}`);
         if (!entry) return;
         const inp = entry.querySelectorAll('input');
-        // inp[0] = name, inp[1] = number, inp[2] = issuedBy, inp[3] = dateIssued, inp[4] = validUntil
         if (inp[0]) inp[0].value = cert.name || '';
         if (inp[1]) inp[1].value = cert.number || '';
         if (inp[2]) inp[2].value = cert.issuedBy || '';
@@ -4659,7 +4669,7 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
       });
     }
 
-    // ── Vaccinations ─────────────────────────────────────────────
+    // ── Vaccinations ───────────────────────────────────────────────────────
     if (data.vaccinations && data.vaccinations.length) {
       document.querySelectorAll('#vaxEntries .exp-entry').forEach(el => el.remove());
       vaxCount = 0;
@@ -4668,7 +4678,6 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
         const entry = document.getElementById(`vax-${vaxCount}`);
         if (!entry) return;
         const inp = entry.querySelectorAll('input');
-        // inp[0] = vaccine, inp[1] = placeIssued, inp[2] = dateGiven, inp[3] = validUntil
         if (inp[0]) inp[0].value = vax.name || '';
         if (inp[1]) inp[1].value = vax.placeIssued || '';
         if (inp[2]) inp[2].value = vax.dateGiven || '';
@@ -4676,10 +4685,7 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
       });
     }
 
-    // ── Sea Service ─────────────────────────────────────────────────────────────
-    // Input order matches addSeaEntry:
-    // 0=vessel,1=imoNo,2=rank,3=vesselType,4=grt,5=dwt,6=kw,7=engineType,
-    // 8=tradeArea,9=company,10=principal,11=amosup, select=signOffReason,12=signOn,13=signOff
+    // ── Sea Service ────────────────────────────────────────────────────────
     if (data.seaService && data.seaService.length) {
       document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
       seaCount = 0;
@@ -4711,32 +4717,33 @@ Extract ALL rows. Never invent data — leave fields empty if not visible.`;
       });
     }
 
-    // Count what was filled
+    // ── Count filled sections ──────────────────────────────────────────────
     let filled = 0;
     if (data.fullName) filled++;
     if (data.dob) filled++;
     if (data.address) filled++;
+    if (data.sss || data.tin) filled++;
     if (data.documents && data.documents.length) filled++;
     if (data.certificates && data.certificates.length) filled++;
     if (data.vaccinations && data.vaccinations.length) filled++;
     if (data.seaService && data.seaService.length) filled++;
     if (data.education && data.education.length) filled++;
 
+    const cappedNote = capped ? ` <small style="opacity:.7">Only first ${MAX_PAGES} pages read.</small>` : '';
     status.className = 'cgis-status success';
-    status.innerHTML = `✅ CGIS scanned! ${filled} section${filled===1?'':'s'} auto-filled — please review each field before submitting.`;
+    status.innerHTML = `✅ Scanned ${pages.length} page${pages.length>1?'s':''} — ${filled} section${filled===1?'':'s'} filled in. Review each field before submitting.${cappedNote}`;
 
-    showNotif(`✅ CGIS scan complete — ${filled} sections filled. Please review and submit.`);
-
-    // Scroll to personal info section
-    setTimeout(() => {
-      document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 1000);
+    showNotif(`✅ CGIS scan complete — ${filled} sections filled. Please review.`);
+    setTimeout(() => document.getElementById('firstName')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 1000);
 
   } catch (err) {
     console.error('CGIS scan error:', err);
     status.className = 'cgis-status error';
-    status.innerHTML = `❌ Could not read the CGIS. Make sure the photo is clear and well-lit. <br>
-      <small style="opacity:.7">(${err.message || 'Unknown error'})</small><br>
+    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
+    const tip = isTimeout
+      ? `⏱️ Timed out — try with fewer pages, or retry in a moment.`
+      : `❌ Could not read the CGIS. Make sure photos are clear and well-lit.`;
+    status.innerHTML = tip + `<br><small style="opacity:.7">(${err.message || 'Unknown error'})</small><br>
       <button onclick="document.getElementById('cgisScanInput').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>`;
   }
 }
@@ -7834,6 +7841,343 @@ ${pc}
   </div>
 
 </div></body></html>`;}
+
+// ─── REVIEW LINK HELPERS ──────────────────────────────────────────────────────
+function copyReviewLink() {
+  const link = window._lastReviewLink || document.getElementById('reviewLinkText')?.textContent || '';
+  if (!link) return;
+  navigator.clipboard?.writeText(link).then(() => showNotif('✅ Review link copied!')).catch(() => {
+    const el = document.getElementById('reviewLinkText');
+    if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
+    showNotif('📋 Link selected — press Ctrl+C to copy');
+  });
+}
+function openReviewLink() {
+  const link = window._lastReviewLink || document.getElementById('reviewLinkText')?.textContent || '';
+  if (link) window.open(link, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CUSTOMER REVIEW PAGE  (?review=TOKEN)
+// Activated on page load when the URL has ?review=TOKEN. Fetches the matching
+// submission from JSONBin, pre-fills an editable form, and lets the customer
+// confirm or correct everything. On confirm, the submission is patched in place.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Boot: check for ?review= in URL ──────────────────────────────────────────
+(function checkReviewMode() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('review');
+  if (!token) return;
+  // Hide everything else and show the review page
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('startPage')?.classList.remove('active');
+    document.getElementById('stepsBar')?.style && (document.getElementById('stepsBar').style.display = 'none');
+    document.querySelectorAll('header .track-toggle').forEach(b => b.style.display = 'none');
+    document.getElementById('reviewPage')?.classList.add('active');
+    loadReviewSubmission(token);
+  });
+})();
+
+async function loadReviewSubmission(token) {
+  const loading = document.getElementById('rv-loading');
+  const form    = document.getElementById('rv-form');
+  const success = document.getElementById('rv-success');
+
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!res.ok) throw new Error('Could not load submission (status ' + res.status + ')');
+    const json = await res.json();
+    const subs = json?.record?.submissions || json?.submissions || [];
+    const sub  = subs.find(s => s.reviewToken === token);
+
+    if (!sub) {
+      loading.innerHTML = '❌ Review link not found or has expired. Please contact Reymar Arroyo at 09063964052.';
+      return;
+    }
+
+    // Store token + sub ID globally so submitReview can patch the right record
+    window._rv_token = token;
+    window._rv_subId = sub.id;
+
+    // Fill header info
+    document.getElementById('rv-ref').textContent  = sub.id || '—';
+    document.getElementById('rv-date').textContent = sub.submittedAt
+      ? new Date(sub.submittedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+
+    if (sub.customerConfirmed) {
+      document.getElementById('rv-edited-note').style.display = 'block';
+    }
+
+    const p = sub.personal || {};
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val !== undefined && val !== null) el.value = val; };
+
+    // Personal
+    set('rv-firstName',   p.firstName);
+    set('rv-middleName',  p.middleName);
+    set('rv-lastName',    p.lastName);
+    set('rv-jobTitle',    p.jobTitle);
+    set('rv-nationality', p.nationality);
+    set('rv-dob',         p.dob);
+    set('rv-address',     p.address);
+    set('rv-phone',       p.phone);
+    set('rv-email',       p.email);
+    if (p.civilStatus) {
+      const cs = document.getElementById('rv-civilStatus');
+      if (cs) { const m = [...cs.options].find(o => o.value.toLowerCase() === p.civilStatus.toLowerCase()); if (m) cs.value = m.value; }
+    }
+    if (p.gender) {
+      const gf = document.getElementById('rv-gender');
+      if (gf) { const m = [...gf.options].find(o => o.value.toLowerCase() === p.gender.toLowerCase()); if (m) gf.value = m.value; }
+    }
+
+    set('rv-aboutMe',            sub.aboutMe);
+    set('rv-specialInstructions',sub.specialInstructions);
+
+    // Education
+    const eduList = document.getElementById('rv-eduList');
+    (sub.education || []).forEach((e, i) => {
+      eduList.insertAdjacentHTML('beforeend', `
+        <div class="exp-entry">
+          <div class="exp-entry-num">Education #${i + 1}</div>
+          <div class="field-row full"><div class="field"><label>School / University</label>
+            <input type="text" value="${esc(e.school||'')}"></div></div>
+          <div class="field-row"><div class="field"><label>Degree / Course</label>
+            <input type="text" value="${esc(e.degree||'')}"></div>
+            <div class="field"><label>Year Graduated</label>
+            <input type="text" value="${esc(e.yearGrad||'')}"></div></div>
+        </div>`);
+    });
+    if (!(sub.education || []).length) {
+      eduList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+        <div class="field-row full"><div class="field"><label>School / University</label><input type="text" placeholder="e.g. Agro Industrial Foundation College"></div></div>
+        <div class="field-row"><div class="field"><label>Degree / Course</label><input type="text" placeholder="BS Marine Engineering"></div>
+          <div class="field"><label>Year Graduated</label><input type="text" placeholder="2014"></div></div>
+      </div>`);
+    }
+
+    const isSeaman = sub.eduLevel === 'seaman';
+    if (isSeaman) {
+      document.getElementById('rv-seamanSections').style.display = 'block';
+      const sm = sub.seaman || {};
+
+      // Documents
+      const docList = document.getElementById('rv-docList');
+      (sm.documents || []).forEach((d, i) => {
+        docList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+          <div class="exp-entry-num">Document #${i + 1}</div>
+          <div class="field-row"><div class="field"><label>Type</label><input type="text" value="${esc(d.type||'')}"></div>
+            <div class="field"><label>Number</label><input type="text" value="${esc(d.number||'')}"></div></div>
+          <div class="field-row triple">
+            <div class="field"><label>Date Issued</label><input type="date" value="${esc(d.dateIssued||'')}"></div>
+            <div class="field"><label>Date Expiry</label><input type="date" value="${esc(d.dateExpiry||'')}"></div>
+            <div class="field"><label>Place Issued</label><input type="text" value="${esc(d.placeIssued||'')}"></div>
+          </div></div>`);
+      });
+      if (!(sm.documents || []).length) docList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No documents were captured from your CGIS. Please contact us to add them manually.</p>';
+
+      // Certificates
+      const certList = document.getElementById('rv-certList');
+      (sm.certificates || []).forEach((c, i) => {
+        certList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+          <div class="exp-entry-num">Certificate #${i + 1}</div>
+          <div class="field-row full"><div class="field"><label>Certificate Name</label><input type="text" value="${esc(c.name||'')}"></div></div>
+          <div class="field-row">
+            <div class="field"><label>Number</label><input type="text" value="${esc(c.number||'')}"></div>
+            <div class="field"><label>Issued By</label><input type="text" value="${esc(c.issuedBy||'')}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date Issued</label><input type="date" value="${esc(c.dateIssued||'')}"></div>
+            <div class="field"><label>Valid Until</label><input type="date" value="${esc(c.validUntil||'')}"></div>
+          </div></div>`);
+      });
+      if (!(sm.certificates || []).length) certList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No certificates captured. Please contact us to add them manually.</p>';
+
+      // Vaccinations
+      const vaxList = document.getElementById('rv-vaxList');
+      (sm.vaccinations || []).forEach((v, i) => {
+        vaxList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+          <div class="exp-entry-num">Vaccination #${i + 1}</div>
+          <div class="field-row">
+            <div class="field"><label>Vaccine</label><input type="text" value="${esc(v.name||'')}"></div>
+            <div class="field"><label>Place Issued</label><input type="text" value="${esc(v.placeIssued||'')}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date Given</label><input type="date" value="${esc(v.dateGiven||'')}"></div>
+            <div class="field"><label>Valid Until</label><input type="date" value="${esc(v.validUntil||'')}"></div>
+          </div></div>`);
+      });
+      if (!(sm.vaccinations || []).length) vaxList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No vaccinations captured.</p>';
+
+      // Sea service
+      const seaList = document.getElementById('rv-seaList');
+      (sm.seaService || []).forEach((v, i) => {
+        seaList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+          <div class="exp-entry-num">Vessel #${i + 1}</div>
+          <div class="field-row">
+            <div class="field"><label>Vessel Name</label><input type="text" value="${esc(v.vessel||'')}"></div>
+            <div class="field"><label>Rank</label><input type="text" value="${esc(v.rank||'')}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Vessel Type</label><input type="text" value="${esc(v.vesselType||'')}"></div>
+            <div class="field"><label>Manning Agency</label><input type="text" value="${esc(v.company||v.agency||'')}"></div>
+          </div>
+          <div class="field-row triple">
+            <div class="field"><label>GRT</label><input type="text" value="${esc(v.grt||'')}"></div>
+            <div class="field"><label>KW / HP</label><input type="text" value="${esc(v.kw||'')}"></div>
+            <div class="field"><label>Trade Area</label><input type="text" value="${esc(v.tradeArea||'')}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Sign On</label><input type="date" value="${esc(v.signOn||'')}"></div>
+            <div class="field"><label>Sign Off</label><input type="date" value="${esc(v.signOff||'')}"></div>
+          </div></div>`);
+      });
+      if (!(sm.seaService || []).length) seaList.innerHTML = '<p style="font-size:12px;color:var(--gray);">No sea service records captured. Please contact us.</p>';
+
+    } else {
+      // Non-seaman work experience
+      document.getElementById('rv-workSection').style.display = 'block';
+      const workList = document.getElementById('rv-workList');
+      (sub.workExperience || []).filter(w => w.company).forEach((w, i) => {
+        workList.insertAdjacentHTML('beforeend', `<div class="exp-entry">
+          <div class="exp-entry-num">Job #${i + 1}</div>
+          <div class="field-row">
+            <div class="field"><label>Company</label><input type="text" value="${esc(w.company||'')}"></div>
+            <div class="field"><label>Position</label><input type="text" value="${esc(w.position||'')}"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Date Started</label><input type="text" value="${esc(w.dateStart||'')}"></div>
+            <div class="field"><label>Date Ended</label><input type="text" value="${esc(w.dateEnd||'')}"></div>
+          </div></div>`);
+      });
+    }
+
+    loading.style.display = 'none';
+    form.style.display    = 'block';
+
+  } catch (err) {
+    loading.innerHTML = `❌ Could not load your details — please check your connection and try again.<br>
+      <small style="color:var(--gray)">${err.message}</small><br><br>
+      <a href="tel:09063964052" style="color:var(--navy);font-weight:700;">📱 Call Reymar: 09063964052</a>`;
+  }
+}
+
+// Simple HTML escaper for values inserted via innerHTML
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Collect values from the review form and patch JSONBin
+async function submitReview() {
+  const btn     = document.getElementById('rv-confirmBtn');
+  const label   = document.getElementById('rv-confirmLabel');
+  const spinner = document.getElementById('rv-confirmSpinner');
+  btn.disabled  = true;
+  label.textContent = 'Saving…';
+  spinner.classList.remove('hidden');
+
+  try {
+    // Collect edits from the review form
+    const gv   = id => document.getElementById(id)?.value.trim() || '';
+    const patch = {
+      personal: {
+        firstName:   gv('rv-firstName'),
+        middleName:  gv('rv-middleName'),
+        lastName:    gv('rv-lastName'),
+        jobTitle:    gv('rv-jobTitle'),
+        nationality: gv('rv-nationality'),
+        dob:         gv('rv-dob'),
+        address:     gv('rv-address'),
+        phone:       gv('rv-phone'),
+        email:       gv('rv-email'),
+        civilStatus: gv('rv-civilStatus'),
+        gender:      gv('rv-gender')
+      },
+      aboutMe:            gv('rv-aboutMe'),
+      specialInstructions:gv('rv-specialInstructions'),
+      customerConfirmed:  true,
+      customerConfirmedAt:new Date().toISOString(),
+      // Collect education edits
+      education: [...document.querySelectorAll('#rv-eduList .exp-entry')].map(entry => {
+        const inp = entry.querySelectorAll('input');
+        return { school: inp[0]?.value || '', degree: inp[1]?.value || '', yearGrad: inp[2]?.value || '' };
+      }).filter(e => e.school),
+      // Collect seaman section edits
+      _rv_seamanEdits: {
+        documents: [...document.querySelectorAll('#rv-docList .exp-entry')].map(entry => {
+          const inp = entry.querySelectorAll('input');
+          return { type: inp[0]?.value||'', number: inp[1]?.value||'', dateIssued: inp[2]?.value||'', dateExpiry: inp[3]?.value||'', placeIssued: inp[4]?.value||'' };
+        }).filter(d => d.type || d.number),
+        certificates: [...document.querySelectorAll('#rv-certList .exp-entry')].map(entry => {
+          const inp = entry.querySelectorAll('input');
+          return { name: inp[0]?.value||'', number: inp[1]?.value||'', issuedBy: inp[2]?.value||'', dateIssued: inp[3]?.value||'', validUntil: inp[4]?.value||'' };
+        }).filter(c => c.name),
+        vaccinations: [...document.querySelectorAll('#rv-vaxList .exp-entry')].map(entry => {
+          const inp = entry.querySelectorAll('input');
+          return { name: inp[0]?.value||'', placeIssued: inp[1]?.value||'', dateGiven: inp[2]?.value||'', validUntil: inp[3]?.value||'' };
+        }).filter(v => v.name),
+        seaService: [...document.querySelectorAll('#rv-seaList .exp-entry')].map(entry => {
+          const inp = entry.querySelectorAll('input');
+          return { vessel: inp[0]?.value||'', rank: inp[1]?.value||'', vesselType: inp[2]?.value||'', company: inp[3]?.value||'', grt: inp[4]?.value||'', kw: inp[5]?.value||'', tradeArea: inp[6]?.value||'', signOn: inp[7]?.value||'', signOff: inp[8]?.value||'' };
+        }).filter(v => v.vessel)
+      }
+    };
+
+    // Fetch full record, find submission by token, merge patch
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': JSONBIN_API_KEY }
+    });
+    if (!res.ok) throw new Error('Could not load record');
+    const json  = await res.json();
+    const rec   = json?.record || json || {};
+    const subs  = rec.submissions || [];
+    const idx   = subs.findIndex(s => s.reviewToken === window._rv_token);
+    if (idx < 0) throw new Error('Submission not found');
+
+    const existing = subs[idx];
+    // Merge personal fields (preserve photo and other fields we don't show)
+    subs[idx] = {
+      ...existing,
+      personal: { ...existing.personal, ...patch.personal, photo: existing.personal?.photo || '' },
+      aboutMe:             patch.aboutMe             || existing.aboutMe,
+      specialInstructions: patch.specialInstructions || existing.specialInstructions,
+      education:           patch.education.length    ? patch.education : existing.education,
+      customerConfirmed:   true,
+      customerConfirmedAt: patch.customerConfirmedAt,
+      // Merge seaman sub-sections if this is a seafarer submission
+      seaman: existing.seaman ? {
+        ...existing.seaman,
+        documents:    patch._rv_seamanEdits.documents.length    ? patch._rv_seamanEdits.documents    : existing.seaman.documents,
+        certificates: patch._rv_seamanEdits.certificates.length ? patch._rv_seamanEdits.certificates : existing.seaman.certificates,
+        vaccinations: patch._rv_seamanEdits.vaccinations.length ? patch._rv_seamanEdits.vaccinations : existing.seaman.vaccinations,
+        seaService:   patch._rv_seamanEdits.seaService.length   ? patch._rv_seamanEdits.seaService   : existing.seaman.seaService
+      } : existing.seaman
+    };
+
+    const putRes = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+      body: JSON.stringify({ ...rec, submissions: subs })
+    });
+    if (!putRes.ok) throw new Error('Save failed (status ' + putRes.status + ')');
+
+    document.getElementById('rv-form').style.display    = 'none';
+    document.getElementById('rv-success').style.display = 'block';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    console.error('Review submit error:', err);
+    btn.disabled = false;
+    label.textContent = '✅ Confirm — Details are Correct';
+    spinner.classList.add('hidden');
+    showNotif('❌ Could not save — please check your connection and try again.', true);
+  }
+}
+
 
 // ─── NOTIF ────────────────────────────────────────────────────────────────────
 function showNotif(msg, isError = false) {
