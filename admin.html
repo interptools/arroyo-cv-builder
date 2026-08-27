@@ -3976,6 +3976,18 @@ const ADMIN_CV_TOOLBAR = `
   .acv-bar .hint{color:rgba(255,255,255,.5);font-size:11px;margin-left:auto}
   body{padding-top:52px!important}
 
+  /* Typed or pasted content cannot repaint the coloured chips — the wrong
+     colour on a gold or navy ground makes the label disappear. */
+  /* The chip keeps its gold ground; only pasted children get neutralised.
+     Clearing the background on .rank-badge itself left navy text on the navy
+     header, which is how this went invisible in the first place. */
+  .rank-badge{background:#ffd166!important}
+  .rank-badge, .rank-badge *{color:#0b2545!important}
+  .rank-badge *{background:none!important}
+  .sh, .sh *{color:#ffd166!important}
+  .band, .band *{color:#1f3864!important}
+  .hdr h1, .hdr h1 *{color:#fff!important}
+
   [contenteditable="true"]:hover{background:rgba(52,211,153,.16);
     outline:1px dashed rgba(52,211,153,.65)}
   [contenteditable="true"]:focus{background:rgba(255,209,102,.28);outline:2px solid #d9a400}
@@ -4199,6 +4211,16 @@ const ADMIN_CV_TOOLBAR = `
       r.readAsDataURL(f);
     };
   })();
+
+  // Paste as plain text. A paste otherwise carries its source colour and font
+  // inline, which overrides the stylesheet and can hide text on a chip.
+  document.addEventListener('paste', function(e){
+    var box = e.target.closest && e.target.closest('[contenteditable="true"]');
+    if(!box) return;
+    e.preventDefault();
+    var t = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, t.replace(/\s+/g,' ').trim());
+  });
 
   window.acvPrint=function(){
     if(editing) nodes().forEach(function(el){el.contentEditable='false';});
