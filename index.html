@@ -8543,6 +8543,15 @@ ${pc}
        No CSS can suppress that: untick "Headers and footers" in the print
        dialog. Chrome remembers the setting. */
     @page{margin:12mm;size:A4 portrait;}
+    /* builder.html wraps every CV in a shared stylesheet that pins html/body to
+       one A4 sheet with overflow:hidden, because templates 1-15 are single-page.
+       A seafarer CV runs to three, so that clamp has to be released here or
+       pages 2 and 3 are silently cropped away. Harmless where it isn't set. */
+    html,body{height:auto!important;overflow:visible!important;
+              width:auto!important;}
+    .page-wrap,.page{height:auto!important;overflow:visible!important;
+              width:auto!important;transform:none!important;
+              min-height:0!important;display:block!important;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
              padding:0!important;}
     /* thead already repeats via display:table-header-group */
@@ -8835,6 +8844,15 @@ ${pc}
     /* Margins on @page so they repeat per sheet — see the note in T16.
        Untick "Headers and footers" in the print dialog. */
     @page{margin:12mm;size:A4 portrait;}
+    /* builder.html wraps every CV in a shared stylesheet that pins html/body to
+       one A4 sheet with overflow:hidden, because templates 1-15 are single-page.
+       A seafarer CV runs to three, so that clamp has to be released here or
+       pages 2 and 3 are silently cropped away. Harmless where it isn't set. */
+    html,body{height:auto!important;overflow:visible!important;
+              width:auto!important;}
+    .page-wrap,.page{height:auto!important;overflow:visible!important;
+              width:auto!important;transform:none!important;
+              min-height:0!important;display:block!important;}
     .sea-doc{width:100%!important;box-shadow:none!important;margin:0!important;
              padding:0!important;}
   }
