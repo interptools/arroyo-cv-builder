@@ -1798,6 +1798,10 @@ function renderDashboard(){
   </tr>`).join('')}</tbody></table>`;
 }
 
+// ── SUBMISSIONS STATE ─────────────────────────────────────────────────────────
+let currentFilter='all';
+let sortKey='num', sortDir='desc';
+
 function goToApprovals(){
   const nav=[...document.querySelectorAll('.nav-item')]
     .find(b=>(b.getAttribute('onclick')||'').includes('submissionsPage'));
