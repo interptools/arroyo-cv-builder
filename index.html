@@ -3471,7 +3471,8 @@ const cVal = id => document.getElementById(id).value.trim();
 
 function collectCoverLetter(){
   return {
-    id: 'ACL-' + Date.now().toString(36).toUpperCase().slice(-5),
+    id: 'ACL-' + Date.now().toString(36).toUpperCase().slice(-5)
+        + '-' + Math.random().toString(36).toUpperCase().slice(2, 5),
     serviceType: 'coverLetter',
     submittedAt: new Date().toISOString(),
     status: 'New',
@@ -3941,7 +3942,8 @@ const rVal = id => document.getElementById(id).value.trim();
 
 function collectResignation(){
   return {
-    id: 'ARL-' + Date.now().toString(36).toUpperCase().slice(-5),
+    id: 'ARL-' + Date.now().toString(36).toUpperCase().slice(-5)
+        + '-' + Math.random().toString(36).toUpperCase().slice(2, 5),
     serviceType: 'resignation',
     submittedAt: new Date().toISOString(),
     status: 'New',

@@ -6,6 +6,7 @@
 <title>Admin Dashboard – Arroyo CV Builder</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='12' fill='%231a2744'/><rect x='25' y='20' width='50' height='60' rx='4' fill='white'/><rect x='32' y='32' width='20' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='40' width='36' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='48' width='36' height='3' rx='1.5' fill='%23c8a84b'/><rect x='32' y='56' width='28' height='3' rx='1.5' fill='%231a2744'/><rect x='32' y='64' width='32' height='3' rx='1.5' fill='%231a2744'/></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -67,6 +68,9 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--text
 .stat-card .sc-label{font-size:11px;font-weight:600;color:var(--gray);letter-spacing:.5px;text-transform:uppercase;}
 .stat-card .sc-value{font-size:28px;font-weight:700;color:var(--navy);margin:6px 0 2px;}
 .stat-card .sc-sub{font-size:12px;color:var(--gray);}
+.card{background:white;border-radius:14px;padding:24px 28px;box-shadow:0 2px 16px rgba(26,39,68,.07);margin-bottom:20px;}
+.card h3{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+.card>p{font-size:13px;color:var(--gray);line-height:1.6;}
 .table-card{background:white;border-radius:14px;box-shadow:0 2px 16px rgba(26,39,68,.07);overflow:hidden;margin-bottom:20px;}
 .table-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-light);}
 .table-header h3{font-size:15px;font-weight:700;color:var(--navy);}
@@ -196,6 +200,38 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .empty-state{text-align:center;padding:48px;color:var(--gray);}
 .empty-state .es-icon{font-size:48px;margin-bottom:12px;}
 .hidden{display:none!important;}
+/* ── LAST SAVED INDICATOR ── */
+#lastSavedBar{padding:5px 14px 4px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.07);font-size:10px;font-weight:600;color:rgba(255,255,255,.38);letter-spacing:.4px;transition:color .3s;}
+#lastSavedBar.ok{color:#6ee7b7;}
+#lastSavedBar.err{color:#fca5a5;}
+/* ── NEW SUBMISSION BADGE ── */
+@keyframes newPulse{0%,100%{box-shadow:0 0 0 0 rgba(200,168,75,.6);}50%{box-shadow:0 0 0 6px rgba(200,168,75,0);}}
+.new-arrivals-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--navy);color:var(--gold-light);border:1.5px solid var(--gold);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;z-index:99990;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:newPulse 2s ease-in-out infinite;display:none;}
+/* ── SOFT DELETE TRASH FILTER ── */
+.filter-btn.trash-btn{border-color:#fca5a5;color:var(--error);}
+.filter-btn.trash-btn.active{background:var(--error);color:white;border-color:var(--error);}
+/* ── BULK ACTIONS ── */
+.bulk-bar{background:var(--navy);border-radius:10px;padding:10px 16px;display:none;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:white;}
+.bulk-bar.visible{display:flex;}
+.bulk-bar .bc{font-weight:700;color:var(--gold-light);}
+.bulk-btn{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:white;transition:background .2s;}
+.bulk-btn:hover{background:rgba(255,255,255,.18);}
+.bulk-btn.danger{border-color:#fca5a5;color:#fca5a5;}
+.bulk-btn.danger:hover{background:rgba(239,68,68,.15);}
+.row-check{width:15px;height:15px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+/* ── DATE RANGE FILTER ── */
+.date-range-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--gray);}
+.date-range-wrap input[type=date]{padding:5px 8px;border:1.5px solid var(--gray-light);border-radius:7px;font-size:12px;font-family:'Inter',sans-serif;outline:none;background:white;cursor:pointer;}
+.date-range-wrap input[type=date]:focus{border-color:var(--navy);}
+.date-range-wrap .dr-clear{background:none;border:none;color:var(--gray);font-size:11px;cursor:pointer;text-decoration:underline;padding:0;}
+/* ── SEARCH HIGHLIGHT ── */
+.hl-match{background:#fef9c3;color:#854d0e;border-radius:2px;padding:0 1px;}
+/* ── ACTION LOG ── */
+.alog-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-light);font-size:11.5px;}
+.alog-item:last-child{border-bottom:none;}
+.alog-icon{font-size:13px;flex-shrink:0;margin-top:1px;}
+.alog-text{flex:1;color:#374151;line-height:1.5;}
+.alog-time{font-size:10.5px;color:#9ca3af;white-space:nowrap;margin-top:1px;}
 .sea-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#0b2545;color:#ffd166;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 .eu-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#003399;color:#ffcc00;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 /* Self-service orders and the payment proof they can attach. A customer-typed
@@ -410,6 +446,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+      <div id="lastSavedBar" style="margin-top:8px;">⏳ Not saved yet</div>
     </div>
   </aside>
 
@@ -435,6 +472,17 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <div class="table-header"><h3>Where People Drop Off</h3></div>
         <div id="funnelBody" style="padding:18px 20px;"></div>
       </div>
+      <!-- Revenue chart — last 8 weeks of collected payments -->
+      <div class="table-card" style="margin-bottom:20px;">
+        <div class="table-header">
+          <h3>💰 Weekly Revenue</h3>
+          <span style="font-size:11px;color:var(--gray);">Collected payments · last 8 weeks</span>
+        </div>
+        <div style="padding:18px 20px 12px;">
+          <canvas id="revenueChart" height="110"></canvas>
+        </div>
+      </div>
+
       <div class="table-card">
         <div class="table-header"><h3>Recent Submissions</h3></div>
         <div id="recentTableBody"></div>
@@ -450,6 +498,24 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <span class="badge-count" id="totalBadge">0</span>
         </div>
       </div>
+      <!-- Bulk action bar — visible only when rows are checked -->
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bc" id="bulkCount">0 selected</span>
+        <button class="bulk-btn" onclick="bulkCycleStatus()">⟳ Advance Status</button>
+        <button class="bulk-btn" onclick="bulkMarkPaid()">💰 Mark Paid</button>
+        <button class="bulk-btn danger" onclick="bulkDelete()">🗑 Delete</button>
+        <button class="bulk-btn" onclick="clearSelection()" style="margin-left:auto;">✕ Clear</button>
+      </div>
+
+      <!-- Date range filter -->
+      <div class="date-range-wrap" style="margin-bottom:10px;">
+        <span>Filter by date:</span>
+        <input type="date" id="drFrom" onchange="renderSubmissions()" title="From date">
+        <span>to</span>
+        <input type="date" id="drTo" onchange="renderSubmissions()" title="To date">
+        <button class="dr-clear" onclick="clearDateRange()">clear</button>
+      </div>
+
       <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
         <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)">All <span class="fcount" id="fc_all">0</span></button>
         <button class="filter-btn" data-filter="New" onclick="setFilter('New',this)">🔵 New <span class="fcount" id="fc_New">0</span></button>
@@ -462,6 +528,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
         <button class="filter-btn" data-filter="clOnly" onclick="setFilter('clOnly',this)">📝 CL Only <span class="fcount" id="fc_clOnly">0</span></button>
         <button class="filter-btn" data-filter="archived" onclick="setFilter('archived',this)" title="Expired orders, reduced to a payment receipt">🗃 Archived <span class="fcount" id="fc_archived">0</span></button>
+        <button class="filter-btn trash-btn" data-filter="trash" onclick="setFilter('trash',this)" title="Soft-deleted orders — restore or permanently delete">🗑 Trash <span class="fcount" id="fc_trash">0</span></button>
         <button class="filter-btn needs-approval" data-filter="needsApproval" onclick="setFilter('needsApproval',this)" title="Self-service customers who submitted a GCash reference and are waiting on you">🧾 Needs approval <span class="fcount" id="fc_needsApproval">0</span></button>
         <button class="filter-btn" data-filter="unpaid" onclick="setFilter('unpaid',this)">💰 Unpaid <span class="fcount" id="fc_unpaid">0</span></button>
         <button class="filter-btn" data-filter="paid" onclick="setFilter('paid',this)">✅ Paid <span class="fcount" id="fc_paid">0</span></button>
@@ -1240,9 +1307,11 @@ function enterApp(){
   document.getElementById('loginOverlay').style.display='none';
   document.getElementById('adminApp').style.display='block';
   loadData();
+  startAutoRefresh();
 }
 
 function doLogout(){
+  stopAutoRefresh();
   endSession();
   document.getElementById('loginOverlay').style.display='flex';
   document.getElementById('adminApp').style.display='none';
@@ -1349,10 +1418,22 @@ async function commitSubmissions(extra){
   const remote = Array.isArray(ex.submissions) ? ex.submissions : [];
   const localById = new Map(submissions.filter(s => s && s.id).map(s => [s.id, s]));
 
+  // For ID-less records (legacy data), track them by a composite fingerprint
+  // so they can be deleted — previously they were ALWAYS re-added from remote.
+  const idlessFingerprint = s =>
+    (s?.submittedAt || '') + '|' + (s?.personal?.email || '') + '|' + (s?.personal?.phone || '');
+  const localIdlessFingerprints = new Set(
+    submissions.filter(s => s && !s.id).map(idlessFingerprint)
+  );
+
   const merged = [];
   const used = new Set();
   for(const r of remote){
-    if(!r || !r.id){ merged.push(r); continue; }
+    if(!r || !r.id){
+      // Only keep if still present locally — absence means intentional delete
+      if(localIdlessFingerprints.has(idlessFingerprint(r))) merged.push(r);
+      continue;
+    }
     if(localById.has(r.id)){ merged.push(localById.get(r.id)); used.add(r.id); }
     else if(baselineIds.has(r.id)){ /* removed here on purpose — stays removed */ }
     else merged.push(r);                       // arrived while this tab was open
@@ -1362,8 +1443,8 @@ async function commitSubmissions(extra){
     if(l && l.id && !used.has(l.id) && !remote.some(r => r && r.id === l.id)) merged.push(l);
 
   submissions = merged;
-  snapshotBaseline();
   await putRecord({...ex, ...(extra || {}), submissions: merged});
+  snapshotBaseline();   // only update baseline after a confirmed write
 }
 
 async function loadData(){
@@ -1407,12 +1488,14 @@ async function putRecord(obj){
   if(!res.ok){
     let detail = '';
     try{ detail = (await res.json())?.message || ''; }catch(e){}
+    markLastSaved(false);
     if(res.status === 400 || res.status === 413)
       throw new Error('Storage rejected the write — the bin is probably over its size limit. '+detail);
     if(res.status === 401 || res.status === 403)
       throw new Error('Storage key rejected the write (HTTP '+res.status+') — the JSONBin key may be read-only. '+detail);
     throw new Error('Write failed (HTTP '+res.status+'). '+detail);
   }
+  markLastSaved(true);
   return true;
 }
 
@@ -1671,9 +1754,107 @@ async function renderFunnel(){
   box.innerHTML = html;
 }
 
+// ── REVENUE CHART ─────────────────────────────────────────────────────────────
+// Draws a bar chart of collected payments per week for the last 8 weeks.
+// Pure canvas — no external libraries needed.
+let _revenueChartInst = null;
+
+function renderRevenueChart(){
+  const canvas = document.getElementById('revenueChart');
+  if(!canvas) return;
+
+  // Build 8 weekly buckets (Mon–Sun) ending this week
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun
+  // Start of this Monday (or today if Monday)
+  const thisMon = new Date(now);
+  thisMon.setHours(0,0,0,0);
+  thisMon.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+
+  const buckets = [];
+  for(let w = 7; w >= 0; w--){
+    const start = new Date(thisMon);
+    start.setDate(thisMon.getDate() - w * 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 7);
+    const label = w === 0 ? 'This wk'
+      : w === 1 ? 'Last wk'
+      : start.toLocaleDateString('en-PH',{month:'short',day:'numeric'});
+    buckets.push({ start, end, label, total: 0 });
+  }
+
+  // Tally paid amounts into buckets
+  submissions.filter(s => !isTestOrder(s) && isPaid(s)).forEach(s => {
+    const t = new Date(s.payment.paidAt).getTime();
+    if(isNaN(t)) return;
+    const bucket = buckets.find(b => t >= b.start.getTime() && t < b.end.getTime());
+    if(bucket) bucket.total += paidAmount(s);
+  });
+
+  const vals   = buckets.map(b => b.total);
+  const labels = buckets.map(b => b.label);
+  const maxVal = Math.max(...vals, 1);
+
+  // Destroy previous chart if any (prevents overlapping canvases)
+  if(_revenueChartInst){ _revenueChartInst.destroy(); _revenueChartInst = null; }
+
+  // Draw with Chart.js if available, otherwise plain canvas
+  if(typeof Chart !== 'undefined'){
+    _revenueChartInst = new Chart(canvas, {
+      type: 'bar',
+      data:{
+        labels,
+        datasets:[{
+          data: vals,
+          backgroundColor: vals.map((_,i) => i === 7
+            ? 'rgba(200,168,75,0.85)'   // current week — gold
+            : 'rgba(26,39,68,0.55)'),   // past weeks — navy
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options:{
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins:{ legend:{ display:false }, tooltip:{
+          callbacks:{ label: ctx => ' ₱' + ctx.parsed.y.toLocaleString() }
+        }},
+        scales:{
+          x:{ grid:{ display:false }, ticks:{ font:{ size:10, family:'Inter,sans-serif' }, color:'#6b7280' }},
+          y:{ grid:{ color:'rgba(229,231,235,.6)' },
+              ticks:{ font:{ size:10, family:'Inter,sans-serif' }, color:'#6b7280',
+                      callback: v => '₱' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) },
+              beginAtZero: true }
+        }
+      }
+    });
+  } else {
+    // Lightweight fallback — plain HTML bars, no dependency needed
+    const maxH = 90;
+    const html = `<div style="display:flex;align-items:flex-end;gap:6px;height:${maxH+24}px;padding-bottom:0;">
+      ${buckets.map((b,i)=>{
+        const pct = maxVal > 0 ? b.total / maxVal : 0;
+        const h   = Math.max(pct * maxH, b.total > 0 ? 4 : 1);
+        const gold = i === 7;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+          ${b.total > 0 ? `<div style="font-size:9px;font-weight:700;color:${gold?'#c8a84b':'var(--navy)'};">${b.total>=1000?(b.total/1000).toFixed(1)+'k':b.total}</div>`:'<div style="font-size:9px;color:transparent;">0</div>'}
+          <div title="₱${b.total.toLocaleString()}" style="width:100%;height:${h}px;background:${gold?'#c8a84b':'#1a274460'};border-radius:4px 4px 0 0;transition:height .3s;"></div>
+          <div style="font-size:8.5px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;">${b.label}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+    canvas.style.display = 'none';
+    const wrap = canvas.parentElement;
+    let fb = wrap.querySelector('.rcFallback');
+    if(!fb){ fb = document.createElement('div'); fb.className='rcFallback'; wrap.appendChild(fb); }
+    fb.innerHTML = html;
+  }
+}
+
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 function renderDashboard(){
   renderFunnel();
+  renderRevenueChart();
   // Counts every cover letter written — add-ons and standalone orders alike.
   // Filtering on coverLetter.requested alone silently reported standalone
   // orders as zero.
@@ -1809,19 +1990,45 @@ function ageClass(s){
 function renderSubmissions(){
   const q=document.getElementById('searchInput')?.value.toLowerCase().trim()||'';
 
+  // Date range filter
+  const drFrom = document.getElementById('drFrom')?.value;
+  const drTo   = document.getElementById('drTo')?.value;
+  const inDateRange = s => {
+    if(!drFrom && !drTo) return true;
+    const t = new Date(s.submittedAt).getTime();
+    if(isNaN(t)) return true;
+    if(drFrom && t < new Date(drFrom).getTime()) return false;
+    if(drTo   && t > new Date(drTo+'T23:59:59').getTime()) return false;
+    return true;
+  };
+
+  // Search highlight helper — wraps matched portions in <mark>
+  const hlText = (raw, q) => {
+    if(!q || !raw) return hEsc(raw||'');
+    const escaped = hEsc(raw);
+    const idx = escaped.toLowerCase().indexOf(q);
+    if(idx < 0) return escaped;
+    return escaped.slice(0,idx)
+      + '<mark class="hl-match">'+escaped.slice(idx, idx+q.length)+'</mark>'
+      + escaped.slice(idx+q.length);
+  };
+
   // Search covers everything you might have to hand when a customer messages —
   // a name, the email they used, or the number on their GCash receipt.
   const matches = s => {
-    if(!q) return true;
+    if(!q) return inDateRange(s);
     const hay = [fullName(s.personal), s.personal.jobTitle, s.personal.email,
                  s.personal.phone, s.id].filter(Boolean).join(' ').toLowerCase();
-    return hay.includes(q);
+    return hay.includes(q) && inDateRange(s);
   };
 
   const passesFilter = (s,f) =>
+    // Trash is opt-in. Trashed orders stay hidden from every other filter.
+    f==='trash'    ? !!s.deleted
+    : !!s.deleted  ? false
     // Archived is opt-in everywhere. An expired receipt is bookkeeping, not
     // work, and leaving it in "all" would bury the orders that need you.
-    f==='archived' ? isArchived(s)
+    : f==='archived' ? isArchived(s)
     : isArchived(s) ? false
     : f==='all' ? true
     : f==='coverLetter' ? (!!s.coverLetter?.requested || s.serviceType==='coverLetter')
@@ -1838,7 +2045,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','needsApproval','unpaid','paid','archived'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','needsApproval','unpaid','paid','archived','trash'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -1882,7 +2089,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid',archived:'Archived'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid',archived:'Archived',trash:'in Trash'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -1915,13 +2122,18 @@ function renderSubmissions(){
       ? `<span class="test-badge">⏳ ${ttlLabel(s)}</span>`
       : '';
 
-    return`<tr class="${ageClass(s)}">
-      <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span></td>
+    const isTrashed = !!s.deleted;
+    return`<tr class="${ageClass(s)}${isTrashed?' opacity: .55;':''}" style="${isTrashed?'opacity:.55;':''}">
+      <td class="sub-cell-idx" style="display:flex;align-items:center;gap:5px;padding-top:10px;">
+        <input type="checkbox" class="row-check" data-idx="${ri}" onchange="onRowCheck(this)" title="Select">
+        <span class="sub-idx">#${submissions.length-ri}</span>
+        ${isTrashed?'<span style="font-size:9px;color:#ef4444;font-weight:800;">🗑</span>':''}
+      </td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${safeName(p)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTemplateAddOn(s)?'<span class="ss-badge" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ ADD-ON</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}${ttlTag}${s.customerConfirmed?`<span class="ss-badge" title="Customer confirmed on ${s.customerConfirmedAt?new Date(s.customerConfirmedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7;">✅ CONFIRMED</span>`:''}</div>
+        <div class="sub-name">${hlText(fullName(p),q)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTemplateAddOn(s)?'<span class="ss-badge" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ ADD-ON</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}${ttlTag}${s.customerConfirmed?`<span class="ss-badge" title="Customer confirmed on ${s.customerConfirmedAt?new Date(s.customerConfirmedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7;">✅ CONFIRMED</span>`:''}</div>
         ${isClOnly?`<div class="sub-role">${hEsc(s.coverLetterOnly?.position)}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+hEsc(s.coverLetterOnly.company):''}</div>`:isRes?`<div class="sub-role">${hEsc(s.resignation?.position)}${s.resignation?.company?' · '+hEsc(s.resignation.company):''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${hEsc(s.seaman?.rank||p.jobTitle)}</div>`:''}
-        <div class="sub-mail">${hEsc(p.email)||'No email on file'}</div>
+        <div class="sub-mail">${p.email?hlText(p.email,q):'No email on file'}</div>
       </td>
 
       <td data-label="Waiting">
@@ -1968,7 +2180,10 @@ function renderSubmissions(){
           ${s.status==='Delivered'
             ? `<button class="action-btn" style="background:#f1f3f7;color:#9ca3af;border:1.5px solid #e5e7eb;cursor:default;" onclick="showNotif('Order complete — status is locked. Open the submission to reopen it.')" title="Delivered orders are locked">🔒 Locked</button>`
             : `<button class="action-btn btn-status" onclick="cycleStatus(${ri})" title="Advance to the next stage">⟳ ${s.status==='New'?'Start':s.status==='Processing'?'Mark Done':'Mark Delivered'}</button>`}
-          <button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})" title="Delete this submission">🗑</button>
+          ${isTrashed
+            ? `<button class="action-btn" style="background:#f0fdf4;color:#065f46;border:1.5px solid #86efac;" onclick="restoreSubmission(${ri})" title="Restore from Trash">↩️ Restore</button>
+               <button class="action-btn" style="background:#fef2f2;color:#b91c1c;border:1.5px solid #fca5a5;" onclick="hardDeleteSubmission(${ri})" title="Permanently delete">🗑 Purge</button>`
+            : `<button class="action-btn" style="background:#fef2f2;color:#ef4444;border:1.5px solid #fca5a5;" onclick="deleteSubmission(${ri})" title="Move to Trash">🗑</button>`}
         </div>
       </td></tr>`;
   }).join('');
@@ -2144,6 +2359,7 @@ function exportCSV(){
 }
 
 async function cycleStatus(idx){
+  if(!submissions[idx]){ showNotif('Submission not found — please refresh the page.', true); return; }
   const order=['New','Processing','Done','Delivered'];
   const cur=submissions[idx].status;
 
@@ -2174,6 +2390,7 @@ async function cycleStatus(idx){
   }
 
   submissions[idx].status=newStatus;
+  logAction(idx, `Status → ${newStatus}`);
 
   // A delivered order's photo has done its job — it's already in the CV the
   // customer received. It's also ~90% of the record's size, and the bin is
@@ -2868,6 +3085,7 @@ async function runSelfServiceTest(){
           const list = (fresh.submissions || []).filter(s => !isTestOrder(s));
           await trFetch(() => putRecord({ ...fresh, submissions: list }));
           submissions = list;
+          snapshotBaseline();   // keep baseline in sync after direct write
           renderSubmissions(); renderDashboard();
           row.className = 'tr-row pass';
           row.innerHTML = '<span class="ic">\u2713</span><span>Test order cleaned up'
@@ -2915,6 +3133,7 @@ async function purgeTestOrders(){
     }
     await trFetch(() => putRecord({ ...rec, submissions: list }));
     submissions = list;
+    snapshotBaseline();   // keep baseline in sync after direct write
     renderSubmissions(); renderDashboard();
     box.innerHTML = '';
     trRow(box, 'pass', 'Removed ' + removed + ' test order' + (removed === 1 ? '' : 's'),
@@ -3660,6 +3879,19 @@ function viewSubmission(idx){
     <textarea id="profileDisplay" rows="5" placeholder="Paste the AI-generated profile summary here..." style="width:100%;font-size:13px;line-height:1.8;color:#333;background:var(--off-white);border-radius:8px;padding:14px;border:1.5px solid var(--gray-light);font-family:Inter,sans-serif;resize:vertical;">${s.profileSummary||''}</textarea>
     <button onclick="saveProfileSummary(${si})" style="margin-top:8px;padding:10px 20px;background:var(--success);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">💾 Save Profile Summary</button>
   </div>`;
+
+  // Activity log — always shown if there are entries
+  if(s.activityLog && s.activityLog.length){
+    const alog = [...s.activityLog].reverse(); // newest first
+    html += `<div class="info-group"><h4>📋 Activity Log</h4>
+      <div style="background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;max-height:220px;overflow-y:auto;">
+      ${alog.map(e=>{
+        const at = e.at ? new Date(e.at).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+        const icon = /[Dd]elet|[Tt]rash/.test(e.action)?'🗑':/[Pp]aid|[Pp]ayment/.test(e.action)?'💰':/[Ss]tatus/.test(e.action)?'🔄':/[Ee]mail/.test(e.action)?'✉️':/[Rr]estor/.test(e.action)?'↩️':'📝';
+        return `<div class="alog-item"><span class="alog-icon">${icon}</span><span class="alog-text">${hEsc(e.action)}</span><span class="alog-time">${at}</span></div>`;
+      }).join('')}
+      </div></div>`;
+  }
 
   const ri = si;
   document.getElementById('modalTitle').textContent=`${fullName(p)} — ${eduMap[s.eduLevel]||''}`;
@@ -5278,30 +5510,258 @@ ${pb}
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 8 — Fresh Graduate · Navy/Gold Grid
 // ── DELETE SUBMISSION ────────────────────────────────────────────────────────
+// ── ACTION LOG ─────────────────────────────────────────────────────────────────
+// Lightweight per-submission log. Stored in s.activityLog[].
+// { action, at, by } — caller passes a plain string for `action`.
+function logAction(idx, action){
+  const s = submissions[idx];
+  if(!s) return;
+  if(!s.activityLog) s.activityLog = [];
+  s.activityLog.push({ action, at: new Date().toISOString(), by: 'admin' });
+  // Keep the last 30 entries so the array can't grow unboundedly.
+  if(s.activityLog.length > 30) s.activityLog = s.activityLog.slice(-30);
+}
+
+// ── SOFT DELETE ─────────────────────────────────────────────────────────────────
+// Moves an order to Trash rather than destroying it. It stays in the bin,
+// hidden from every other filter, recoverable from the 🗑 Trash view.
 async function deleteSubmission(idx){
   const s = submissions[idx];
-  const name = `${fullName(s.personal)}`;
-  
-  // Confirm before deleting
+  if(!s){ showNotif('Submission not found.', true); return; }
+  const name = fullName(s.personal);
   const okDel = await showConfirm({
-    type:'danger', title:'Delete Submission?',
-    message:`<strong>${cdlgEsc(name)}</strong>'s submission will be permanently deleted. This cannot be undone.`,
-    confirmText:'Delete', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+    type:'danger', title:'Move to Trash?',
+    message:`<strong>${cdlgEsc(name)}</strong>'s order will be moved to Trash. You can restore it from the 🗑 Trash filter, or permanently delete it from there.`,
+    confirmText:'Move to Trash', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!okDel) return;
+
+  s.deleted = true;
+  s.deletedAt = new Date().toISOString();
+  logAction(idx, 'Moved to Trash');
+  try {
+    await commitSubmissions();
+    showNotif(`Moved to Trash — restore anytime from the 🗑 Trash filter.`);
+    renderSubmissions();
+    renderDashboard();
+  } catch(e){
+    delete s.deleted;
+    delete s.deletedAt;
+    showNotif('Failed: ' + e.message, true);
+  }
+}
+
+// Restore a trashed submission back to active.
+async function restoreSubmission(idx){
+  const s = submissions[idx];
+  if(!s){ showNotif('Submission not found.', true); return; }
+  const name = fullName(s.personal);
+  delete s.deleted;
+  delete s.deletedAt;
+  logAction(idx, 'Restored from Trash');
+  try {
+    await commitSubmissions();
+    showNotif(`✅ ${name}'s order restored.`);
+    renderSubmissions();
+    renderDashboard();
+  } catch(e){
+    s.deleted = true;
+    showNotif('Failed: ' + e.message, true);
+  }
+}
+
+// Permanent delete — only available from the Trash view.
+async function hardDeleteSubmission(idx){
+  const s = submissions[idx];
+  if(!s){ showNotif('Submission not found.', true); return; }
+  const name = fullName(s.personal);
+  const okDel = await showConfirm({
+    type:'danger', title:'Permanently Delete?',
+    message:`<strong>${cdlgEsc(name)}</strong>'s order will be <strong>permanently deleted</strong>. This cannot be undone and no CSV backup is made automatically.`,
+    confirmText:'Delete Permanently', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
   });
   if(!okDel) return;
 
   submissions.splice(idx, 1);
-
   try {
     await commitSubmissions();
-    showNotif(`✅ ${name}'s submission deleted.`);
+    showNotif(`✅ ${name}'s submission permanently deleted.`);
     renderSubmissions();
     renderDashboard();
   } catch(e){
-    // Restore if failed
     submissions.splice(idx, 0, s);
     showNotif('Failed to delete: ' + e.message, true);
   }
+}
+
+// ── DATE RANGE CLEAR ────────────────────────────────────────────────────────────
+function clearDateRange(){
+  const f = document.getElementById('drFrom');
+  const t = document.getElementById('drTo');
+  if(f) f.value = '';
+  if(t) t.value = '';
+  renderSubmissions();
+}
+
+// ── BULK SELECTION ──────────────────────────────────────────────────────────────
+let selectedIndices = new Set();
+
+function onRowCheck(cb){
+  const idx = parseInt(cb.dataset.idx);
+  if(cb.checked) selectedIndices.add(idx);
+  else selectedIndices.delete(idx);
+  updateBulkBar();
+}
+
+function clearSelection(){
+  selectedIndices.clear();
+  document.querySelectorAll('.row-check').forEach(cb => cb.checked = false);
+  updateBulkBar();
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  const cnt = document.getElementById('bulkCount');
+  if(!bar) return;
+  const n = selectedIndices.size;
+  bar.classList.toggle('visible', n > 0);
+  if(cnt) cnt.textContent = `${n} selected`;
+}
+
+async function bulkCycleStatus(){
+  const idxs = [...selectedIndices];
+  if(!idxs.length) return;
+  const ok = await showConfirm({
+    type:'info', title:`Advance ${idxs.length} order${idxs.length>1?'s':''}?`,
+    message:`Each selected order will move to its next status (New → Processing → Done). Delivered orders are skipped.`,
+    confirmText:'Advance', confirmClass:'cdlg-btn-ok', cancelText:'Cancel'
+  });
+  if(!ok) return;
+  const order=['New','Processing','Done','Delivered'];
+  idxs.forEach(idx=>{
+    const s = submissions[idx];
+    if(!s || s.status==='Delivered') return;
+    const next = order[Math.min(order.indexOf(s.status)+1, order.length-1)];
+    s.status = next;
+    logAction(idx, `Bulk status → ${next}`);
+  });
+  try{
+    await commitSubmissions();
+    showNotif(`✅ Advanced ${idxs.length} order${idxs.length>1?'s':''}.`);
+    clearSelection();
+    renderSubmissions(); renderDashboard();
+  }catch(e){ showNotif('Failed: '+e.message, true); }
+}
+
+async function bulkMarkPaid(){
+  const idxs = [...selectedIndices].filter(i => submissions[i] && !isPaid(submissions[i]));
+  if(!idxs.length){ showNotif('All selected orders are already paid.'); return; }
+  const ok = await showConfirm({
+    type:'info', title:`Mark ${idxs.length} order${idxs.length>1?'s':''} as Paid?`,
+    message:`Records ${idxs.length} order${idxs.length>1?'s':''} as paid at today's date. You can edit individual amounts by opening each order. No GCash reference will be stored.`,
+    confirmText:'Mark Paid', confirmClass:'cdlg-btn-gold', cancelText:'Cancel'
+  });
+  if(!ok) return;
+  idxs.forEach(idx=>{
+    const s = submissions[idx];
+    s.payment = { paid:true, amount:orderTotal(s), reference:'', paidAt:new Date().toISOString(), method:'GCash' };
+    logAction(idx, 'Bulk marked paid');
+  });
+  try{
+    await commitSubmissions();
+    showNotif(`✅ Marked ${idxs.length} order${idxs.length>1?'s':''} as paid.`);
+    clearSelection();
+    renderSubmissions(); renderDashboard();
+  }catch(e){ showNotif('Failed: '+e.message, true); }
+}
+
+async function bulkDelete(){
+  const idxs = [...selectedIndices];
+  if(!idxs.length) return;
+  const ok = await showConfirm({
+    type:'danger', title:`Move ${idxs.length} order${idxs.length>1?'s':''} to Trash?`,
+    message:`${idxs.length} selected order${idxs.length>1?'s':''} will be moved to Trash. Restore anytime from the 🗑 Trash filter.`,
+    confirmText:'Move to Trash', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+  });
+  if(!ok) return;
+  idxs.forEach(idx=>{
+    const s = submissions[idx];
+    if(!s) return;
+    s.deleted = true;
+    s.deletedAt = new Date().toISOString();
+    logAction(idx, 'Bulk moved to Trash');
+  });
+  try{
+    await commitSubmissions();
+    showNotif(`Moved ${idxs.length} order${idxs.length>1?'s':''} to Trash.`);
+    clearSelection();
+    renderSubmissions(); renderDashboard();
+  }catch(e){ showNotif('Failed: '+e.message, true); }
+}
+
+// ── LAST SAVED INDICATOR ────────────────────────────────────────────────────────
+function markLastSaved(success, msg){
+  const bar = document.getElementById('lastSavedBar');
+  if(!bar) return;
+  bar.classList.remove('ok','err');
+  if(success){
+    const t = new Date().toLocaleTimeString('en-PH',{hour:'2-digit',minute:'2-digit'});
+    bar.textContent = '✓ Saved ' + t;
+    bar.classList.add('ok');
+  } else {
+    bar.textContent = '⚠ Save failed';
+    bar.classList.add('err');
+  }
+}
+
+// ── AUTO-REFRESH POLLING ─────────────────────────────────────────────────────────
+// Re-reads JSONBin every 90 seconds and merges in any new submissions from
+// other sources (customer form submissions) without disrupting the current view.
+let _autoRefreshTimer = null;
+const AUTO_REFRESH_MS = 90000;
+
+function startAutoRefresh(){
+  stopAutoRefresh();
+  _autoRefreshTimer = setInterval(autoRefreshTick, AUTO_REFRESH_MS);
+}
+
+function stopAutoRefresh(){
+  if(_autoRefreshTimer){ clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
+}
+
+async function autoRefreshTick(){
+  try{
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+      {headers:{'X-Master-Key':JSONBIN_API_KEY}});
+    if(!res.ok) return;
+    const json = await res.json();
+    const fresh = json?.record?.submissions || [];
+    const currentIds = new Set(submissions.filter(s=>s&&s.id).map(s=>s.id));
+    const newArrivals = fresh.filter(s => s && s.id && !currentIds.has(s.id) && !isTestOrder(s) && !s.deleted);
+    if(!newArrivals.length) return;
+
+    // Merge new arrivals into local submissions
+    submissions = [...submissions, ...newArrivals];
+    snapshotBaseline();
+    renderSubmissions();
+    renderDashboard();
+    const n = newArrivals.length;
+    showNewArrivalsToast(n);
+  }catch(e){ /* silent — polling errors shouldn't interrupt the user */ }
+}
+
+function showNewArrivalsToast(n){
+  let toast = document.getElementById('newArrivalsToast');
+  if(!toast){
+    toast = document.createElement('button');
+    toast.id = 'newArrivalsToast';
+    toast.className = 'new-arrivals-toast';
+    toast.onclick = () => { toast.style.display='none'; showPage('submissionsPage', document.querySelector('.nav-item[onclick*="submissionsPage"]')); };
+    document.body.appendChild(toast);
+  }
+  toast.textContent = `🔔 ${n} new order${n>1?'s':''} arrived — click to view`;
+  toast.style.display = 'block';
+  setTimeout(() => { if(toast) toast.style.display='none'; }, 8000);
 }
 
 // ── AI HELPER: fetch with timeout ─────────────────────────────────────────────
@@ -7885,7 +8345,7 @@ async function approveProof(idx){
         : '') +
       `<br><br>${cdlgEsc(nm)} will be able to save and print immediately.`,
     confirmText: 'Approve payment',
-    confirmClass: short > 0 ? 'cdlg-btn-danger' : 'cdlg-btn-primary',
+    confirmClass: short > 0 ? 'cdlg-btn-danger' : 'cdlg-btn-gold',
     cancelText: 'Not yet'
   });
   if(!ok) return;
@@ -7901,6 +8361,7 @@ async function approveProof(idx){
     approvedFrom: 'self-service proof'
   };
   s.paymentProof = { ...pf, status: 'approved', approvedAt: new Date().toISOString() };
+  logAction(idx, `Payment approved — GCash ref ${pf.gcashRef} · ${peso(amt)}`);
 
   try{
     await commitSubmissions();
@@ -7959,6 +8420,7 @@ async function togglePaid(idx){
     });
     if(!okUnpay) return;
     s.payment = { paid:false };
+    logAction(idx, `Marked unpaid`);
   } else {
     // Amount is asked for rather than assumed: partial payments and the odd
     // discount happen, and a total that silently disagrees with GCash is worse
@@ -7973,6 +8435,7 @@ async function togglePaid(idx){
       paidAt: new Date().toISOString(),
       method: 'GCash'
     };
+    logAction(idx, `Payment recorded — ${peso(amt)}${ref?' ref '+ref:''}`);
     if(amt < due) showNotif(`Recorded ${peso(amt)} — that is ${peso(due-amt)} short of the ${peso(due)} due.`, true);
   }
 
