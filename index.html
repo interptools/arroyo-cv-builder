@@ -1076,6 +1076,12 @@
             <div class="edu-label">Europe / EU</div>
             <div class="edu-sub">EU-format CV</div>
           </label>
+          <label class="edu-option" id="eduOpt6">
+            <input type="radio" name="eduLevel" value="gulf" onchange="handleEduChange()">
+            <div class="edu-icon">🕌</div>
+            <div class="edu-label">Middle East / Gulf</div>
+            <div class="edu-sub">UAE · Saudi · Qatar · Kuwait</div>
+          </label>
         </div>
         <div id="seamanIntro" class="hidden" style="margin-top:14px;background:rgba(26,39,68,.04);border:1.5px solid var(--navy);border-radius:10px;padding:13px 15px;">
           <div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:4px;">⚓ Seafarer format selected</div>
@@ -1089,6 +1095,12 @@
           <div style="font-size:12px;color:#4b5563;line-height:1.65;">
             Your CV will follow the European standard — no photo by default, no age or civil status unless you choose to include them, and a clean skills-first layout suited for UK, EU, and Australian employers.
             Extra fields for right-to-work and language levels will appear below.
+          </div>
+        </div>
+        <div id="gulfIntro" class="hidden" style="margin-top:14px;background:rgba(6,95,70,.05);border:1.5px solid #059669;border-radius:10px;padding:13px 15px;">
+          <div style="font-size:12.5px;font-weight:800;color:#065f46;margin-bottom:4px;">🕌 Middle East / Gulf format selected</div>
+          <div style="font-size:12px;color:#4b5563;line-height:1.65;">
+            Gulf CVs include fields that are standard practice in the region — photo, religion, visa/permit status, driving licence, and salary expectation. Extra sections for Gulf-specific details will appear below.
           </div>
         </div>
       </div>
@@ -1523,6 +1535,121 @@
         </div>
 
       </div>
+    </div>
+
+    <!-- GULF / MIDDLE EAST FIELDS -->
+    <div class="card hidden gulf-only" id="gulfCard">
+      <div class="card-header">
+        <div class="card-icon">🕌</div>
+        <div>
+          <h2>Middle East / Gulf Details</h2>
+          <p>Additional information required by Gulf employers</p>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Target Country *</label>
+          <select id="gulf-country" class="form-input">
+            <option value="">Select country</option>
+            <option value="UAE">🇦🇪 United Arab Emirates</option>
+            <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
+            <option value="Qatar">🇶🇦 Qatar</option>
+            <option value="Kuwait">🇰🇼 Kuwait</option>
+            <option value="Bahrain">🇧🇭 Bahrain</option>
+            <option value="Oman">🇴🇲 Oman</option>
+            <option value="Other Gulf">Other Gulf State</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current Visa / Permit Status</label>
+          <select id="gulf-visa" class="form-input">
+            <option value="">Select status</option>
+            <option value="Tourist / Visit Visa">Tourist / Visit Visa</option>
+            <option value="Employment Visa">Employment Visa</option>
+            <option value="Residence Visa">Residence Visa</option>
+            <option value="Dependent Visa">Dependent / Family Visa</option>
+            <option value="Currently in Philippines">Currently in Philippines</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Religion</label>
+          <input type="text" id="gulf-religion" class="form-input" placeholder="e.g. Roman Catholic, Muslim…">
+        </div>
+        <div class="form-group">
+          <label>Driving Licence Type</label>
+          <select id="gulf-licence" class="form-input">
+            <option value="">Select</option>
+            <option value="None">No licence</option>
+            <option value="Philippine (LTO)">Philippine (LTO) — pending conversion</option>
+            <option value="UAE Licence">UAE Licence</option>
+            <option value="Saudi Licence">Saudi Licence</option>
+            <option value="International">International Driving Permit</option>
+            <option value="Other">Other Gulf licence</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Salary Expectation (USD / month)</label>
+          <input type="text" id="gulf-salary" class="form-input" placeholder="e.g. 1,500–2,000 USD">
+        </div>
+        <div class="form-group">
+          <label>Notice Period / Availability</label>
+          <select id="gulf-notice" class="form-input">
+            <option value="">Select</option>
+            <option value="Immediate">Immediate</option>
+            <option value="2 weeks">2 weeks</option>
+            <option value="1 month">1 month</option>
+            <option value="2 months">2 months</option>
+            <option value="3 months">3 months</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Passport Number</label>
+          <input type="text" id="gulf-passport" class="form-input" placeholder="e.g. P1234567A">
+        </div>
+        <div class="form-group">
+          <label>Passport Expiry Date</label>
+          <input type="date" id="gulf-passportExpiry" class="form-input">
+        </div>
+        <div class="form-group">
+          <label>Number of Dependents</label>
+          <input type="text" id="gulf-dependents" class="form-input" placeholder="e.g. 2 (spouse + 1 child)">
+        </div>
+        <div class="form-group">
+          <label>Currently Based In</label>
+          <input type="text" id="gulf-location" class="form-input" placeholder="e.g. Manila · Dubai · Riyadh">
+        </div>
+      </div>
+
+      <!-- Objective Statement — Gulf CVs conventionally open with one -->
+      <div class="form-group" style="margin-top:8px;">
+        <label>Career Objective Statement <span class="optional-tag">Optional but recommended</span></label>
+        <textarea id="gulf-objective" class="form-textarea" rows="3"
+          placeholder="3–4 sentences. Gulf HR expects an objective at the top — what role you seek, your key strengths, and what you bring. E.g. A dedicated and results-driven Mechanical Engineer with 7 years of oil &amp; gas experience, seeking a senior role with a leading UAE company where I can contribute to operational excellence and engineering innovation."></textarea>
+      </div>
+
+      <!-- References — Gulf employers expect actual contact details -->
+      <div class="form-group" style="margin-top:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <label style="margin:0;">References <span class="optional-tag">Gulf employers expect direct contacts, not "available on request"</span></label>
+        </div>
+        <div id="gulfRefEntries">
+          <div class="gulf-ref-entry" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;padding:12px;background:var(--gray-bg);border-radius:8px;">
+            <input type="text" class="form-input gulf-ref-name" placeholder="Full name">
+            <input type="text" class="form-input gulf-ref-title" placeholder="Position / Title">
+            <input type="text" class="form-input gulf-ref-company" placeholder="Company / Organisation">
+            <input type="text" class="form-input gulf-ref-contact" placeholder="Mobile / Email">
+          </div>
+          <div class="gulf-ref-entry" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;padding:12px;background:var(--gray-bg);border-radius:8px;">
+            <input type="text" class="form-input gulf-ref-name" placeholder="Full name">
+            <input type="text" class="form-input gulf-ref-title" placeholder="Position / Title">
+            <input type="text" class="form-input gulf-ref-company" placeholder="Company / Organisation">
+            <input type="text" class="form-input gulf-ref-contact" placeholder="Mobile / Email">
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- TRAVEL DOCUMENTS -->
@@ -2740,11 +2867,12 @@ async function pushFunnel(from, to){
     if(from >= 0 && rec[FUNNEL_STEPS[from]] > 0) rec[FUNNEL_STEPS[from]]--;
     rec[FUNNEL_STEPS[to]]++;
     rec.updatedAt = new Date().toISOString();
-    await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+    const statPut = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
       body: JSON.stringify(rec)
     });
+    if (!statPut.ok) throw new Error('Stats write failed: ' + statPut.status);
   } catch(e){ /* tracking must never break the form */ }
 }
 const SUBMIT_KEY_PREFIX = 'arroyo_cv_submitted_';
@@ -4762,14 +4890,12 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
 
   // ── Certificates ──────────────────────────────────────────────────────────
   if (data.certificates?.length) {
-    console.log('[fillCGISData] certificates:', JSON.stringify(data.certificates));
     document.querySelectorAll('#certEntries .exp-entry').forEach(el => el.remove());
     certCount = 0;
     data.certificates.filter(c => c.name).forEach(cert => {
       addCertEntry();
       const e = document.getElementById(`cert-${certCount}`); if (!e) { console.warn('[fill] cert element not found:', certCount); return; }
       const inp = e.querySelectorAll('input');
-      console.log(`[fill] cert-${certCount}: name="${cert.name}" number="${cert.number}" issued="${cert.dateIssued}" inp.length=${inp.length}`);
       if (inp[0]) inp[0].value = cert.name      || '';
       if (inp[1]) inp[1].value = cert.number    || '';
       if (inp[2]) inp[2].value = cert.issuedBy  || '';
@@ -4795,7 +4921,6 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
 
   // ── Sea Service ───────────────────────────────────────────────────────────
   if (data.seaService?.length) {
-    console.log('[fillCGISData] seaService:', JSON.stringify(data.seaService));
     document.querySelectorAll('#seaEntries .exp-entry').forEach(el => el.remove());
     seaCount = 0;
     data.seaService.filter(v => v.vessel || v.signOn).forEach(v => {
@@ -4803,7 +4928,6 @@ function fillCGISData(data, statusEl, scanLabel, extraNote='') {
       const e = document.getElementById(`sea-${seaCount}`); if (!e) { console.warn('[fill] sea element not found:', seaCount); return; }
       const inp = e.querySelectorAll('input');
       const sel = e.querySelector('select');
-      console.log(`[fill] sea-${seaCount}: vessel="${v.vessel}" inp.length=${inp.length} signOn="${v.signOn}"`);
       if (inp[0])  inp[0].value  = v.vessel     || '';
       if (inp[1])  inp[1].value  = v.imoNo      || '';
       if (inp[2])  inp[2].value  = resolveRank(v.rank) || '';
@@ -5094,7 +5218,6 @@ async function parseResumeText() {
     if (d.error) throw new Error(d.error.message || 'API error');
     let txt = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if (typeof txt !== 'string') txt = JSON.stringify(txt);
-    console.log('[parseResumeText] raw:', txt.slice(0, 400));
     return txt;
   }
 
@@ -5119,13 +5242,11 @@ async function parseResumeText() {
       const detHasData = det.fullName || det.sss || det.certificates?.length || det.seaService?.length;
 
       if (detHasData) {
-        console.log('[parseResumeText] deterministic result:', JSON.stringify(det).slice(0, 500));
         fillCGISData(det, status, '✅ Seafarer CGIS filled from text');
         return;
       }
 
       // ── Fallback: AI two-pass (for non-standard formats) ────────────────
-      console.log('[parseResumeText] deterministic got nothing, falling back to AI');
       status.innerHTML = '⏳ Seafarer: reading with AI (non-standard format detected)…';
 
       const pass1 = `Extract Philippine seafarer CGIS data. Return ONLY valid JSON, no markdown.
@@ -5181,7 +5302,6 @@ TEXT:\n---\n${rawText.slice(0, 14000)}\n---`;
       if (!Object.keys(d1).length && !Object.keys(d2).length)
         throw new Error('Could not extract data — try pasting more complete CGIS text.');
       const merged = { ...d1, ...d2 };
-      console.log('[parseResumeText] seafarer merged:', JSON.stringify(merged).slice(0, 800));
       fillCGISData(merged, status, '✅ Seafarer CV filled from text');
 
     } else {
@@ -5222,7 +5342,6 @@ TEXT:\n---\n${rawText.slice(0, 12000)}\n---`;
       const jsonStr = extractFirstJSON(txt);
       if (!jsonStr) throw new Error('Could not extract data — make sure the text is a readable resume.');
       const data = JSON.parse(jsonStr);
-      console.log('[parseResumeText] resume data:', JSON.stringify(data).slice(0, 800));
       // Fill the form fields for regular/fresh CV
       fillResumeData(data, detectedType, status);
     }
@@ -5765,7 +5884,6 @@ async function scanCGIS(input) {
 
     // ── 3. Merge, dropping the duplicates the overlap creates ──────────────
     let merged = cgisMerge(good);
-    console.log('[scanCGIS] merged:', JSON.stringify(merged).slice(0, 900));
 
     // ── 4. Second look for the row-offset trap ─────────────────────────────
     say('loading', '⏳ Checking the tables a second time — this is what catches rows paired with the wrong dates…');
@@ -5854,6 +5972,11 @@ function handleEduChange() {
   // Europe-only card + intro
   document.querySelectorAll('.europe-only').forEach(el => el.classList.toggle('hidden', !isEurope));
   document.getElementById('europeIntro')?.classList.toggle('hidden', !isEurope);
+
+  // Gulf-only card + intro
+  const isGulf = document.querySelector('input[name="eduLevel"]:checked')?.value === 'gulf';
+  document.querySelectorAll('.gulf-only').forEach(el => el.classList.toggle('hidden', !isGulf));
+  document.getElementById('gulfIntro')?.classList.toggle('hidden', !isGulf);
 
   // Seed blank seaman rows
   if (isSeaman) {
@@ -6483,6 +6606,25 @@ function collectFormData() {
         return { lang: inp[0]?.value || '', level: inp[1]?.value || '', cert: inp[2]?.value || '' };
       }).filter(l => l.lang),
     } : null,
+    gulf: eduLevel === 'gulf' ? {
+      country:        document.getElementById('gulf-country')?.value || '',
+      visa:           document.getElementById('gulf-visa')?.value || '',
+      religion:       document.getElementById('gulf-religion')?.value.trim() || '',
+      licence:        document.getElementById('gulf-licence')?.value || '',
+      salary:         document.getElementById('gulf-salary')?.value.trim() || '',
+      notice:         document.getElementById('gulf-notice')?.value || '',
+      passport:       document.getElementById('gulf-passport')?.value.trim() || '',
+      passportExpiry: document.getElementById('gulf-passportExpiry')?.value || '',
+      dependents:     document.getElementById('gulf-dependents')?.value.trim() || '',
+      currentLocation:document.getElementById('gulf-location')?.value.trim() || '',
+      objective:      document.getElementById('gulf-objective')?.value.trim() || '',
+      gulfRefs: [...document.querySelectorAll('#gulfRefEntries .gulf-ref-entry')].map(e => ({
+        name:    e.querySelector('.gulf-ref-name')?.value.trim()    || '',
+        title:   e.querySelector('.gulf-ref-title')?.value.trim()   || '',
+        company: e.querySelector('.gulf-ref-company')?.value.trim() || '',
+        contact: e.querySelector('.gulf-ref-contact')?.value.trim() || '',
+      })).filter(r => r.name),
+    } : null,
     skills,
     languages,
     references: refData,
@@ -6521,10 +6663,12 @@ function collectFormData() {
 
 // ─── VALIDATE ─────────────────────────────────────────────────────────────────
 function validate(data) {
-  if (!data.personal.photo) return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
+  // Europe CVs are photo-optional by convention (eu.wantPhoto toggle). Gulf always needs one.
+  if (!data.personal.photo && data.eduLevel !== 'europe') return 'Please upload your profile photo. Make sure to wear Casual or Formal attire. 👔';
   if (!data.personal.firstName) return 'Please enter your first name.';
   if (!data.personal.lastName) return 'Please enter your last name.';
   if (data.eduLevel === 'seaman' && !data.seaman?.rank) return 'Please select the rank you are applying for.';
+  if (data.eduLevel === 'gulf' && !data.gulf?.country) return 'Please select your target Gulf country (UAE, Saudi Arabia, etc.).';
   if (!data.personal.phone) return 'Please enter your phone number.';
   if (!/^[0-9\+\-\s\(\)]{7,15}$/.test(data.personal.phone)) return 'Please enter a valid phone number (e.g. 09063964052).';
   if (!data.personal.email) return 'Please enter your email address.';
@@ -6534,7 +6678,7 @@ function validate(data) {
   // Cover letter required fields (double-check in case toggleCoverLetter state is out of sync)
   if (data.coverLetter?.requested) {
     if (!data.coverLetter.position) return 'Please enter your target position for the cover letter.';
-    if (!data.coverLetter.company) return 'Please enter the target company for the cover letter.';
+    if (!data.coverLetter.general && !data.coverLetter.company) return 'Please enter the target company, or tick "General letter" to skip it.';
     if (!data.coverLetter.reason) return 'Please tell us why you want this job for the cover letter.';
   }
   return null;
@@ -6933,7 +7077,6 @@ async function notifyAdminNewOrder(data) {
       translation_note: plainBody,
       html_body:        htmlBody
     });
-    console.log('Admin alert sent.');
   } catch (e) {
     // Never surface this to the customer — their order already saved successfully
     console.warn('Admin alert failed (order still saved):', e);

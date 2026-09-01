@@ -234,6 +234,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
 .alog-time{font-size:10.5px;color:#9ca3af;white-space:nowrap;margin-top:1px;}
 .sea-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#0b2545;color:#ffd166;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 .eu-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#003399;color:#ffcc00;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
+.gulf-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#00563f;color:#c8a84b;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
 /* Self-service orders and the payment proof they can attach. A customer-typed
    order is worth flagging: the data was never checked by a human. */
 .ss-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9.5px;font-weight:800;background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;margin-left:6px;vertical-align:middle;letter-spacing:.4px;}
@@ -525,6 +526,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button class="filter-btn" data-filter="coverLetter" onclick="setFilter('coverLetter',this)">📝 Cover Letter <span class="fcount" id="fc_coverLetter">0</span></button>
         <button class="filter-btn" data-filter="seaman" onclick="setFilter('seaman',this)">⚓ Seafarer <span class="fcount" id="fc_seaman">0</span></button>
         <button class="filter-btn" data-filter="europe" onclick="setFilter('europe',this)">🇪🇺 Europe <span class="fcount" id="fc_europe">0</span></button>
+        <button class="filter-btn" data-filter="gulf" onclick="setFilter('gulf',this)">🕌 Gulf <span class="fcount" id="fc_gulf">0</span></button>
         <button class="filter-btn" data-filter="resignation" onclick="setFilter('resignation',this)">✉️ Resignation <span class="fcount" id="fc_resignation">0</span></button>
         <button class="filter-btn" data-filter="clOnly" onclick="setFilter('clOnly',this)">📝 CL Only <span class="fcount" id="fc_clOnly">0</span></button>
         <button class="filter-btn" data-filter="archived" onclick="setFilter('archived',this)" title="Expired orders, reduced to a payment receipt">🗃 Archived <span class="fcount" id="fc_archived">0</span></button>
@@ -551,6 +553,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div class="table-card">
         <table class="sub-table">
           <thead><tr>
+            <th style="width:22px;padding:12px 6px 12px 16px;background:var(--off-white);border-bottom:1px solid var(--gray-light);"></th>
             <th class="sortable" onclick="setSort('num')"    data-key="num">#<span class="sarrow">▼</span></th>
             <th class="sortable" onclick="setSort('name')"   data-key="name">Applicant<span class="sarrow">▼</span></th>
             <th class="sortable" onclick="setSort('date')"   data-key="date">Waiting<span class="sarrow">▼</span></th>
@@ -1229,7 +1232,7 @@ async function migrateToHash(hash){
     delete ex.adminPassword; // drop the plaintext copy
     await putRecord({...ex, adminPasswordHash:hash});
     cloudHash = hash; legacyPlain = null;
-    console.log('Password migrated to hashed storage.');
+    // Password migrated from plaintext to hashed storage
   } catch(e){ console.warn('Password migration failed:', e); }
 }
 
@@ -1858,26 +1861,29 @@ function renderDashboard(){
   // Counts every cover letter written — add-ons and standalone orders alike.
   // Filtering on coverLetter.requested alone silently reported standalone
   // orders as zero.
-  const clOrders=submissions.filter(s=>s.coverLetter?.requested || s.serviceType==='coverLetter');
+  const clOrders=submissions.filter(s=>!s.deleted&&(s.coverLetter?.requested || s.serviceType==='coverLetter'));
   // Collected is money actually received. Outstanding is what has been promised
   // but not yet paid — the old card summed every order regardless, which
   // flattered the figure and told you nothing actionable.
   // A test order is not revenue and is not owed. Excluding it here means a run
   // interrupted halfway cannot quietly inflate your figures.
-  const real         = submissions.filter(s=>!isTestOrder(s));
+  // Exclude test orders AND soft-deleted (trashed) orders from all stat counts and revenue
+  const real         = submissions.filter(s=>!isTestOrder(s) && !s.deleted);
   const paidOrders   = real.filter(isPaid);
   const unpaidOrders = real.filter(s=>!isPaid(s));
   const revenue      = paidOrders.reduce((t,s)=>t+paidAmount(s),0);
   const outstanding  = unpaidOrders.reduce((t,s)=>t+orderTotal(s),0)
                      + paidOrders.reduce((t,s)=>t+Math.max(0,orderTotal(s)-paidAmount(s)),0);
-  const doneCount=submissions.filter(s=>s.status==='Done').length;
-  const deliveredCount=submissions.filter(s=>s.status==='Delivered').length;
-  document.getElementById('statTotal').textContent=submissions.length;
-  document.getElementById('statNew').textContent=submissions.filter(s=>s.status==='New').length;
-  document.getElementById('statProc').textContent=submissions.filter(s=>s.status==='Processing').length;
+  const active = submissions.filter(s=>!s.deleted);  // exclude trashed orders from all display counts
+  const doneCount=active.filter(s=>s.status==='Done').length;
+  const deliveredCount=active.filter(s=>s.status==='Delivered').length;
+  document.getElementById('statTotal').textContent=active.length;
+  document.getElementById('statNew').textContent=active.filter(s=>s.status==='New').length;
+  document.getElementById('statProc').textContent=active.filter(s=>s.status==='Processing').length;
   document.getElementById('statDone').textContent=doneCount+deliveredCount;
   document.getElementById('statDoneOnly').textContent=doneCount;
   document.getElementById('statDelivered').textContent=deliveredCount;
+  // CL count uses active (non-deleted) orders only
   document.getElementById('statRevenue').textContent='₱'+revenue.toLocaleString();
   const so=document.getElementById('statOutstanding'); if(so) so.textContent='₱'+outstanding.toLocaleString();
   const su=document.getElementById('statUnpaidCount'); if(su) su.textContent=unpaidOrders.length;
@@ -1907,7 +1913,7 @@ function renderDashboard(){
   document.getElementById('statCLOnly').textContent=clOrders.length;
   const ce=document.getElementById('statCLEach'); if(ce) ce.textContent=peso(CL_PRICE);
 
-  const recent=[...submissions].reverse().slice(0,5);
+  const recent=[...submissions].filter(s=>!s.deleted).reverse().slice(0,5);
   const body=document.getElementById('recentTableBody');
   if(!recent.length){body.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>No submissions yet.</p></div>';return;}
   body.innerHTML=`<table style="width:100%;border-collapse:collapse;"><thead><tr>
@@ -1916,7 +1922,7 @@ function renderDashboard(){
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Date</th>
     <th style="background:var(--off-white);padding:12px 16px;font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;text-align:left;border-bottom:1px solid var(--gray-light);">Status</th>
   </tr></thead><tbody>${recent.map(s=>`<tr>
-    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${safeName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}${(s.serviceType==='resignation'||s.resignationLetter?.requested)?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}</td>
+    <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);"><strong>${safeName(s.personal)}</strong>${s.coverLetter?.requested?'<span class="cl-badge">📝 CL</span>':''}${(s.serviceType==='resignation'||s.resignationLetter?.requested)?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?'<span class="eu-badge">🇪🇺 EU</span>':''}${s.eduLevel==='gulf'?`<span class="gulf-badge">🕌 ${(s.gulf?.country||'GULF').toUpperCase()}</span>`:''}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${s.personal.jobTitle||s.resignation?.position||s.resignationLetter?.position||'—'}</td>
     <td style="padding:13px 16px;font-size:13px;border-bottom:1px solid rgba(229,231,235,.5);">${formatDate(s.submittedAt)}</td>
     <td style="padding:13px 16px;border-bottom:1px solid rgba(229,231,235,.5);"><span class="status-badge status-${s.status}">${s.status}</span></td>
@@ -2034,6 +2040,7 @@ function renderSubmissions(){
     : f==='coverLetter' ? (!!s.coverLetter?.requested || s.serviceType==='coverLetter')
     : f==='seaman' ? s.eduLevel==='seaman'
     : f==='europe' ? s.eduLevel==='europe'
+    : f==='gulf'   ? s.eduLevel==='gulf'
     : f==='resignation' ? (s.serviceType==='resignation' || !!s.resignationLetter?.requested)
     : f==='clOnly' ? s.serviceType==='coverLetter'
     : f==='needsApproval' ? awaitingApproval(s)
@@ -2045,7 +2052,7 @@ function renderSubmissions(){
   // Live counts on every pill, so you can see the shape of the queue without
   // clicking through each filter in turn.
   const searched = submissions.filter(matches);
-  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','resignation','clOnly','needsApproval','unpaid','paid','archived','trash'].forEach(f=>{
+  ['all','New','Processing','Done','Delivered','coverLetter','seaman','europe','gulf','resignation','clOnly','needsApproval','unpaid','paid','archived','trash'].forEach(f=>{
     const el=document.getElementById('fc_'+f);
     if(el) el.textContent = searched.filter(s=>passesFilter(s,f)).length;
   });
@@ -2089,7 +2096,7 @@ function renderSubmissions(){
     if(legend) legend.style.display='none';
     // An empty screen should say why it's empty and what to do next — "No
     // submissions yet" is a lie when you're three filters deep.
-    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid',archived:'Archived',trash:'in Trash'}[currentFilter];
+    const label={New:'New',Processing:'In Progress',Done:'Done',Delivered:'Delivered',coverLetter:'with a cover letter',seaman:'Seafarer CVs',europe:'Europe CVs',gulf:'Gulf / Middle East CVs',resignation:'Resignation Letters',clOnly:'Cover Letter only',needsApproval:'waiting for your approval',selfService:'Self-service',unpaid:'Unpaid',paid:'Paid',archived:'Archived',trash:'in Trash'}[currentFilter];
     empty.innerHTML = q
       ? `<div class="es-icon">🔍</div><p>Nothing matches “${q}”.</p>
          <button class="filter-btn" style="margin-top:12px;" onclick="document.getElementById('searchInput').value='';renderSubmissions();">Clear search</button>`
@@ -2123,15 +2130,14 @@ function renderSubmissions(){
       : '';
 
     const isTrashed = !!s.deleted;
-    return`<tr class="${ageClass(s)}${isTrashed?' opacity: .55;':''}" style="${isTrashed?'opacity:.55;':''}">
-      <td class="sub-cell-idx" style="display:flex;align-items:center;gap:5px;padding-top:10px;">
-        <input type="checkbox" class="row-check" data-idx="${ri}" onchange="onRowCheck(this)" title="Select">
-        <span class="sub-idx">#${submissions.length-ri}</span>
-        ${isTrashed?'<span style="font-size:9px;color:#ef4444;font-weight:800;">🗑</span>':''}
+    return`<tr class="${ageClass(s)}" style="${isTrashed?'opacity:.55;':''}">
+      <td style="padding:0 6px 0 16px;width:22px;vertical-align:middle;">
+        <input type="checkbox" class="row-check" data-idx="${ri}" onchange="onRowCheck(this)" title="Select" style="width:15px;height:15px;accent-color:var(--gold);cursor:pointer;">
       </td>
+      <td class="sub-cell-idx"><span class="sub-idx">#${submissions.length-ri}</span>${isTrashed?'<span style="font-size:9px;color:#ef4444;font-weight:700;margin-left:3px;">🗑</span>':''}</td>
 
       <td data-label="Applicant">
-        <div class="sub-name">${hlText(fullName(p),q)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTemplateAddOn(s)?'<span class="ss-badge" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ ADD-ON</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}${ttlTag}${s.customerConfirmed?`<span class="ss-badge" title="Customer confirmed on ${s.customerConfirmedAt?new Date(s.customerConfirmedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7;">✅ CONFIRMED</span>`:''}</div>
+        <div class="sub-name">${hlText(fullName(p),q)}${isRes?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RESIGN</span>':''}${isClOnly?'<span class="cl-badge">📝 CL ONLY</span>':''}${s.resignationLetter?.requested?'<span class="cl-badge" style="background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;">✉️ RL</span>':''}${s.eduLevel==='seaman'?'<span class="sea-badge">⚓ SEA</span>':''}${s.eduLevel==='europe'?`<span class="eu-badge">🇪🇺 ${(s.europe?.country||'EU').toUpperCase()}</span>`:''}${s.eduLevel==='gulf'?`<span class="gulf-badge">🕌 ${(s.gulf?.country||'GULF').toUpperCase()}</span>`:''}${hasCL?'<span class="cl-badge">📝 CL</span>':''}${isSelfService(s)?'<span class="ss-badge">🧑‍💻 SELF</span>':''}${isTemplateAddOn(s)?'<span class="ss-badge" style="background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe;">➕ ADD-ON</span>':''}${isTestOrder(s)?'<span class="test-badge">🧪 TEST</span>':''}${ttlTag}${s.customerConfirmed?`<span class="ss-badge" title="Customer confirmed on ${s.customerConfirmedAt?new Date(s.customerConfirmedAt).toLocaleString('en-PH',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'}" style="background:#d1fae5;color:#065f46;border-color:#6ee7b7;">✅ CONFIRMED</span>`:''}</div>
         ${isClOnly?`<div class="sub-role">${hEsc(s.coverLetterOnly?.position)}${s.coverLetterOnly?.general?' → <em>general</em>':s.coverLetterOnly?.company?' → '+hEsc(s.coverLetterOnly.company):''}</div>`:isRes?`<div class="sub-role">${hEsc(s.resignation?.position)}${s.resignation?.company?' · '+hEsc(s.resignation.company):''}</div>`:(s.seaman?.rank||p.jobTitle)?`<div class="sub-role">${hEsc(s.seaman?.rank||p.jobTitle)}</div>`:''}
         <div class="sub-mail">${p.email?hlText(p.email,q):'No email on file'}</div>
       </td>
@@ -2196,7 +2202,7 @@ function exportCSV(){
   if(!submissions.length){ showNotif('No submissions to export yet.', true); return; }
 
   const PKG_LABELS = {cvcl:'CV + Cover Letter', cvrl:'CV + Resignation', cvclrl:'All three'};
-  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'};
+  const eduMap = {highschool:'High School Graduate', college:'College Graduate', fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV', gulf:'🕌 Middle East / Gulf'};
 
   // Escape a value for CSV: wrap in quotes, double any internal quotes
   const esc = v => {
@@ -2229,7 +2235,13 @@ function exportCSV(){
     'EU: Target Country','EU: Target City','EU: Right to Work','EU: Permit Expiry',
     'EU: Availability','EU: Relocation','EU: Driving Licence','EU: Currently Based',
     'EU: Qualification Recognition','EU: Memberships','EU: CEFR Languages',
-    'EU: Details Shown','EU: GDPR Line','EU: Notes'];
+    'EU: Details Shown','EU: GDPR Line','EU: Notes',
+    // Gulf columns — blank on every non-Gulf row, same pattern as EU and seafarer
+    'Gulf: Country','Gulf: Visa Status','Gulf: Religion','Gulf: Driving Licence',
+    'Gulf: Salary Expectation','Gulf: Notice Period','Gulf: Passport No.','Gulf: Passport Expiry',
+    'Gulf: Dependents','Gulf: Currently Based','Gulf: Objective',
+    'Gulf: Ref 1 Name','Gulf: Ref 1 Title','Gulf: Ref 1 Company','Gulf: Ref 1 Contact',
+    'Gulf: Ref 2 Name','Gulf: Ref 2 Title','Gulf: Ref 2 Company','Gulf: Ref 2 Contact'];
 
   const rows = submissions.map((s, i) => {
     const p = s.personal || {};
@@ -2265,6 +2277,7 @@ function exportCSV(){
     // education and work columns above so the whole sheet reads consistently.
     const m = s.seaman || {};
     const eu = s.europe || {};
+    const gf = s.gulf || {};
     const docStr = (m.documents||[]).filter(x=>x.type||x.number)
       .map(x=>`${x.type||''}: ${x.number||''}${x.dateIssued?' issued '+x.dateIssued:''}${x.dateExpiry?' expires '+x.dateExpiry:''}${x.placeIssued?' @ '+x.placeIssued:''}`)
       .join(' | ');
@@ -2337,7 +2350,15 @@ function exportCSV(){
         .map(l=>[l.lang,l.level,l.cert].filter(Boolean).join(' ')).join(' | '),
       Object.entries({dob:'DOB',nationality:'Nationality',civil:'Civil Status',gender:'Gender'})
         .filter(([k])=>eu.show&&eu.show[k]).map(([,v])=>v).join(', ') || 'None',
-      eu.gdprLine?'YES':'No', eu.notes||''
+      eu.gdprLine?'YES':'No', eu.notes||'',
+      // Gulf columns — blank for every non-Gulf row
+      gf.country||'', gf.visa||'', gf.religion||'', gf.licence||'',
+      gf.salary||'', gf.notice||'', gf.passport||'', gf.passportExpiry||'',
+      gf.dependents||'', gf.currentLocation||'', gf.objective||'',
+      (gf.gulfRefs&&gf.gulfRefs[0]?.name)||'', (gf.gulfRefs&&gf.gulfRefs[0]?.title)||'',
+      (gf.gulfRefs&&gf.gulfRefs[0]?.company)||'', (gf.gulfRefs&&gf.gulfRefs[0]?.contact)||'',
+      (gf.gulfRefs&&gf.gulfRefs[1]?.name)||'', (gf.gulfRefs&&gf.gulfRefs[1]?.title)||'',
+      (gf.gulfRefs&&gf.gulfRefs[1]?.company)||'', (gf.gulfRefs&&gf.gulfRefs[1]?.contact)||''
     ].map(esc).join(',');
   });
 
@@ -2440,6 +2461,7 @@ async function reopenSubmission(idx){
   });
   if(!okReopen) return;
   s.status='Processing';
+  logAction(idx, 'Reopened → Processing');
   try{
     await commitSubmissions();
   }catch(err){ showNotif('Could not save: '+err.message, true); return; }
@@ -2831,7 +2853,11 @@ async function reclaimPhotoSpace(){
     confirmText:'Remove Photos', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
   });
   if(!okReclaim) return;
-  targets.forEach(x => { x.personal.photo = ''; });
+  targets.forEach(x => {
+    x.personal.photo = '';
+    const idx = submissions.indexOf(x);
+    if(idx >= 0) logAction(idx, 'Photo removed — Delivered order, storage reclaim');
+  });
   try{
     await commitSubmissions();
     showNotif(`✅ Cleared ${targets.length} photo(s). Space reclaimed.`);
@@ -3224,7 +3250,7 @@ function viewSubmission(idx){
   currentSubmission=idx;
   const s=submissions[idx]; const p=s.personal;
   const si=idx; // declare early so all inline onclick handlers have the correct index
-  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'};
+  const eduMap={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV', gulf:'🕌 Middle East / Gulf'};
   let html='';
   const hasCL=s.coverLetter?.requested;
   const isResign=s.serviceType==='resignation';
@@ -3578,6 +3604,46 @@ function viewSubmission(idx){
         <br>GDPR consent line: <strong style="color:#111;">${e.gdprLine?'include at foot of CV':'omit'}</strong>.
       </div></div>`;
   }
+  // ── Gulf / Middle East panel ────────────────────────────────────────────────
+  if(s.eduLevel==='gulf' && s.gulf){
+    const g = s.gulf;
+    const esc = t => hEsc(t);
+    const row = (k,v) => v ? `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--gray-light);font-size:12.5px;"><div style="min-width:140px;color:var(--gray);font-weight:600;">${k}</div><div style="flex:1;color:var(--text);">${esc(v)}</div></div>` : '';
+    const countryFlag = {UAE:'🇦🇪','Saudi Arabia':'🇸🇦',Qatar:'🇶🇦',Kuwait:'🇰🇼',Bahrain:'🇧🇭',Oman:'🇴🇲'}[g.country]||'🕌';
+
+    // Passport expiry warning
+    let passportWarn = '';
+    if(g.passportExpiry){
+      const days = (new Date(g.passportExpiry) - Date.now()) / 864e5;
+      const st = days < 0 ? 'background:#fee2e2;color:#b91c1c;font-weight:800;padding:1px 6px;border-radius:4px;'
+               : days < 180 ? 'background:#fef3c7;color:#92400e;font-weight:700;padding:1px 6px;border-radius:4px;' : '';
+      passportWarn = st ? `<span style="${st}">${days < 0 ? 'EXPIRED' : 'Expiring soon'}</span>` : '';
+    }
+
+    html += `<div class="info-group"><h4>${countryFlag} Gulf / Middle East Details</h4>
+      <div style="background:var(--off-white);border:1.5px solid #d1fae5;border-radius:10px;padding:14px 16px;">
+        ${row('Target Country', g.country)}
+        ${row('Visa Status', g.visa)}
+        ${row('Religion', g.religion)}
+        ${row('Driving Licence', g.licence)}
+        ${row('Salary Expectation', g.salary)}
+        ${row('Notice / Availability', g.notice)}
+        ${row('Currently Based', g.currentLocation)}
+        ${row('Dependents', g.dependents)}
+        ${g.passport ? `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--gray-light);font-size:12.5px;"><div style="min-width:140px;color:var(--gray);font-weight:600;">Passport No.</div><div style="flex:1;color:var(--text);">${esc(g.passport)}${passportWarn?'&nbsp;':''} ${passportWarn} ${g.passportExpiry?`<span style="color:var(--gray);font-size:11px;">(exp. ${g.passportExpiry})</span>`:''}</div></div>` : ''}
+        ${g.objective ? `<div style="padding:9px 0 0;font-size:12.5px;"><div style="color:var(--gray);font-weight:600;margin-bottom:4px;">Career Objective</div><div style="background:#fff;border:1px solid var(--gray-light);border-radius:8px;padding:10px 12px;line-height:1.7;font-style:italic;">${esc(g.objective)}</div></div>` : ''}
+        ${g.gulfRefs && g.gulfRefs.length ? `
+          <div style="padding:9px 0 0;font-size:12.5px;">
+            <div style="color:var(--gray);font-weight:600;margin-bottom:6px;">References</div>
+            ${g.gulfRefs.map(r=>`<div style="margin-bottom:7px;padding:8px 10px;background:#fff;border:1px solid var(--gray-light);border-radius:7px;">
+              <strong style="color:var(--navy);">${esc(r.name)}</strong>${r.title?` — ${esc(r.title)}`:''}<br>
+              <span style="color:var(--gray);font-size:11.5px;">${esc(r.company||'')}${r.contact?'&nbsp;·&nbsp;'+esc(r.contact):''}</span>
+            </div>`).join('')}
+          </div>` : ''}
+      </div>
+    </div>`;
+  }
+
   html+=grp('Skills & Languages',[['Skills',(s.skills||[]).join(', ')||'—'],['Languages',(s.languages||[]).join(', ')||'—']]);
   html+=grp('Additional',[['Hobbies',s.hobbies||'—'],['Awards',s.awards||'—'],['Template Pref',s.templatePref?'Template '+s.templatePref:'No preference'],['Special Instructions',s.specialInstructions||'—']]);
   // Cover letter generator — always visible, pre-filled from customer data if paid add-on
@@ -4065,7 +4131,9 @@ const ADMIN_TMPL = [
   {num:16, desc:'\u2693 Seafarer \u00b7 Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true},
   {num:17, desc:'\u2693 Seafarer \u00b7 Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true},
   {num:18, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 ATS Classic', bg:'#ffffff', color:'#111',    border:'1.5px solid #111', europeOnly:true},
-  {num:19, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 Accent Rule', bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true}
+  {num:19, desc:'\ud83c\uddea\ud83c\uddfa Europe \u00b7 Accent Rule', bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true},
+  {num:20, desc:'\ud83d\udd4c Gulf \u00b7 Navy & Gold', bg:'#00563f', color:'#c8a84b', gulfOnly:true},
+  {num:21, desc:'\ud83d\udd4c Gulf \u00b7 Clean White',  bg:'#f0fdf4', color:'#00563f', border:'1.5px solid #00563f', gulfOnly:true}
 ];
 
 function renderTemplateButtons(sub){
@@ -4075,7 +4143,8 @@ function renderTemplateButtons(sub){
   const shown=ADMIN_TMPL.filter(t =>
     lvl==='seaman' ? !!t.seamanOnly
   : lvl==='europe' ? !!t.europeOnly
-  : !t.seamanOnly && !t.europeOnly);
+  : lvl==='gulf'   ? !!t.gulfOnly
+  : !t.seamanOnly && !t.europeOnly && !t.gulfOnly);
   bar.innerHTML = shown.map(t=>`
     <div class="to-tmpl-btn" data-tmpl="${t.num}" onclick="selectTemplate(${t.num},this)">
       <div class="to-tmpl-swatch" style="background:${t.bg};color:${t.color};${t.border?'border:'+t.border+';':''}">${t.num}</div>
@@ -4128,7 +4197,7 @@ async function generateCV(){
   let aiProfile='';
   try{
     const p=s.personal;
-    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel;
+    const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV', gulf:'🕌 Middle East / Gulf'}[s.eduLevel]||s.eduLevel;
     const workSum=s.eduLevel!=='fresh'&&s.workExperience?.length?s.workExperience.filter(w=>w.company).map(w=>`${w.position} at ${w.company} (${w.dateStart}–${w.dateEnd}): ${w.responsibilities}`).join(' | '):'No work experience (fresh graduate)';
     const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
     const prompt=`You are writing a CV Profile Summary for a job applicant. Write it in FIRST PERSON (use "I", "my", "I have", "I am" - NEVER mention the applicant's name). Write exactly 3 powerful sentences where the applicant is selling themselves to impress a hiring manager. Make it specific to their background. Sound confident, professional and motivated. Output ONLY the 3 sentences — no labels, no headers, no explanation.
@@ -4518,7 +4587,8 @@ function buildCVHtml(s,tmpl,mode){
      aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
      awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
      seaman:s.seaman?_escDeep(s.seaman):s.seaman,
-     europe:s.europe?_escDeep(s.europe):s.europe};
+     europe:s.europe?_escDeep(s.europe):s.europe,
+     gulf:s.gulf?_escDeep(s.gulf):s.gulf};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
     ?`<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -4783,8 +4853,10 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===18) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   if(tmpl===19) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,true);
-  // Seafarer records have no ordinary work history, so they land on the
-  // maritime layout even without an explicit template preference.
+  if(tmpl===20) return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS,false);
+  if(tmpl===21) return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS,true);
+  // Gulf orders fall through to their default layout
+  if(s.eduLevel==='gulf') return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS,false);
   if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   // Europe orders must never fall through to a photo-bearing layout: the whole
   // point of the format is that the photograph and personal details are absent.
@@ -4977,6 +5049,167 @@ ${pb}
 
   ${E.gdprLine?`<div class="gdpr">I hereby give consent for my personal data included in this application to be processed for the purposes of the recruitment process, in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (GDPR).</div>`:''}
 
+</div></div></body></html>`;}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE 20 / 21 — GULF · MIDDLE EAST
+// ──────────────────────────────────────────────────────────────────────────────
+// Two variants of the same structure:
+//   T20 (clean=false) — dark green header, gold accents, traditional Gulf style
+//   T21 (clean=true)  — white background, green accents, cleaner agency style
+//
+// Both include the extra Gulf fields (religion, visa, passport, licence, salary)
+// that Gulf employers expect as standard. The objective statement opens the CV
+// where Gulf HR reads it first. References include direct contact numbers.
+// Photo is included as passport-style top-right — required in this market.
+// ══════════════════════════════════════════════════════════════════════════════
+function T20(p,s,ph,edu,work,refs,isFresh,pb,pc,clean){
+const g=s.gulf||{};
+const skills=s.skills||[]; const langs=s.languages||[];
+const HDR  = clean?'#00563f':'#00563f';
+const GOLD = '#c8a84b';
+const BG   = clean?'#ffffff':'#ffffff';
+const SEC  = clean?'#00563f':'#00563f';
+const photoSrc = p.photo
+  ? `<img src="${p.photo}" style="width:100%;height:100%;object-fit:cover;">`
+  : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:34px;color:rgba(255,255,255,.6);">👤</div>`;
+
+// Gulf contact items
+const gInfo = [
+  g.country    ? `🌍 ${g.country}` : null,
+  g.visa       ? `📋 ${g.visa}` : null,
+  g.religion   ? `☪ ${g.religion}` : null,
+  g.licence && g.licence!=='None' ? `🚗 ${g.licence}` : null,
+  g.salary     ? `💰 ${g.salary}` : null,
+  g.passport   ? `🛂 ${g.passport}${g.passportExpiry?` (exp ${g.passportExpiry})`:''}`  : null,
+  g.dependents ? `👨‍👩‍👧 ${g.dependents}` : null,
+].filter(Boolean);
+
+const blist=t=>{
+  let a=String(t==null?'':t).split(/<br\s*\/?>|\r?\n/i)
+    .map(x=>x.replace(/^[\s\-–—*•·]+/,'').trim()).filter(Boolean);
+  if(a.length===1&&a[0].length>140){
+    const parts=a[0].split(/(?<=[.;])\s+/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1) a=parts;
+  }
+  return a;
+};
+
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<link href="https://fonts.googleapis.com/css2?family=Calibri:wght@400;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+body{font-family:'Open Sans',Arial,sans-serif;background:#e8e8e8;color:#111;}
+.page{width:100%;min-height:100vh;background:${BG};display:flex;flex-direction:column;}
+/* ── Header ── */
+.hdr{background:${clean?'#00563f':'#00563f'};padding:20px 28px 18px;display:flex;align-items:flex-start;gap:18px;}
+.hdr-text{flex:1;}
+.hdr-text h1{font-size:24px;font-weight:700;color:#fff;letter-spacing:.5px;line-height:1.2;margin-bottom:4px;}
+.hdr-text .ttl{font-size:13px;color:${GOLD};font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:10px;}
+.hdr-contact{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;}
+.hdr-contact span{font-size:10.5px;color:rgba(255,255,255,.85);white-space:nowrap;}
+.hdr-photo{width:90px;height:110px;flex-shrink:0;overflow:hidden;border:2.5px solid ${GOLD};background:#004d38;}
+/* ── Objective band ── */
+.obj-band{background:${clean?'#f0fdf4':'#f9fafb'};border-left:4px solid ${GOLD};padding:12px 20px;font-size:11.5px;color:#111;line-height:1.7;font-style:italic;}
+/* ── Body ── */
+.body{display:flex;flex:1;}
+.L{width:30%;background:${clean?'#f0fdf4':'#f0fdf4'};padding:14px 14px 14px 18px;flex-shrink:0;border-right:1px solid #d1fae5;}
+.R{flex:1;padding:14px 18px 14px 18px;}
+/* ── Section heads ── */
+.lh{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${SEC};margin-bottom:8px;border-bottom:2px solid ${GOLD};padding-bottom:3px;}
+.ls{margin-bottom:14px;}
+.rh{font-size:9.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${SEC};margin-bottom:9px;border-bottom:2px solid ${GOLD};padding-bottom:3px;}
+.rsec{margin-bottom:13px;}
+/* ── Content ── */
+.ci{font-size:11px;color:#444;margin-bottom:4px;line-height:1.5;}
+.sbar{margin-bottom:5px;font-size:11px;color:#444;padding-left:9px;position:relative;}
+.sbar::before{content:'▸';color:${GOLD};position:absolute;left:0;}
+.about{font-size:11.5px;line-height:1.8;color:#222;text-align:justify;}
+.item{margin-bottom:9px;padding:7px 10px;background:#fff;border-left:3px solid ${GOLD};border-radius:0 4px 4px 0;}
+.i-co{font-size:12.5px;font-weight:700;color:#00563f;}
+.i-pos{font-size:11px;color:#555;margin-top:1px;}
+.i-date{font-size:10px;color:#00563f;font-weight:700;margin:2px 0;}
+.i-loc{font-size:10px;color:#777;margin-bottom:3px;}
+.i-ul{margin:3px 0 0 14px;}
+.i-ul li{font-size:11px;line-height:1.55;margin-bottom:1.5px;}
+.ginfo{font-size:10.5px;color:#333;margin-bottom:5px;padding:3px 0;border-bottom:1px solid #d1fae5;}
+.ginfo:last-child{border-bottom:none;}
+.ref-n{font-size:11px;font-weight:700;color:#00563f;}
+.ref-s{font-size:10px;color:#555;line-height:1.5;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+  <div class="hdr">
+    <div class="hdr-text">
+      <h1>${p.firstName||''} ${p.lastName||''}</h1>
+      ${p.jobTitle?`<div class="ttl">${p.jobTitle}</div>`:''}
+      <div class="hdr-contact">
+        ${p.phone?`<span>📱 ${p.phone}</span>`:''}
+        ${p.email?`<span>✉️ ${p.email}</span>`:''}
+        ${p.address?`<span>📍 ${p.address}</span>`:''}
+        ${p.linkedin?`<span>🔗 ${p.linkedin}</span>`:''}
+      </div>
+    </div>
+    <div class="hdr-photo">${photoSrc}</div>
+  </div>
+
+  ${g.objective?`<div class="obj-band">${g.objective}</div>`:''}
+  ${s.profileSummary&&!g.objective?`<div class="obj-band">${s.profileSummary}</div>`:''}
+
+  <div class="body">
+    <div class="L">
+      <!-- Gulf-specific details first — this is what Gulf HR checks first -->
+      ${gInfo.length?`<div class="ls"><div class="lh">Gulf Details</div>${gInfo.map(i=>`<div class="ginfo">${i}</div>`).join('')}</div>`:''}
+
+      ${p.dob||p.nationality||p.civilStatus||p.gender?`<div class="ls"><div class="lh">Personal</div>
+        ${p.dob?`<div class="ci">🎂 ${p.dob}</div>`:''}
+        ${p.nationality?`<div class="ci">🌏 ${p.nationality}</div>`:''}
+        ${p.civilStatus?`<div class="ci">💍 ${p.civilStatus}</div>`:''}
+        ${p.gender?`<div class="ci">👤 ${p.gender}</div>`:''}
+        ${p.height?`<div class="ci">📏 ${p.height}</div>`:''}
+        ${p.weight?`<div class="ci">⚖️ ${p.weight}</div>`:''}
+      </div>`:''}
+
+      ${skills.length?`<div class="ls"><div class="lh">Skills</div>${skills.map(sk=>`<div class="sbar">${sk}</div>`).join('')}</div>`:''}
+      ${langs.length?`<div class="ls"><div class="lh">Languages</div>${langs.map(l=>`<div class="ci">• ${l}</div>`).join('')}</div>`:''}
+      ${s.hobbies?`<div class="ls"><div class="lh">Interests</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.hobbies}</p></div>`:''}
+      ${s.awards?`<div class="ls"><div class="lh">Awards</div><p style="font-size:11px;color:#555;line-height:1.7;">${s.awards}</p></div>`:''}
+    </div>
+
+    <div class="R">
+      ${s.profileSummary&&g.objective?`<div class="rsec"><div class="rh">Profile Summary</div><p class="about">${s.profileSummary}</p></div>`:''}
+
+      ${edu.length?`<div class="rsec"><div class="rh">Education</div>${edu.map(e=>`<div class="item">
+        <div class="i-co">${e.school}</div>
+        ${e.degree?`<div class="i-pos">${e.degree}</div>`:''}
+        ${e.yearGrad||e.yearStart?`<div class="i-date">${e.yearStart||''}${e.yearGrad?' – '+e.yearGrad:''}</div>`:''}
+        ${e.honors?`<div class="i-loc">${e.honors}</div>`:''}
+      </div>`).join('')}</div>`:''}
+
+      ${work.length?`<div class="rsec"><div class="rh">Work Experience</div>${work.map(w=>{
+        const b=blist(w.responsibilities);
+        return`<div class="item">
+          <div class="i-co">${w.company}</div>
+          <div class="i-pos">${w.position}</div>
+          <div class="i-date">${w.dateStart} – ${w.dateEnd}${w.location?' · '+w.location:''}</div>
+          ${b.length?`<ul class="i-ul">${b.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+        </div>`;}).join('')}</div>`:''}
+
+      <!-- Gulf references with contact details (not "available on request") -->
+      ${g.gulfRefs&&g.gulfRefs.length?`<div class="rsec"><div class="rh">References</div>
+        ${g.gulfRefs.map(r=>`<div style="margin-bottom:8px;">
+          <div class="ref-n">${r.name}</div>
+          <div class="ref-s">${r.title||''}${r.company?' · '+r.company:''}</div>
+          ${r.contact?`<div class="ref-s">📞 ${r.contact}</div>`:''}
+        </div>`).join('')}</div>`
+      : refs.length?`<div class="rsec"><div class="rh">References</div>${refs.map(r=>`<div style="margin-bottom:8px;">
+        <div class="ref-n">${r.name}</div>
+        <div class="ref-s">${r.position||''}${r.company?' · '+r.company:''}</div>
+        ${r.contact?`<div class="ref-s">📞 ${r.contact}</div>`:''}
+      </div>`).join('')}</div>`:''}
+    </div>
+  </div>
 </div></div></body></html>`;}
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -5517,37 +5750,52 @@ function logAction(idx, action){
   const s = submissions[idx];
   if(!s) return;
   if(!s.activityLog) s.activityLog = [];
-  s.activityLog.push({ action, at: new Date().toISOString(), by: 'admin' });
-  // Keep the last 30 entries so the array can't grow unboundedly.
-  if(s.activityLog.length > 30) s.activityLog = s.activityLog.slice(-30);
+  // Compact PH-time stamp (~15 chars vs 24 for ISO) saves bin space across many orders
+  const logAt = new Date().toLocaleString('en-PH',{timeZone:'Asia/Manila',
+    month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  s.activityLog.push({ action, at: logAt });
+  // Keep the last 20 entries — 30 × ~80 chars could add ~2.4 KB to a busy order
+  if(s.activityLog.length > 20) s.activityLog = s.activityLog.slice(-20);
 }
 
 // ── SOFT DELETE ─────────────────────────────────────────────────────────────────
-// Moves an order to Trash rather than destroying it. It stays in the bin,
-// hidden from every other filter, recoverable from the 🗑 Trash view.
+// Moves an order to Trash rather than destroying it permanently.
+// The item disappears from every view except 🗑 Trash, where it can be
+// restored with ↩️ or permanently purged.
 async function deleteSubmission(idx){
   const s = submissions[idx];
-  if(!s){ showNotif('Submission not found.', true); return; }
+  if(!s){ showNotif('Submission not found — try refreshing the page.', true); return; }
   const name = fullName(s.personal);
   const okDel = await showConfirm({
-    type:'danger', title:'Move to Trash?',
-    message:`<strong>${cdlgEsc(name)}</strong>'s order will be moved to Trash. You can restore it from the 🗑 Trash filter, or permanently delete it from there.`,
-    confirmText:'Move to Trash', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
+    type:'danger', title:'Delete this order?',
+    message:`<strong>${cdlgEsc(name)}</strong>'s order will be deleted.<br><br>
+      It goes to the <strong>🗑 Trash</strong> filter where you can restore it any time,
+      or permanently remove it from there.`,
+    confirmText:'Delete', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
   });
   if(!okDel) return;
 
   s.deleted = true;
   s.deletedAt = new Date().toISOString();
-  logAction(idx, 'Moved to Trash');
+  logAction(idx, 'Deleted (moved to Trash)');
   try {
     await commitSubmissions();
-    showNotif(`Moved to Trash — restore anytime from the 🗑 Trash filter.`);
+    showNotif(`🗑 Deleted — find it in the Trash filter to restore or purge.`);
     renderSubmissions();
     renderDashboard();
+    // Briefly highlight the Trash pill so the user knows where it went
+    const trashBtn = document.querySelector('.filter-btn.trash-btn');
+    if(trashBtn){
+      trashBtn.style.transition = 'background .3s,color .3s';
+      trashBtn.style.background = '#fee2e2';
+      trashBtn.style.color = '#b91c1c';
+      setTimeout(() => { trashBtn.style.background = ''; trashBtn.style.color = ''; }, 2200);
+    }
   } catch(e){
     delete s.deleted;
     delete s.deletedAt;
-    showNotif('Failed: ' + e.message, true);
+    renderSubmissions();   // keep UI in sync even after failure
+    showNotif('Delete failed: ' + e.message, true);
   }
 }
 
@@ -5665,7 +5913,7 @@ async function bulkMarkPaid(){
   idxs.forEach(idx=>{
     const s = submissions[idx];
     s.payment = { paid:true, amount:orderTotal(s), reference:'', paidAt:new Date().toISOString(), method:'GCash' };
-    logAction(idx, 'Bulk marked paid');
+    logAction(idx, `Bulk payment recorded — ${peso(orderTotal(s))} (no GCash ref)`);
   });
   try{
     await commitSubmissions();
@@ -5718,6 +5966,7 @@ function markLastSaved(success, msg){
 // Re-reads JSONBin every 90 seconds and merges in any new submissions from
 // other sources (customer form submissions) without disrupting the current view.
 let _autoRefreshTimer = null;
+let _refreshFailCount = 0;
 const AUTO_REFRESH_MS = 90000;
 
 function startAutoRefresh(){
@@ -5738,6 +5987,7 @@ async function autoRefreshTick(){
     const fresh = json?.record?.submissions || [];
     const currentIds = new Set(submissions.filter(s=>s&&s.id).map(s=>s.id));
     const newArrivals = fresh.filter(s => s && s.id && !currentIds.has(s.id) && !isTestOrder(s) && !s.deleted);
+    _refreshFailCount = 0;  // reset on any successful read
     if(!newArrivals.length) return;
 
     // Merge new arrivals into local submissions
@@ -5747,7 +5997,11 @@ async function autoRefreshTick(){
     renderDashboard();
     const n = newArrivals.length;
     showNewArrivalsToast(n);
-  }catch(e){ /* silent — polling errors shouldn't interrupt the user */ }
+  }catch(e){
+    _refreshFailCount++;
+    // After 3 consecutive failures, surface the problem in the sidebar bar
+    if(_refreshFailCount >= 3) markLastSaved(false);
+  }
 }
 
 function showNewArrivalsToast(n){
@@ -5893,7 +6147,7 @@ async function generateProfileSummary(idx){
   spinner.style.display = 'inline-block';
   display.value = '⏳ Generating profile summary...';
 
-  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel;
+  const eduLevel = {highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV', gulf:'🕌 Middle East / Gulf'}[s.eduLevel]||s.eduLevel;
   const workSum = experienceForAI(s);
   const eduSum = (s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school} (${e.yearGrad||''})`).join(', ');
 
@@ -6429,7 +6683,7 @@ async function generateCoverLetter(idx){
     creative:'creative, expressive, and memorable'
   };
   const toneDesc=toneMap[tone]||'professional and formal';
-  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV'}[s.eduLevel]||s.eduLevel||'Graduate';
+  const eduLevel={highschool:'High School Graduate',college:'College Graduate',fresh:'Fresh Graduate', seaman:'⚓ Seafarer', europe:'🇪🇺 Europe / EU CV', gulf:'🕌 Middle East / Gulf'}[s.eduLevel]||s.eduLevel||'Graduate';
   const workSum=experienceForAI(s);
   const eduSum=(s.education||[]).filter(e=>e.school).map(e=>`${e.degree||'Graduate'} from ${e.school}`).join(', ')||'Not specified';
   const today=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
