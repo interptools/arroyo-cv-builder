@@ -1430,13 +1430,22 @@ async function loadData(){
   if(typeof emailjs !== 'undefined') emailjs.init(EMAILJS_KEY);
   try{
     const res=await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
+    if(!res.ok) throw new Error('Server returned '+res.status+' — check your JSONBin key or bin ID.');
     const json=await res.json();
     // Handle both {record:{submissions:[]}} and direct {submissions:[]}
     submissions=json?.record?.submissions||json?.submissions||[];
     snapshotBaseline();
     await purgeExpired();
-    renderDashboard(); renderSubmissions();
-  }catch(e){showNotif('Could not load data. Check connection.',true);}
+  }catch(e){
+    showNotif('Could not load data: '+e.message,true);
+    // Still render so the UI isn't blank — just with empty data
+    try{ renderDashboard(); }catch(re){}
+    try{ renderSubmissions(); }catch(re){}
+    return;
+  }
+  // Render OUTSIDE the try-catch: errors in rendering are separate from network errors
+  try{ renderDashboard(); }catch(e){ console.error('Dashboard render error:',e); }
+  try{ renderSubmissions(); }catch(e){ console.error('Submissions render error:',e); }
 }
 
 // Throws on failure — deliberately. The old version returned {} on error,
@@ -5119,31 +5128,7 @@ ${pb}
 // ══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE 8 — Fresh Graduate · Navy/Gold Grid
 // ── DELETE SUBMISSION ────────────────────────────────────────────────────────
-async function deleteSubmission(idx){
-  const s = submissions[idx];
-  const name = `${fullName(s.personal)}`;
-  
-  // Confirm before deleting
-  const okDel = await showConfirm({
-    type:'danger', title:'Delete Submission?',
-    message:`<strong>${cdlgEsc(name)}</strong>'s submission will be permanently deleted. This cannot be undone.`,
-    confirmText:'Delete', confirmClass:'cdlg-btn-danger', cancelText:'Cancel'
-  });
-  if(!okDel) return;
-
-  submissions.splice(idx, 1);
-
-  try {
-    await commitSubmissions();
-    showNotif(`✅ ${name}'s submission deleted.`);
-    renderSubmissions();
-    renderDashboard();
-  } catch(e){
-    // Restore if failed
-    submissions.splice(idx, 0, s);
-    showNotif('Failed to delete: ' + e.message, true);
-  }
-}
+// deleteSubmission: see soft-delete implementation below
 
 // ── AI HELPER: fetch with timeout ─────────────────────────────────────────────
 async function fetchWithTimeout(url, options, ms=12000){
