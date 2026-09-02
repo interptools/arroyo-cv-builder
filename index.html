@@ -156,10 +156,8 @@
   .addon b{font-weight:600;color:var(--gold-soft);white-space:nowrap;}
   .addons p{font-size:12px;color:#94a2bd;margin-top:9px;line-height:1.55;}
   .cta-note{
-    font-size:12.5px;color:#94a2bd;text-align:center;margin-top:10px;line-height:1.65;
+    font-size:12.5px;color:#94a2bd;text-align:center;margin-top:10px;
   }
-  .alt-link{color:var(--gold-soft);text-decoration:underline;}
-  .alt-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
   .steps-h{
     font-family:var(--serif);font-size:16px;font-weight:600;color:var(--navy);
     margin:20px 0 2px;
@@ -289,11 +287,9 @@
         <p>Ordering more than one together costs less than the prices above added up.
            The exact total is shown before you pay.</p>
       </div>
-      <a class="cta" href="https://m.me/www.reymar22">Message me on Messenger</a>
-      <p class="cta-note">Opens a chat with me. No form to fill in.<br>
-        Not opening? Message
-        <a href="https://www.facebook.com/www.reymar22" class="alt-link">facebook.com/www.reymar22</a>
-        or text the GCash number below.</p>
+      <a class="cta" href="https://m.me/@www.reymar22" target="_blank" rel="noopener noreferrer">
+        Message me on Messenger</a>
+      <p class="cta-note">Opens a chat with me. No form to fill in.</p>
     </div>
 
   </div>
@@ -408,17 +404,12 @@ const num = v => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : null;
   set('pSelf2', num(self.base));   // the same figure repeated in the GCash steps
   set('pExtra', num(self.extra));
 
-  // Assisted pricing. The Worker does not currently return these at all, so the
-  // figures written into the HTML above stand until worker.js forwards them.
-  // Read from either the top level or a nested object, because whoever adds
-  // them may group them rather than flatten them, and a page that only accepts
-  // one shape would silently keep showing stale prices.
-  const A = p.assisted || p.cv || p;
+  // Assisted pricing sits at the top level. A live sale overrides it.
   const sale = p.sale && (!p.sale.endsAt || new Date(p.sale.endsAt) >= new Date())
     ? p.sale : null;
-  set('pMade', num((sale && sale.base) ?? A.base ?? p.base));
-  set('pCl',   num((sale && sale.cl)   ?? A.cl   ?? p.cl));
-  set('pRl',   num((sale && sale.rl)   ?? A.rl   ?? p.rl));
+  set('pMade', num((sale && sale.base) ?? p.base));
+  set('pCl',   num((sale && sale.cl)   ?? p.cl));
+  set('pRl',   num((sale && sale.rl)   ?? p.rl));
 
   if(sale && sale.label){
     const bar = document.getElementById('saleBar');
