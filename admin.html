@@ -11103,10 +11103,64 @@ async function stTestEnvironment(){
       'could not read API_BASE out of builder.html — serve the folder over http, '
       + 'or check that builder.html sits beside this file');
   } else {
+    // Probe the read-only routes before anything else. builder.html sets
+    // USING_API from API_BASE and carries no JSONBin credentials, so EVERY
+    // self-service action — submitting an order, checking payment, fetching the
+    // QR — goes through this Worker with nothing to fall back to. A bare
+    // "HTTP 500" does not say whether one route is broken or the whole thing is
+    // down, and those have very different consequences. /order and /proof are
+    // deliberately not probed: they write, and a probe would create junk.
+    const probe = async (path) => {
+      try{
+        const r = await fetch(workerBase + path, { cache:'no-store' });
+        let body = '';
+        try{ body = (await r.text()).slice(0, 160); }catch(e){}
+        return { status: r.status, ok: r.ok, body };
+      }catch(e){ return { status: 0, ok: false, body: e.message }; }
+    };
+
+    const routes = {
+      '/pricing': await probe('/pricing'),
+      '/qr':      await probe('/qr'),
+      // Nonsense reference on purpose. A 400 or 404 here is a PASS: it proves
+      // the Worker is alive and routing, which is what we are testing.
+      '/status':  await probe('/status?ref=SELFTEST-000&email=selftest%40example.com')
+    };
+
+    const dead   = Object.entries(routes).filter(([, r]) => r.status === 0);
+    const broken = Object.entries(routes).filter(([, r]) => r.status >= 500);
+    const alive  = Object.entries(routes).filter(([, r]) => r.status > 0 && r.status < 500);
+
+    if(dead.length === Object.keys(routes).length){
+      stFail(G, 'Worker reachable',
+        'no route answered at ' + workerBase + ' \u2014 self-service is DOWN. builder.html '
+        + 'routes ordering, payment checks and the QR through this Worker and carries no '
+        + 'JSONBin fallback, so customers cannot order at all. (' + dead[0][1].body + ')');
+    } else if(broken.length){
+      const scope = alive.length
+        ? 'the Worker is alive (' + alive.map(([p, r]) => p + ' \u2192 ' + r.status).join(', ')
+          + ') but ' + broken.map(([p]) => p).join(', ') + ' is erroring'
+        : 'every probed route is erroring';
+      const critical = broken.some(([p]) => p === '/status');
+      const impact = critical
+        ? ' /status is what confirms a payment, so paying customers cannot unlock their CV.'
+        : ' Ordering still works; prices and sales fall back to the figures built into each page.';
+      (critical ? stFail : stWarnR)(G, 'Worker routes healthy',
+        scope + '.' + impact + ' Response: ' + (broken[0][1].body || '(empty body)')
+        + ' \u2014 check the Cloudflare Worker logs.');
+    } else {
+      stPass(G, 'Worker routes healthy',
+        alive.map(([p, r]) => p + ' \u2192 ' + r.status).join(', '));
+    }
+
     try{
-      const r = await fetch(workerBase + '/pricing', { cache:'no-store' });
-      if(!r.ok) throw new Error('HTTP ' + r.status);
-      const j = await r.json() || {};
+      const r = routes['/pricing'];
+      if(!r.ok) throw new Error('HTTP ' + r.status + (r.body ? ' \u2014 ' + r.body : ''));
+      let j;
+      try{ j = JSON.parse(r.body.length < 160 ? r.body : '{}'); }catch(e){ j = null; }
+      // The probe truncates, so re-read in full when the body was long.
+      if(!j) j = await (await fetch(workerBase + '/pricing', { cache:'no-store' })).json();
+      j = j || {};
       stPass(G, 'Worker /pricing reachable', workerBase);
 
       // Self-service side: builder.html and the landing page both read these.
@@ -11148,7 +11202,13 @@ async function stTestEnvironment(){
       } else {
         stPass(G, 'sale block is served', 'no sale set at the moment');
       }
-    }catch(e){ stFail(G, 'Worker /pricing reachable', e.message); }
+    }catch(e){
+      stFail(G, 'Worker /pricing usable', e.message
+        + ' \u2014 builder.html and the landing page will both keep showing the prices '
+        + 'hardcoded in them. Those fallbacks are currently correct, so customers see the '
+        + 'right figures, but a price or sale set in Pricing & Sales will NOT reach them '
+        + 'until this route is fixed.');
+    }
   }
 }
 
