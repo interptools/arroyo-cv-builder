@@ -1042,6 +1042,12 @@
             <div class="edu-label">Gulf / Middle East</div>
             <div class="edu-sub">UAE · Saudi · Qatar · Kuwait</div>
           </label>
+          <label class="edu-option" id="eduOpt6">
+            <input type="radio" name="eduLevel" value="europe" onchange="handleEduChange()">
+            <div class="edu-icon">🇪🇺</div>
+            <div class="edu-label">Europe / EU</div>
+            <div class="edu-sub">Germany · Poland · Netherlands</div>
+          </label>
         </div>
         <div id="seamanIntro" class="hidden" style="margin-top:14px;background:rgba(26,39,68,.04);border:1.5px solid var(--navy);border-radius:10px;padding:13px 15px;">
           <div style="font-size:12.5px;font-weight:800;color:var(--navy);margin-bottom:4px;">⚓ Seafarer format selected</div>
@@ -1068,10 +1074,10 @@
           <p>Gulf employers screen on these fields before reading your work history</p>
         </div>
       </div>
-      <div class="form-grid">
-        <div class="form-group">
+      <div class="field-row">
+        <div class="field">
           <label>Target Country *</label>
-          <select id="gf-country" class="form-input" onchange="typeof queuePreview === 'function' &amp;&amp; queuePreview()">
+          <select id="gf-country" onchange="typeof queuePreview === 'function' &amp;&amp; queuePreview()">
             <option value="">Select country</option>
             <option value="UAE">🇦🇪 United Arab Emirates</option>
             <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
@@ -1082,9 +1088,9 @@
             <option value="Other Gulf">Other Gulf State</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Current Visa / Permit Status</label>
-          <select id="gf-visaStatus" class="form-input">
+          <select id="gf-visaStatus">
             <option value="">Select status</option>
             <option value="Tourist / Visit Visa">Tourist / Visit Visa</option>
             <option value="Employment Visa">Employment Visa</option>
@@ -1094,41 +1100,41 @@
             <option value="Other">Other</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Religion</label>
-          <input type="text" id="gf-religion" class="form-input" placeholder="e.g. Roman Catholic">
+          <input type="text" id="gf-religion" placeholder="e.g. Roman Catholic">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Passport Number</label>
-          <input type="text" id="gf-passportNo" class="form-input" placeholder="e.g. P1234567A">
+          <input type="text" id="gf-passportNo" placeholder="e.g. P1234567A">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Passport Expiry Date</label>
-          <input type="date" id="gf-passportExpiry" class="form-input">
+          <input type="date" id="gf-passportExpiry">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Number of Dependants</label>
-          <input type="text" id="gf-dependants" class="form-input" placeholder="e.g. 2 (spouse + 1 child)">
+          <input type="text" id="gf-dependants" placeholder="e.g. 2 (spouse + 1 child)">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Availability / Start Date</label>
-          <input type="text" id="gf-availability" class="form-input" placeholder="Immediately · After 30 days">
+          <input type="text" id="gf-availability" placeholder="Immediately · After 30 days">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Notice Period</label>
-          <input type="text" id="gf-notice" class="form-input" placeholder="30 days · 1 month">
+          <input type="text" id="gf-notice" placeholder="30 days · 1 month">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Expected Salary</label>
-          <input type="text" id="gf-expectedSalary" class="form-input" placeholder="e.g. SAR 3,000 · Negotiable">
+          <input type="text" id="gf-expectedSalary" placeholder="e.g. SAR 3,000 · Negotiable">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Work Authorization / Sponsorship</label>
-          <input type="text" id="gf-workAuth" class="form-input" placeholder="Requires sponsorship · Open work permit">
+          <input type="text" id="gf-workAuth" placeholder="Requires sponsorship · Open work permit">
         </div>
-        <div class="form-group">
+        <div class="field">
           <label>Willing to Relocate?</label>
-          <select id="gf-relocate" class="form-input">
+          <select id="gf-relocate">
             <option value="">Select</option>
             <option value="Yes — within the Gulf">Yes — within the Gulf</option>
             <option value="Yes — anywhere">Yes — anywhere</option>
@@ -1136,6 +1142,103 @@
             <option value="No">No</option>
           </select>
         </div>
+      </div>
+    </div>
+
+    <!-- EUROPE / EU -->
+    <!-- Mirrors builder.html's #s-europe. European CVs omit personal data by
+         default, so every one of the "may we show" fields is opt-in and the
+         GDPR consent line is the only box ticked on arrival. -->
+    <div class="card hidden europe-only" id="europeCard">
+      <div class="card-header">
+        <div class="card-icon">🇪🇺</div>
+        <div>
+          <h2>Europe / EU Details</h2>
+          <p>European CVs leave out personal data by default — nothing below appears unless you tick it</p>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Target Country *</label>
+          <input type="text" id="eu-country" placeholder="e.g. Germany" list="euCountries">
+          <datalist id="euCountries">
+            <option>Germany</option><option>Netherlands</option><option>Poland</option>
+            <option>Ireland</option><option>Spain</option><option>Italy</option>
+            <option>Sweden</option><option>Denmark</option><option>Czech Republic</option>
+            <option>Portugal</option><option>Austria</option><option>Belgium</option>
+          </datalist>
+        </div>
+        <div class="field">
+          <label>Target City</label>
+          <input type="text" id="eu-city" placeholder="e.g. Berlin">
+        </div>
+        <div class="field">
+          <label>Work Permit / Right to Work</label>
+          <input type="text" id="eu-permit" placeholder="EU Blue Card · Visa-free · Needs sponsorship">
+        </div>
+        <div class="field">
+          <label>Permit Expiry</label>
+          <input type="date" id="eu-permitExpiry">
+        </div>
+        <div class="field">
+          <label>Notice Period</label>
+          <input type="text" id="eu-notice" placeholder="e.g. 1 month">
+        </div>
+        <div class="field">
+          <label>Willing to Relocate</label>
+          <select id="eu-relocate">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+            <option>Already in country</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Driving Licence</label>
+          <input type="text" id="eu-licence" placeholder="e.g. Category B">
+        </div>
+        <div class="field">
+          <label>Current Location</label>
+          <input type="text" id="eu-currentLoc" placeholder="e.g. Cebu, Philippines">
+        </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+          <label>Qualification Recognition</label>
+          <input type="text" id="eu-recognition" placeholder="Anerkennung in progress · ENIC-NARIC evaluated">
+        </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+          <label>Professional Memberships</label>
+          <input type="text" id="eu-memberships" placeholder="PRC licensed · IEEE member">
+        </div>
+        </div>
+        <div class="field-row full">
+          <div class="field">
+          <label>Notes for the Employer</label>
+          <input type="text" id="eu-notes" placeholder="e.g. Available from March 2026">
+        </div>
+      </div>
+
+      <h3 style="font-size:13px;font-weight:800;margin:22px 0 4px;color:var(--navy);">Languages (CEFR)</h3>
+      <p style="font-size:12px;color:#6b7280;line-height:1.6;margin:0 0 10px;">
+        European employers expect CEFR levels (A1–C2), not "fluent".
+      </p>
+      <div id="euLangEntries"></div>
+      <button type="button" class="add-btn" onclick="addEuLangEntry()">+ Add Language</button>
+
+      <h3 style="font-size:13px;font-weight:800;margin:22px 0 4px;color:var(--navy);">What may we show?</h3>
+      <p style="font-size:12px;color:#6b7280;line-height:1.6;margin:0 0 10px;">
+        Left unticked, none of these appear on the CV. That is the European default and it is deliberate.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-wantPhoto"> Include my photo</label>
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-showDob"> Show date of birth</label>
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-showNationality"> Show nationality</label>
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-showCivil"> Show civil status</label>
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-showGender"> Show gender</label>
+        <label style="font-size:13px;font-weight:500;"><input type="checkbox" id="eu-gdpr" checked> Add the GDPR consent line</label>
       </div>
     </div>
 
@@ -2702,13 +2805,21 @@ function renderTemplateSwatches() {
   const grid = document.getElementById('tmplSwatchGrid');
   if (!grid) return;
   const cur = document.getElementById('templatePref').value;
-  const isSeaman = document.querySelector('input[name="eduLevel"]:checked')?.value === 'seaman';
+  const lvl = document.querySelector('input[name="eduLevel"]:checked')?.value;
 
-  // The maritime layout only makes sense with sea service data, and the ordinary
-  // designs can't show documents or vessel history — so each side sees only what
-  // it can actually use.
+  // Each track sees only what it can actually render. The old test was
+  // `isSeaman ? seamanOnly : !seamanOnly && !gulfOnly`, which had no branch for
+  // the Gulf track at all — a Gulf applicant fell into the second arm and had
+  // Templates 20 and 21 filtered away, so the two layouts the track exists for
+  // were unreachable from this picker even though T20()/T21() render fine.
+  // 22 rides along on Gulf: a photo-free ATS sheet is what Canada, Australia
+  // and New Zealand want, and Gulf applicants commonly apply there too.
   const shown = TMPL_INFO.filter(t =>
-    (isSeaman ? t.seamanOnly : !t.seamanOnly && !t.gulfOnly) && !t.retired);
+    (lvl === 'seaman' ? !!t.seamanOnly
+   : lvl === 'europe' ? !!t.europeOnly
+   : lvl === 'gulf'   ? (!!t.gulfOnly || t.num === 22)
+   : !t.seamanOnly && !t.gulfOnly && !t.europeOnly)
+    && !t.retired);
 
   // A stale pick from the other list would silently survive the switch
   if (cur && !shown.some(t => String(t.num) === String(cur))) pickTemplate('');
@@ -2892,7 +3003,15 @@ const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nation
   'rl-justcause','rl-reason','rl-tone','rl-notes',
   // Seafarer scalars — harmless on other formats, the elements simply won't exist
   'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
-  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok'];
+  'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok',
+  // Gulf scalars. These were missing, so every Gulf field a customer typed was
+  // silently dropped the moment the draft reloaded.
+  'gf-country','gf-visaStatus','gf-religion','gf-passportNo','gf-passportExpiry',
+  'gf-dependants','gf-availability','gf-notice','gf-expectedSalary','gf-workAuth','gf-relocate',
+  // Europe scalars. The CEFR rows and the tick boxes are restored separately,
+  // since one is a repeating group and the others are checkboxes not values.
+  'eu-country','eu-city','eu-permit','eu-permitExpiry','eu-notice','eu-relocate',
+  'eu-licence','eu-currentLoc','eu-recognition','eu-memberships','eu-notes'];
 
 let draftTimer = null;
 
@@ -2923,6 +3042,17 @@ function saveDraft() {
       d.sea  = grab('#seaEntries .exp-entry');
       d.vax  = grab('#vaxEntries .exp-entry');
       d.ojt  = grab('#ojtEntries .exp-entry');
+
+      // Europe. The tick boxes carry .checked rather than a value, so
+      // DRAFT_SIMPLE_IDS cannot reach them, and the CEFR rows are a repeating
+      // group with a <select> that grab() would miss.
+      const euChk = id => !!document.getElementById(id)?.checked;
+      d.euShow = {
+        wantPhoto: euChk('eu-wantPhoto'), dob: euChk('eu-showDob'),
+        nationality: euChk('eu-showNationality'), civil: euChk('eu-showCivil'),
+        gender: euChk('eu-showGender'), gdpr: euChk('eu-gdpr')
+      };
+      d.euLangs = typeof readEuLangs === 'function' ? readEuLangs() : [];
 
       localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
     } catch (e) { /* quota or private mode */ }
@@ -3029,6 +3159,24 @@ function restoreDraft() {
   // OJT panel has to be open before its rows can be restored into it.
   if (d.ojtSelected && !ojtSelected) toggleOjt(true);
   restoreGroup(d.ojt,  '#ojtEntries .exp-entry',  addOjtEntry);
+
+  // Europe. Rebuilt from the saved rows rather than through restoreGroup(),
+  // because the CEFR level is a <select> and restoreGroup only walks <input>s.
+  // The eduLevel restore above has already seeded two blank rows on the Europe
+  // track, so clear them first or the saved ones land underneath.
+  if (Array.isArray(d.euLangs) && d.euLangs.length) {
+    const box = document.getElementById('euLangEntries');
+    if (box) { box.innerHTML = ''; euLangCount = 0; d.euLangs.forEach(l => addEuLangEntry(l)); }
+  }
+  if (d.euShow) {
+    const setChk = (id, on) => { const el = document.getElementById(id); if (el) el.checked = !!on; };
+    setChk('eu-wantPhoto', d.euShow.wantPhoto);
+    setChk('eu-showDob', d.euShow.dob);
+    setChk('eu-showNationality', d.euShow.nationality);
+    setChk('eu-showCivil', d.euShow.civil);
+    setChk('eu-showGender', d.euShow.gender);
+    setChk('eu-gdpr', d.euShow.gdpr);
+  }
 
   // Cover letter panel
   if (d.coverLetterSelected && !coverLetterSelected) toggleCoverLetter();
@@ -4324,6 +4472,16 @@ function handleEduChange() {
   document.getElementById('gulfIntro')?.classList.toggle('hidden', !isGulf);
   document.getElementById('gulfCard')?.classList.toggle('hidden', !isGulf);
 
+  // Europe toggle. The photo card stays visible — a European CV can carry a
+  // photo, but only if the applicant ticks eu-wantPhoto, so hiding the upload
+  // would take the choice away rather than respecting the default.
+  const isEurope = val === 'europe';
+  document.querySelectorAll('.europe-only').forEach(el => el.classList.toggle('hidden', !isEurope));
+  document.getElementById('europeCard')?.classList.toggle('hidden', !isEurope);
+  if (isEurope && !document.querySelector('#euLangEntries .eu-lang-row')) {
+    addEuLangEntry(); addEuLangEntry();
+  }
+
   // Seed one blank row of each on first switch so the tables aren't empty.
   if (isSeaman) {
     if (!document.querySelector('#docEntries .exp-entry')) seedSeamanDocs();
@@ -4342,6 +4500,59 @@ let docCount = 0, certCount = 0, seaCount = 0, vaxCount = 0;
 // The four documents virtually every Filipino seafarer is asked for. Pre-filling
 // the type saves typing and keeps the labels consistent across submissions.
 const DOC_PRESETS = ['Passport', "Seaman's Book (SIRB)", 'US Visa (C1/D)', 'Yellow Fever Card'];
+
+// ─── EUROPE / CEFR LANGUAGES ──────────────────────────────────────────────────
+// European employers read CEFR bands, not adjectives. Kept as its own row type
+// rather than reusing the plain language tags, because a level without a
+// language is meaningless and the pair has to travel together.
+let euLangCount = 0;
+
+function addEuLangEntry(pre) {
+  const box = document.getElementById('euLangEntries');
+  if (!box) return;
+  const n = ++euLangCount;
+  const p = pre || {};
+  const lvl = l => `<option value="${l}"${p.level === l ? ' selected' : ''}>${l}</option>`;
+  box.insertAdjacentHTML('beforeend', `
+    <div class="eu-lang-row" style="border:1.5px solid var(--line,#e5e7eb);border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:12px;color:var(--navy);">Language ${n}</strong>
+        <button type="button" onclick="this.closest('.eu-lang-row').remove()"
+                style="background:none;border:none;color:#b91c1c;font-size:12px;font-weight:700;cursor:pointer;">Remove</button>
+      </div>
+      <div class="field-row triple">
+        <div class="field">
+          <label>Language</label>
+          <input type="text" class="cefr-lang" placeholder="e.g. German" value="${(p.lang || '').replace(/"/g, '&quot;')}">
+        </div>
+        <div class="field">
+          <label>CEFR Level</label>
+          <select class="cefr-level">
+            <option value="">Select</option>
+            ${['A1','A2','B1','B2','C1','C2','Native'].map(lvl).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label>Certificate</label>
+          <input type="text" class="cefr-cert" placeholder="e.g. Goethe B1" value="${(p.cert || '').replace(/"/g, '&quot;')}">
+        </div>
+      </div>
+    </div>`);
+}
+
+function readEuLangs() {
+  const out = [];
+  document.querySelectorAll('#euLangEntries .eu-lang-row').forEach(r => {
+    const lang = (r.querySelector('.cefr-lang')?.value || '').trim();
+    if (!lang) return;                       // a level with no language is not data
+    out.push({
+      lang,
+      level: r.querySelector('.cefr-level')?.value || '',
+      cert: (r.querySelector('.cefr-cert')?.value || '').trim()
+    });
+  });
+  return out;
+}
 
 function seedSeamanDocs() {
   DOC_PRESETS.forEach(t => addDocEntry(t));
@@ -4911,6 +5122,30 @@ function collectFormData() {
       workAuth:       document.getElementById('gf-workAuth')?.value.trim() || '',
       relocate:       document.getElementById('gf-relocate')?.value || '',
     } : null,
+    // Europe / EU data — the same shape builder.html writes, so admin.html and
+    // T18 read one schema regardless of which form the order came from.
+    europe: eduLevel === 'europe' ? {
+      country:         (document.getElementById('eu-country')?.value || '').trim(),
+      city:            (document.getElementById('eu-city')?.value || '').trim(),
+      permit:          (document.getElementById('eu-permit')?.value || '').trim(),
+      permitExpiry:    document.getElementById('eu-permitExpiry')?.value || '',
+      notice:          (document.getElementById('eu-notice')?.value || '').trim(),
+      relocate:        document.getElementById('eu-relocate')?.value || '',
+      licence:         (document.getElementById('eu-licence')?.value || '').trim(),
+      currentLocation: (document.getElementById('eu-currentLoc')?.value || '').trim(),
+      recognition:     (document.getElementById('eu-recognition')?.value || '').trim(),
+      memberships:     (document.getElementById('eu-memberships')?.value || '').trim(),
+      notes:           (document.getElementById('eu-notes')?.value || '').trim(),
+      cefrLanguages:   readEuLangs(),
+      wantPhoto:       !!document.getElementById('eu-wantPhoto')?.checked,
+      show: {
+        dob:         !!document.getElementById('eu-showDob')?.checked,
+        nationality: !!document.getElementById('eu-showNationality')?.checked,
+        civil:       !!document.getElementById('eu-showCivil')?.checked,
+        gender:      !!document.getElementById('eu-showGender')?.checked
+      },
+      gdprLine:        !!document.getElementById('eu-gdpr')?.checked
+    } : null,
     skills,
     languages,
     references: refData,
@@ -4956,6 +5191,11 @@ function validate(data) {
   if (!data.personal.lastName) return 'Please enter your last name.';
   if (data.eduLevel === 'seaman' && !data.seaman?.rank) return 'Please select the rank you are applying for.';
   if (data.eduLevel === 'gulf' && !data.overseas?.country) return 'Please select your target Gulf country.';
+  if (data.eduLevel === 'europe' && !data.europe?.country) return 'Please enter the European country you are applying to.';
+  // A European CV is read for its CEFR bands. Without one the layout has a
+  // Languages heading and nothing under it, which reads as an oversight.
+  if (data.eduLevel === 'europe' && !data.europe?.cefrLanguages?.length)
+    return 'Please add at least one language with its CEFR level (A1–C2).';
   if (!data.personal.phone) return 'Please enter your phone number.';
   if (!/^[0-9\+\-\s\(\)]{7,15}$/.test(data.personal.phone)) return 'Please enter a valid phone number (e.g. 09063964052).';
   if (!data.personal.email) return 'Please enter your email address.';
@@ -5411,9 +5651,11 @@ const TMPL_INFO = [
   {num:15, name:'Template 15', desc:'Forest · Emerald',     bg:'#1a4731', color:'#86efac', group:'modern'},
   {num:16, name:'Template 16', desc:'⚓ Seafarer · Navy & Gold', bg:'#0b2545', color:'#ffd166', seamanOnly:true, group:'sea'},
   {num:17, name:'Template 17', desc:'⚓ Seafarer · Simple Form', bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #9aa7bb', seamanOnly:true, group:'sea'},
+  {num:18, name:'Template 18', desc:'🇪🇺 Europe · ATS Classic', bg:'#ffffff', color:'#111', border:'1.5px solid #111', europeOnly:true, group:'eu'},
+  {num:19, name:'Template 19', desc:'🇪🇺 Europe · Accent Rule',  bg:'#f8fafc', color:'#1d4ed8', border:'1.5px solid #1d4ed8', europeOnly:true, group:'eu'},
   {num:20, name:'Template 20', desc:'🕌 Gulf · Agency Profile', bg:'#0f3d3e', color:'#c9a227', gulfOnly:true, group:'gulf'},
   {num:21, name:'Template 21', desc:'🕌 Gulf · Data Sheet',     bg:'#cfe2f3', color:'#1f3864', border:'1.5px solid #1f3864', gulfOnly:true, group:'gulf'},
-  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},,
+  {num:22, name:'Template 22', desc:'🌎 Global ATS · No Photo', bg:'#ffffff', color:'#333', border:'1.5px solid #999', group:'ats'},
   {num:23, name:'Template 23', desc:'Timeline · Slate',       bg:'#334155', color:'#fbbf24', group:'modern'},
   {num:24, name:'Template 24', desc:'Editorial · Serif',     bg:'#fffdf9', color:'#1c1917', border:'1.5px solid #1c1917', group:'ats'},
   {num:25, name:'Template 25', desc:'Banner · Terracotta',   bg:'#9a3412', color:'#fed7aa', group:'modern'},
@@ -5484,7 +5726,7 @@ function openTemplatePreview(){
   btns.innerHTML = groupTemplates(TMPL_INFO.filter(t => !t.retired))
     .map(g => `<div style="font-size:9.5px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;color:rgba(255,255,255,.45);margin:12px 0 6px;">${g.label}</div>`
       + g.items.map(t => `
-    <div onclick="previewTmpl(${t.num},this)" class="tmpl-btn-prev" style="border:2px solid ${previewSelectedTmpl===t.num?'#c8a84b':'rgba(255,255,255,0.08)'};background:${previewSelectedTmpl===t.num?'rgba(200,168,75,0.1)':'rgba(255,255,255,0.02)'};border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+    <div onclick="previewTmpl(${t.num},this)" class="tmpl-btn-prev" data-t="${t.num}" style="border:2px solid ${previewSelectedTmpl===t.num?'#c8a84b':'rgba(255,255,255,0.08)'};background:${previewSelectedTmpl===t.num?'rgba(200,168,75,0.1)':'rgba(255,255,255,0.02)'};border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:8px;">
       <div style="width:28px;height:28px;border-radius:6px;background:${t.bg||'#243358'};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:${t.color||'#c8a84b'};flex-shrink:0;${t.border?'border:'+t.border:''}">${t.num}</div>
       <div><div style="font-size:11px;font-weight:700;color:white;">${t.name}</div><div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:1px;">${t.desc}</div></div>
     </div>`).join('')).join('');
@@ -5495,8 +5737,11 @@ function openTemplatePreview(){
 
 function previewTmpl(num, el){
   previewSelectedTmpl = num;
-  document.querySelectorAll('.tmpl-btn-prev').forEach((b,i)=>{
-    const isActive = TMPL_INFO[i] && TMPL_INFO[i].num === num;
+  document.querySelectorAll('.tmpl-btn-prev').forEach(b => {
+    // Match on the template number, not on list position. groupTemplates()
+    // reorders the buttons into groups, so TMPL_INFO[i] was never the i-th
+    // button — which meant the gold highlight landed on the wrong swatch.
+    const isActive = String(b.dataset.t) === String(num);
     b.style.border = isActive ? '2px solid #c8a84b' : '2px solid rgba(255,255,255,0.08)';
     b.style.background = isActive ? 'rgba(200,168,75,0.1)' : 'rgba(255,255,255,0.02)';
   });
@@ -5565,6 +5810,7 @@ function buildCVHtml(s,tmpl,mode){
      aboutMe:_esc0(s.aboutMe), profileSummary:_esc0(s.profileSummary),
      awards:_esc0(s.awards), hobbies:_esc0(s.hobbies),
      seaman:s.seaman?_escDeep(s.seaman):s.seaman,
+     europe:s.europe?_escDeep(s.europe):s.europe,
      overseas:s.overseas?_escDeep(s.overseas):s.overseas};
   const isFresh=s.eduLevel==='fresh';
   const photoRound=p.photo
@@ -5825,6 +6071,10 @@ function buildCVHtml(s,tmpl,mode){
   if(tmpl===15) return T15(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===16) return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===17) return T17(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  // 19 is 18 with an accent rule, exactly as in builder.html — one renderer,
+  // one boolean, so the two can never drift apart.
+  if(tmpl===18) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
+  if(tmpl===19) return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,true);
   if(tmpl===20) return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===21) return T21(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   if(tmpl===22) return T22(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
@@ -5836,6 +6086,7 @@ function buildCVHtml(s,tmpl,mode){
   // A seafarer record has no ordinary work history to show, so even a stale or
   // absent template preference lands on the maritime layout.
   if(s.eduLevel==='gulf') return T20(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
+  if(s.eduLevel==='europe') return T18(p,s,edu,work,refs,isFresh,printBar,printCSS,false);
   if(s.eduLevel==='seaman') return T16(p,s,photoSquare,edu,work,refs,isFresh,printBar,printCSS);
   return T1(p,s,photoRound,edu,work,refs,isFresh,printBar,printCSS);
 }
@@ -6966,6 +7217,183 @@ ${pb}
 // answered before they read a single duty, and a CV that withholds them reads
 // as evasive rather than principled.
 // ══════════════════════════════════════════════════════════════════════════════
+function T18(p,s,edu,work,refs,isFresh,pb,pc,accent){
+const E=s.europe||{};
+const SH=E.show||{};
+// Self-contained on purpose: index.html carries its own copy of the template
+// engine and has no prettyDOBShort(), so this function must not depend on
+// helpers that exist in only one of the two files.
+const fmtD=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
+  return String(t.getDate()).padStart(2,'0')+'-'
+    +['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][t.getMonth()]
+    +'-'+t.getFullYear(); };
+const AC=accent?'#1d4ed8':'#000';
+// Opt-in only. European practice varies by country, so the photo appears solely
+// when the customer explicitly asked for one and actually uploaded it.
+const showPhoto=!!(E.wantPhoto&&p.photo);
+const skills=s.skills||[];
+
+// Responsibilities arrive either newline-separated (typed work history) or
+// already joined with <br> (OJT rows), so both separators are honoured. A
+// single long paragraph is broken on sentence ends, because European CVs are
+// read as achievement bullets and a wall of prose gets skimmed past.
+const blist=t=>{
+  let a=String(t==null?'':t).split(/<br\s*\/?>|\r?\n/i)
+        .map(x=>x.replace(/^[\s\-–—*•·]+/,'').trim()).filter(Boolean);
+  if(a.length===1&&a[0].length>140){
+    const parts=a[0].split(/(?<=[.;])\s+/).map(x=>x.trim()).filter(Boolean);
+    if(parts.length>1) a=parts;
+  }
+  return a;
+};
+
+const contact=[p.address,p.phone,p.email,p.linkedin,p.social].filter(Boolean);
+
+// Only the details the customer explicitly ticked may appear here. Default is
+// nothing at all.
+const personal=[
+  SH.dob&&(p.dobShort||p.dob)?['Date of Birth',p.dobShort||fmtD(p.dob)]:null,
+  SH.nationality&&p.nationality?['Nationality',p.nationality]:null,
+  SH.civil&&p.civilStatus?['Civil Status',p.civilStatus]:null,
+  SH.gender&&p.gender?['Gender',p.gender]:null
+].filter(Boolean);
+
+const cefr=(E.cefrLanguages||[]).filter(l=>l.lang);
+// Fall back to the plain tag list if the customer never graded anything
+const plainLangs=(s.languages||[]);
+
+const permitLine=[E.permit,E.permitExpiry?('valid until '+fmtD(E.permitExpiry)):'']
+                  .filter(Boolean).join(', ');
+const extras=[
+  permitLine?['Right to Work',permitLine]:null,
+  E.notice?['Availability',E.notice]:null,
+  E.relocate?['Relocation',E.relocate]:null,
+  E.licence?['Driving Licence',E.licence]:null,
+  E.recognition?['Qualification Recognition',E.recognition]:null,
+  E.memberships?['Professional Memberships',E.memberships]:null,
+  s.hobbies?['Interests',s.hobbies]:null
+].filter(Boolean);
+
+const sec=(title,body)=>body?`<div class="sec"><div class="sh">${title}</div>${body}</div>`:'';
+
+return`<!DOCTYPE html><html><head><meta charset="UTF-8">${pc}
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;width:100%;}
+/* Arial/Helvetica deliberately: it is the safest face for ATS text extraction,
+   and European recruiters read it as neutral rather than plain. */
+body{font-family:Arial,Helvetica,'Liberation Sans',sans-serif;background:#e8e8e8;color:#000;}
+.page{width:100%;min-height:100vh;background:#fff;padding:34px 46px 30px;display:flex;flex-direction:column;}
+.hdr{border-top:1.5px solid ${AC};border-bottom:1.5px solid ${AC};padding:12px 0 9px;
+     display:flex;align-items:center;gap:16px;}
+.hdr-text{flex:1;text-align:center;min-width:0;}
+/* Photo sits right, Lebenslauf-style. An equal-width spacer on the left keeps
+   the name optically centred rather than shunted off-axis. */
+.hdr-photo{width:88px;height:110px;flex-shrink:0;overflow:hidden;background:#f2f2f2;border:1px solid #ccc;}
+.hdr-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.hdr-spacer{width:88px;flex-shrink:0;}
+.hdr h1{font-size:27px;font-weight:700;letter-spacing:2.4px;text-transform:uppercase;line-height:1.15;color:${accent?'#0f172a':'#000'};}
+.hdr .ttl{font-size:14.5px;font-weight:400;letter-spacing:1.4px;text-transform:uppercase;margin-top:5px;color:${accent?'#1d4ed8':'#111'};}
+.contact{text-align:center;font-size:10.5px;padding:7px 0 8px;border-bottom:2.5px solid ${AC};line-height:1.6;color:#111;}
+.contact span+span::before{content:' | ';color:#666;}
+.sec{margin-top:13px;}
+.sh{font-size:11.5px;font-weight:700;letter-spacing:.9px;text-transform:uppercase;
+    border-bottom:1px solid ${accent?'#93b4f5':'#000'};padding-bottom:2px;margin-bottom:7px;color:${AC};}
+.para{font-size:10.7px;line-height:1.52;text-align:justify;color:#111;}
+/* Three columns of short skill bullets, exactly as the reference layout. The
+   column rule keeps a two-line skill from straddling a break. */
+.skills{column-count:3;column-gap:22px;padding-left:2px;}
+@media print{.skills{column-count:3;}}
+.skills li{font-size:10.5px;line-height:1.5;margin:0 0 2px 14px;break-inside:avoid;}
+.job{margin-bottom:9px;break-inside:avoid;}
+.job:last-child{margin-bottom:2px;}
+.jrow{display:flex;justify-content:space-between;align-items:baseline;gap:14px;}
+.jpos{font-size:11.3px;font-weight:700;color:#000;}
+.jdate{font-size:10.5px;font-weight:400;color:#111;white-space:nowrap;flex-shrink:0;}
+.jco{font-size:10.6px;color:#111;margin-top:1px;}
+.jloc{font-size:10.3px;color:#333;margin-top:0px;}
+.jul{margin:3px 0 0 16px;}
+.jul li{font-size:10.5px;line-height:1.5;margin-bottom:1.5px;padding-left:1px;}
+.kv{font-size:10.6px;line-height:1.55;margin-bottom:2px;}
+.kv b{font-weight:700;margin-right:5px;}
+/* One language per line, each with its grade and certificate. Deliberately not
+   a CSS grid: print engines that don't support grid collapse it into an
+   unreadable run-on, and a European recruiter scanning for "B2" must not have
+   to hunt for it. */
+.lang div{font-size:10.6px;line-height:1.6;margin-bottom:1px;}
+.lang b{font-weight:700;margin-right:5px;}
+/* Two columns via inline-block rather than grid, for the same reason. */
+.refs{font-size:0;}
+.ref{display:inline-block;width:48%;vertical-align:top;margin:0 2% 6px 0;
+     font-size:10.4px;line-height:1.45;break-inside:avoid;}
+.ref b{font-weight:700;}
+.gdpr{margin-top:auto;padding-top:12px;font-size:8.2px;color:#555;line-height:1.45;
+      border-top:1px solid #ddd;text-align:justify;font-style:italic;}
+</style></head><body>
+${pb}
+<div class="page-wrap"><div class="page">
+
+  <div class="hdr">
+    ${showPhoto?`<div class="hdr-spacer"></div>`:''}
+    <div class="hdr-text">
+      <h1>${fullName(p)}</h1>
+      ${p.jobTitle?`<div class="ttl">${p.jobTitle}</div>`:''}
+    </div>
+    ${showPhoto?`<div class="hdr-photo"><img src="${p.photo}" alt=""></div>`:''}
+  </div>
+  ${contact.length?`<div class="contact">${contact.map(c=>`<span>${c}</span>`).join('')}</div>`:''}
+
+  ${sec('Professional Summary', s.profileSummary||s.aboutMe
+      ? `<p class="para">${s.profileSummary||s.aboutMe}</p>` : '')}
+
+  ${sec('Key Skills', skills.length
+      ? `<ul class="skills">${skills.map(k=>`<li>${k}</li>`).join('')}</ul>` : '')}
+
+  ${sec('Work Experience', work.length ? work.map(w=>{
+      const b=blist(w.responsibilities);
+      return `<div class="job">
+        <div class="jrow">
+          <div class="jpos">${w.position||''}</div>
+          <div class="jdate">${[w.dateStart,w.dateEnd].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${w.company?`<div class="jco">${w.company}</div>`:''}
+        ${w.location?`<div class="jloc">${w.location}</div>`:''}
+        ${b.length?`<ul class="jul">${b.map(x=>`<li>${x}</li>`).join('')}</ul>`:''}
+      </div>`;}).join('') : '')}
+
+  ${sec('Education', edu.length ? edu.map(e=>`
+      <div class="job">
+        <div class="jrow">
+          <div class="jpos">${e.degree||e.school||''}</div>
+          <div class="jdate">${[e.yearStart,e.yearGrad].filter(Boolean).join(' – ')}</div>
+        </div>
+        ${e.degree&&e.school?`<div class="jco">${e.school}</div>`:''}
+        ${e.honors?`<div class="jloc">${e.honors}</div>`:''}
+      </div>`).join('') : '')}
+
+  ${sec('Languages', cefr.length
+      ? `<div class="lang">${cefr.map(l=>
+          `<div><b>${l.lang}</b>${[l.level,l.cert].filter(Boolean).join(' · ')}</div>`).join('')}</div>`
+      : (plainLangs.length?`<p class="para">${plainLangs.join(' · ')}</p>`:''))}
+
+  ${sec('Trainings & Seminars', s.trainingsHtml?`<p class="para">${s.trainingsHtml}</p>`:'')}
+  ${sec('Certifications & Awards', s.awards?`<p class="para">${s.awards}</p>`:'')}
+
+  ${sec('Additional Information', extras.length
+      ? extras.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('Personal Details', personal.length
+      ? personal.map(([k,v])=>`<div class="kv"><b>${k}:</b><span>${v}</span></div>`).join('') : '')}
+
+  ${sec('References', refs.length
+      ? `<div class="refs">${refs.map(r=>`<div class="ref"><b>${r.name}</b><br>${
+          [r.position,r.company].filter(Boolean).join(', ')}${r.contact?'<br>'+r.contact:''}</div>`).join('')}</div>`
+      : `<p class="para">Available upon request.</p>`)}
+
+  ${E.gdprLine?`<div class="gdpr">I hereby give consent for my personal data included in this application to be processed for the purposes of the recruitment process, in accordance with Regulation (EU) 2016/679 of the European Parliament and of the Council of 27 April 2016 on the protection of natural persons with regard to the processing of personal data and on the free movement of such data (GDPR).</div>`:''}
+
+</div></div></body></html>`;}
+
 function T20(p,s,ph,edu,work,refs,isFresh,pb,pc){
   const G = s.overseas || {};
   const d = v => { if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;

@@ -781,6 +781,8 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="card-h"><span class="num">01</span><h2>Which format fits you?</h2></div>
       <p class="card-sub">This decides which sections appear below and which templates you can pick from.</p>
       <div class="fmt">
+        <label><input type="radio" name="eduLevel" value="highschool" onchange="onFormat()">
+          <span>🏫 High school<small>Highest level is high school</small></span></label>
         <label><input type="radio" name="eduLevel" value="college" checked onchange="onFormat()">
           <span>Standard<small>You have work experience</small></span></label>
         <label><input type="radio" name="eduLevel" value="fresh" onchange="onFormat()">
@@ -4217,7 +4219,19 @@ let savedExpiry = 0;
 const resolveExpiry = rec => expiryOf(rec) || savedExpiry || 0;
 
 function expiryOf(rec){
-  const started = rec?.payment?.paidAt || rec?.submittedAt;
+  // The clock restarts at payment, so paidAt is the field that matters. If the
+  // record says paid but carries no paidAt — an older order, or a /status
+  // response that shapes the payment block away — dating the window from
+  // submittedAt instead put the deadline in the PAST for anything approved more
+  // than ORDER_TTL_HOURS after it was sent, and the customer stayed locked on a
+  // payment you had just verified. Start the clock now in that case: a window
+  // that is slightly too generous is a far cheaper mistake than one that has
+  // already closed on a paying customer.
+  const paid = rec?.payment?.paid;
+  const paidAt = rec?.payment?.paidAt;
+  if(paid && !paidAt) return Date.now() + ORDER_TTL_HOURS * 3600e3;
+
+  const started = paidAt || rec?.submittedAt;
   const t = started ? new Date(started).getTime() : NaN;
   return isNaN(t) ? 0 : t + ORDER_TTL_HOURS * 3600e3;
 }
@@ -4274,7 +4288,10 @@ function onExpired(){
   expiresAt = 0;
   const pill = $('ttlPill');
   if(pill){ pill.className = 'ttlpill show crit'; pill.textContent = '\u23f3 Expired'; }
-  if(!unlocked) return;
+  // `unlocked` alone was too narrow. A session paused by the identity guard has
+  // it false, and restoreUnlock() reaches here before it has ever been true, so
+  // both cases were silently re-locked with nothing on screen to say why.
+  if(!unlocked && !identitySuspended && !unlockRef) return;
   closeTheLock();
   if($('unlockOv').classList.contains('open')) screenExpired();
   else toast('Your 24-hour download window has closed and the order has been removed. '
@@ -4738,6 +4755,18 @@ function buildStrip(){
 function syncLockChrome(){
   const sizer = $('pvSizer'), pill = $('lockPill'), tb = $('tbPrint');
   if(!sizer || !pill) return;
+
+  // While the identity guard has the outputs paused, suspendLock() owns this
+  // chrome: it has already written "Name changed — outputs paused" and a Restore
+  // button. This function runs again a moment later via buildStrip(), and would
+  // overwrite that pill with the generic "Save & Print locked" — leaving the
+  // pill and the footer telling the customer two different stories.
+  if(identitySuspended){
+    sizer.classList.remove('unlocked');
+    if(tb) tb.disabled = true;
+    return;
+  }
+
   const open = unlocked && ownsTemplate(selectedTmpl);
   sizer.classList.toggle('unlocked', open);
   if(!unlocked){
@@ -5638,7 +5667,11 @@ function applyData(d){
   const savedTmpl = parseInt(d.templatePref, 10);
   if(savedTmpl){ selectedTmpl = savedTmpl; tmplPickedByUser = true; }
 
-  const lvlInput = document.querySelector('input[name="eduLevel"][value="' + (d.eduLevel || 'college') + '"]');
+  const lvlInput = document.querySelector('input[name="eduLevel"][value="' + (d.eduLevel || 'college') + '"]')
+  // An order carrying a track this page does not offer used to leave whatever
+  // was already selected in place, so the form silently kept the wrong format.
+  // Falling back to college is what the default is anyway.
+    || document.querySelector('input[name="eduLevel"][value="college"]');
   if(lvlInput) lvlInput.checked = true;
   onFormat();
 
@@ -7011,7 +7044,11 @@ async function verifyRef(){
     unlockRef = ref;
     if(order.record) applyData(order.record);
     openTheLock(order.record);
-    screenDone();
+    // openTheLock() bails on an order past its window and paints the expired
+    // screen itself. Calling screenDone() unconditionally drew "Payment
+    // confirmed" over a shut lock, and every button on it bounced the customer
+    // back to the payment request.
+    if(unlocked) screenDone();
 
   } catch(err){
     box.className = 'stat err show';
@@ -7058,7 +7095,7 @@ function screenDone(){
     'Payment confirmed. Print and save every template in your pack, as many times as you like.',
     `<div class="stat good show">\u2713 Reference ${escHtml(unlockRef)} is paid.</div>
 
-     <div style="margin-top:10px;padding:12px 14px;border-radius:10px;
+     ${expiresAt ? `<div style="margin-top:10px;padding:12px 14px;border-radius:10px;
                  border:1.5px solid #fecaca;background:#fef2f2">
        <div style="font-size:13px;font-weight:800;color:#991b1b">
          \u23f3 <span id="ttlInline">${humanLeft(expiresAt - Date.now())}</span> left to download
@@ -7067,7 +7104,7 @@ function screenDone(){
          Save every template you want now. After ${ORDER_TTL_HOURS} hours this order is
          removed and the file cannot be recovered.
        </div>
-     </div>
+     </div>` : ''}
 
      ${topUpDraft ? `<div style="margin-top:14px;padding:12px 14px;border:1.5px solid #fde68a;
             background:#fffbeb;border-radius:10px">
@@ -7368,7 +7405,7 @@ async function checkNow(){
       clearInterval(pollTimer);
       if(order.record) applyData(order.record);
       openTheLock(order.record);
-      screenDone();
+      if(unlocked) screenDone();      // see the note on the check-screen path
       return;
     }
     if(box) box.innerHTML = '\u23f3 Watching for your payment\u2026 last checked ' + stamp() + '.';
@@ -7427,8 +7464,11 @@ function openTheLock(rec){
 
   // An order already past its window must not unlock at all — on a slow
   // connection the approval and the deadline can land in either order.
+  // `unlocked` is deliberately left TRUE here. onExpired() guards on it, so
+  // clearing it first made that function bail at its own first line: no
+  // closeTheLock(), no expired screen, no explanation — and the caller then
+  // went straight on to draw the "Unlocked" screen over a lock that was shut.
   if(resolveExpiry(rec) && resolveExpiry(rec) <= Date.now()){
-    unlocked = false;
     onExpired();
     return;
   }
@@ -7831,8 +7871,14 @@ function currentCVHtml(mode, tmpl){
 // so a locked layout opens the offer to buy it instead.
 function canOutput(n){
   if(identitySuspended){
-    toast('Save and Print are paused because the email was changed. Put '
-        + paidEmail + ' back to open them.', true);
+    // suspendReason is the field that actually drifted. Hardcoding "email" here
+    // told a customer who had edited their NAME to check a box that was fine.
+    const was = suspendReason === 'name'
+      ? [paidName.firstName, paidName.lastName].filter(Boolean).join(' ')
+      : paidEmail;
+    toast('Save and Print are paused because the '
+        + (suspendReason === 'name' ? 'name' : 'email')
+        + ' was changed. Put ' + was + ' back to open them.', true);
     return false;
   }
   if(!unlocked){ openUnlock('request'); return false; }

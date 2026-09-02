@@ -1010,7 +1010,18 @@ const ORDER_TTL_HOURS = 24;
 
 function expiryOf(s){
   if(!isSelfService(s)) return 0;
-  const started = s?.payment?.paidAt || s?.submittedAt;
+  // The window runs from PAYMENT, so paidAt is the field that matters. A record
+  // marked paid but carrying no paidAt has no knowable deadline — dating it
+  // from submittedAt instead made anything approved more than ORDER_TTL_HOURS
+  // after it was sent look already expired, and purgeExpired() then reduced a
+  // paid CV to a receipt stub before the customer had downloaded it. Returning
+  // 0 means "no clock": msLeft() reports Infinity and the order is never auto
+  // archived. It can still be archived by hand. builder.html makes the mirror
+  // choice and grants a fresh window, so both files fail toward the customer.
+  const paid = s?.payment?.paid, paidAt = s?.payment?.paidAt;
+  if(paid && !paidAt) return 0;
+
+  const started = paidAt || s?.submittedAt;
   const t = started ? new Date(started).getTime() : NaN;
   return isNaN(t) ? 0 : t + ORDER_TTL_HOURS * 3600e3;
 }
