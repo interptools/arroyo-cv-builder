@@ -38,6 +38,19 @@ body{font-family:'Inter',sans-serif;background:var(--off-white);color:var(--text
 .nav-item:hover{background:rgba(255,255,255,.06);color:white;}
 .nav-item.active{background:rgba(200,168,75,.15);color:var(--gold);}
 .nav-item .ni-icon{font-size:17px;width:22px;text-align:center;}
+/* Leaves this page rather than swapping a panel, so it never takes the active
+   state the other nav items share. */
+.nav-item.nav-link{text-decoration:none;box-sizing:border-box;}
+.nav-item.nav-link:hover{background:rgba(200,168,75,.14);color:var(--gold);}
+.add-order-btn{
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  padding:9px 16px;border-radius:9px;border:none;
+  background:var(--navy);color:#fff;font-family:inherit;
+  font-size:12.5px;font-weight:700;text-decoration:none;cursor:pointer;
+  transition:background .15s ease;
+}
+.add-order-btn:hover{background:var(--navy-light,#243458);}
+.add-order-btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
 .sidebar-footer{padding:16px;border-top:1px solid rgba(255,255,255,.08);}
 .logout-btn{width:100%;padding:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:#fca5a5;font-size:12px;font-weight:600;cursor:pointer;transition:background .2s;}
 .logout-btn:hover{background:rgba(239,68,68,.2);}
@@ -442,6 +455,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
     <nav class="sidebar-nav">
       <button class="nav-item active" onclick="showPage('dashPage',this)"><span class="ni-icon">📊</span> Dashboard</button>
       <button class="nav-item" onclick="showPage('submissionsPage',this)"><span class="ni-icon">📋</span> Submissions</button>
+      <a class="nav-item nav-link" href="order.html" target="_blank" rel="noopener" onclick="closeSidebar()"><span class="ni-icon">➕</span> Add Order</a>
       <button class="nav-item" onclick="showPage('pricingPage',this)"><span class="ni-icon">🏷️</span> Pricing &amp; Sales</button>
       <button class="nav-item" onclick="showPage('gcashPage',this)"><span class="ni-icon">💳</span> GCash QR</button>
       <button class="nav-item" onclick="showPage('healthPage',this)"><span class="ni-icon">🩺</span> System Health</button>
@@ -495,6 +509,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
       <div class="topbar">
         <div><h2>All Submissions</h2><p>View, process and generate CVs</p></div>
         <div style="display:flex;gap:10px;align-items:center;">
+          <a class="add-order-btn" href="order.html" target="_blank" rel="noopener">➕ Add Order</a>
           <input type="text" class="search-input" id="searchInput" placeholder="🔍  Search name, email or phone…" oninput="renderSubmissions()">
           <span class="badge-count" id="totalBadge">0</span>
         </div>
@@ -1421,7 +1436,12 @@ function showPage(id,btn){
   if(id==='gcashPage')loadCurrentQR();
   if(id==='pricingPage')renderPricing();
   if(id==='healthPage')renderHealth();
-  // Auto-close sidebar on mobile after nav
+  closeSidebar();
+}
+
+// Auto-close the sidebar on mobile after any navigation, including the links
+// that leave this page rather than swapping a panel.
+function closeSidebar(){
   const sb=document.getElementById('mainSidebar');
   const ov=document.getElementById('sidebarOverlay');
   if(sb&&sb.classList.contains('open')){ sb.classList.remove('open'); ov.classList.remove('open'); }
