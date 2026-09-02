@@ -1071,7 +1071,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Target Country *</label>
-          <select id="gf-country" class="form-input" onchange="queuePreview ? queuePreview() : null">
+          <select id="gf-country" class="form-input" onchange="typeof queuePreview === 'function' &amp;&amp; queuePreview()">
             <option value="">Select country</option>
             <option value="UAE">🇦🇪 United Arab Emirates</option>
             <option value="Saudi Arabia">🇸🇦 Saudi Arabia</option>
@@ -2335,6 +2335,15 @@
 // In JSONBin dashboard → Access Keys → create a Read-Only key for the BIN, use it for
 // loadLatestQR() and a separate write-only key for submitForm(). For now both use master key.
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
+// ⚠️ KNOWN-PUBLIC KEY. This file is served to browsers, so this value is
+// readable by anyone who opens View Source, and it grants read + write + delete
+// on the bin. It is kept here only because other sites share the same key and
+// rotating it would break them.
+//
+// TODO: move this into the Cloudflare Worker (arroyo-cv-api) alongside the
+// routes builder.html already uses, then regenerate the key in JSONBin. Until
+// that happens, treat every record in this bin as publicly readable and
+// assume it can be overwritten by anyone.
 const JSONBIN_API_KEY = '$2a$10$nFL02GTjngKoz62Rf/RsMuEEoJUujItio3x0qF98sn9AowSSjTzfS';
 
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
@@ -2597,13 +2606,23 @@ function applyPricing() {
   set('cl-addon-price',  '+' + peso(CL_PRICE));
   set('sum-base-price',  peso(BASE_PRICE));
   set('sum-cl-price',    peso(CL_PRICE));
-  set('confirm-total',   peso(BASE_PRICE));
-  set('cl-total-label',  `${peso(total)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`);
+  // confirm-total is owned by updateConfirmPage(), which knows about add-ons and
+  // package prices. Writing the bare base price here contradicted it.
+  //
+  // cl-total-label goes through cvOrderTotal() so it honours a cvcl package price
+  // and picks up an also-selected resignation letter — rl-total-label below
+  // already did, and the two panels were quoting different figures.
+  set('cl-total-label',  coverLetterSelected
+    ? `${peso(cvOrderTotal())} total`
+    : `${peso(total)} (CV ${peso(BASE_PRICE)} + Cover Letter ${peso(CL_PRICE)})`);
 
   // Strikethrough anchor: show the real pre-sale price during a sale, and fall
   // back to the existing marketing anchor when nothing is discounted.
-  const clWas = (SALE && CL_PRICE < LIST_PRICES.cl) ? LIST_PRICES.cl : Math.round(total * 1.6666);
-  set('cl-strike-price', peso(clWas));
+  // Only a price that was genuinely charged before. The old fallback here was
+  // Math.round(total * 1.6666) — an invented "was" figure, which DTI price-tag
+  // rules treat as deceptive. No sale, no strikethrough.
+  const clWas = (SALE && CL_PRICE < LIST_PRICES.cl) ? LIST_PRICES.cl : null;
+  set('cl-strike-price', clWas ? peso(clWas) : '');
 
   // Sale banner in the header — only when a sale is actually live.
   const hdr = document.querySelector('header');

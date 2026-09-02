@@ -595,6 +595,16 @@ tr:hover td{background:rgba(247,248,252,.8);}
       </div>
 
       <div class="card" style="max-width:640px;">
+        <h3>🧑‍💻 Self-Service Prices</h3>
+        <p>The <b>builder.html</b> page, where the customer types their own CV. Separate from the CV price above &mdash; that one is for orders you build by hand.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">
+          <div><label class="field-label">Self-service CV</label><input type="number" min="1" id="pr-self-base" class="field-input" placeholder="25"></div>
+          <div><label class="field-label">Each extra template</label><input type="number" min="0" id="pr-self-extra" class="field-input" placeholder="10"></div>
+        </div>
+        <p style="font-size:11.5px;color:var(--gray);margin-top:8px;line-height:1.6;">A pack of 3 layouts costs the CV price plus two extras. Orders already placed keep the price they were quoted.</p>
+      </div>
+
+      <div class="card" style="max-width:640px;">
         <h3>🔥 Sale</h3>
         <p>Temporarily override the prices above. Leave a sale price blank to keep the regular price for that item.</p>
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--off-white);border:1.5px solid var(--gray-light);border-radius:10px;padding:12px 14px;margin:14px 0;">
@@ -607,6 +617,11 @@ tr:hover td{background:rgba(247,248,252,.8);}
           <div><label class="field-label">CV sale price</label><input type="number" min="0" id="pr-sale-base" class="field-input" placeholder="regular"></div>
           <div><label class="field-label">Cover Letter sale</label><input type="number" min="0" id="pr-sale-cl" class="field-input" placeholder="regular"></div>
           <div><label class="field-label">Resignation sale</label><input type="number" min="0" id="pr-sale-rl" class="field-input" placeholder="regular"></div>
+        </div>
+        <label class="field-label" style="margin-top:16px;">Self-service sale &mdash; optional</label>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px;">
+          <div><label class="field-label" style="font-size:11px;">Self-service CV</label><input type="number" min="0" id="pr-sale-self-base" class="field-input" placeholder="regular"></div>
+          <div><label class="field-label" style="font-size:11px;">Each extra template</label><input type="number" min="0" id="pr-sale-self-extra" class="field-input" placeholder="regular"></div>
         </div>
         <label class="field-label" style="margin-top:16px;">Sale package prices — optional</label>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:6px;">
@@ -915,6 +930,15 @@ const GCASH_QR_URL = 'https://interptools.github.io/arroyo-cv-builder/gcash-qr.p
 const GCASH_NUMBER = '09063964052';
 const GCASH_NAME   = 'Reymar Arroyo';
 const JSONBIN_BIN_ID = '6a49d820f5f4af5e296133f3';
+// ⚠️ KNOWN-PUBLIC KEY. This file is served to browsers, so this value is
+// readable by anyone who opens View Source, and it grants read + write + delete
+// on the bin. It is kept here only because other sites share the same key and
+// rotating it would break them.
+//
+// TODO: move this into the Cloudflare Worker (arroyo-cv-api) alongside the
+// routes builder.html already uses, then regenerate the key in JSONBin. Until
+// that happens, treat every record in this bin as publicly readable and
+// assume it can be overwritten by anyone.
 const JSONBIN_API_KEY = '$2a$10$nFL02GTjngKoz62Rf/RsMuEEoJUujItio3x0qF98sn9AowSSjTzfS';
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
 // Loaded from JSONBin at login. Editable from the Pricing page.
@@ -955,8 +979,20 @@ let RESIGNATION_ADDON_PRICE = 50;
 // for every extra template in their pack. These are constants on purpose: they
 // must never be reachable from the Pricing page, and orderTotal() must never
 // fall through to BASE_PRICE for one of these orders.
-const SELF_SERVICE_PRICE = 25;
-const EXTRA_TMPL_PRICE   = 10;
+// Live values — set from the pricing record by applyPricingRecord(). Used for
+// NEW quotes and for anything this dashboard shows as a current price.
+let SELF_SERVICE_PRICE = 25;
+let EXTRA_TMPL_PRICE   = 10;
+let SELF_LIST = { base: 25, extra: 10 };   // pre-sale, for strikethroughs
+let SELF_SALE = null;                      // { label, endsAt } while live
+
+// FROZEN. Self-service orders written before quotedTotal existed carry no stored
+// price, so orderTotal() has to infer one. It must infer what those orders were
+// ACTUALLY quoted at the time — 25 and 10 — and never today's sale price, or
+// every order in your history reprices the moment you run a promo and your
+// recorded revenue moves. Do not turn these into `let`.
+const SELF_LEGACY_BASE  = 25;
+const SELF_LEGACY_EXTRA = 10;
 
 // ── 24-HOUR WINDOW — SELF-SERVICE ONLY ────────────────────────────────
 // A self-service order lives for a day, then the CV data goes. The clock
@@ -1046,6 +1082,31 @@ function applyPricingRecord(pr){
                 cvrl:   pick(listB.cvrl,   null),
                 cvclrl: pick(listB.cvclrl, null) };
   }
+
+  // ── SELF-SERVICE ────────────────────────────────────────────────────────
+  // Reads pricing.self and NOTHING ELSE. It must never fall through to pr.base:
+  // that is the assisted price, and a self-service customer quoted 50 who pays
+  // the advertised 25 lands in this dashboard flagged short. That bug is the
+  // reason these numbers were hardcoded in the first place.
+  SELF_LIST = {
+    base:  num(pr.self && pr.self.base,  25),
+    extra: num(pr.self && pr.self.extra, 10)
+  };
+  if(saleIsLive(pr)){
+    const ss = (pr.sale && pr.sale.self) || {};
+    // A sale figure at or above the list price is a typo, not a discount.
+    const lower = (v, listVal) => {
+      const x = num(v, null);
+      return (x === null || x >= listVal) ? listVal : x;
+    };
+    SELF_SERVICE_PRICE = lower(ss.base,  SELF_LIST.base);
+    EXTRA_TMPL_PRICE   = lower(ss.extra, SELF_LIST.extra);
+    SELF_SALE = { label: pr.sale.label || 'Sale', endsAt: pr.sale.endsAt || '' };
+  } else {
+    SELF_SERVICE_PRICE = SELF_LIST.base;
+    EXTRA_TMPL_PRICE   = SELF_LIST.extra;
+    SELF_SALE = null;
+  }
 }
 
 async function loadPricing(){
@@ -1070,9 +1131,11 @@ const orderTotal = s => {
   // quoted ₱50, and a customer who paid the advertised ₱25 was then flagged
   // ₱25 short in this dashboard and told by email to send the difference.
   if(isSelfService(s)){
-    if(isTemplateAddOn(s)) return EXTRA_TMPL_PRICE * (addedTemplates(s).length || 1);
+    // Reached only when quotedTotal is absent, which means the order predates that
+    // field — so it was quoted at the old flat rate, not at whatever is on sale now.
+    if(isTemplateAddOn(s)) return SELF_LEGACY_EXTRA * (addedTemplates(s).length || 1);
     const n = orderTemplates(s).length || 1;
-    return SELF_SERVICE_PRICE + EXTRA_TMPL_PRICE * (n - 1);
+    return SELF_LEGACY_BASE + SELF_LEGACY_EXTRA * (n - 1);
   }
 
   if(s?.serviceType === 'coverLetter'){
@@ -1363,6 +1426,10 @@ async function purgeExpired(){
   if(!due.length) return 0;
 
   const before = new Blob([JSON.stringify({submissions})]).size;
+  // Held so a failed write can be undone. Without it the stubs stayed in memory
+  // and the NEXT successful write — approving a payment, changing a status —
+  // shipped them to the server and the real records were gone for good.
+  const snapshot = submissions;
   submissions = submissions.map(s => due.includes(s) ? toStub(s) : s);
   const after  = new Blob([JSON.stringify({submissions})]).size;
 
@@ -1371,8 +1438,10 @@ async function purgeExpired(){
   }catch(e){
     // Reverting keeps the screen honest: nothing was reclaimed, so nothing
     // should look reclaimed.
+    submissions = snapshot;
     console.warn('Purge could not be saved:', e);
     showNotif('Could not archive expired orders — ' + e.message, true);
+    try{ renderSubmissions(); }catch(re){}
     return 0;
   }
 
@@ -1505,6 +1574,10 @@ async function renderPricing(){
   set('pr-base', pr.base ?? 50);
   set('pr-cl',   pr.cl   ?? 75);
   set('pr-rl',   pr.rl   ?? 50);
+  set('pr-self-base',  pr.self?.base  ?? 25);
+  set('pr-self-extra', pr.self?.extra ?? 10);
+  set('pr-sale-self-base',  sale.self?.base  ?? '');
+  set('pr-sale-self-extra', sale.self?.extra ?? '');
   document.getElementById('pr-sale-active').checked = !!sale.active;
   set('pr-sale-label', sale.label || '');
   set('pr-sale-base',  sale.base ?? '');
@@ -1516,7 +1589,8 @@ async function renderPricing(){
   set('pr-sb-cvcl',  sb.cvcl   ?? ''); set('pr-sb-cvrl',  sb.cvrl   ?? ''); set('pr-sb-cvclrl',  sb.cvclrl   ?? '');
 
   ['pr-base','pr-cl','pr-rl','pr-sale-active','pr-sale-label','pr-sale-base','pr-sale-cl','pr-sale-rl','pr-sale-ends',
-   'pr-b-cvcl','pr-b-cvrl','pr-b-cvclrl','pr-sb-cvcl','pr-sb-cvrl','pr-sb-cvclrl']
+   'pr-b-cvcl','pr-b-cvrl','pr-b-cvclrl','pr-sb-cvcl','pr-sb-cvrl','pr-sb-cvclrl',
+   'pr-self-base','pr-self-extra','pr-sale-self-base','pr-sale-self-extra']
     .forEach(id => {
       const el = document.getElementById(id);
       if(el && !el.dataset.prBound){ el.dataset.prBound = '1'; el.addEventListener('input', previewPricing); el.addEventListener('change', previewPricing); }
@@ -1530,7 +1604,9 @@ function pricingFromForm(){
     cl:   prVal('pr-cl')   ?? 75,
     rl:   prVal('pr-rl')   ?? 50,
     bundles: { cvcl: prVal('pr-b-cvcl'), cvrl: prVal('pr-b-cvrl'), cvclrl: prVal('pr-b-cvclrl') },
+    self: { base: prVal('pr-self-base') ?? 25, extra: prVal('pr-self-extra') ?? 10 },
     sale: {
+      self: { base: prVal('pr-sale-self-base'), extra: prVal('pr-sale-self-extra') },
       bundles: { cvcl: prVal('pr-sb-cvcl'), cvrl: prVal('pr-sb-cvrl'), cvclrl: prVal('pr-sb-cvclrl') },
       active: document.getElementById('pr-sale-active').checked,
       label:  document.getElementById('pr-sale-label').value.trim(),
@@ -1588,6 +1664,21 @@ function previewPricing(){
   html += row('CV + Cover Letter', a1, a2);
   html += row('CV + Resignation Letter', b1, b2);
   html += row('CV + Cover Letter + Resignation', c1, c2);
+
+  // Self-service is a separate product line, so it gets its own group rather than
+  // sitting inside the assisted totals above.
+  const sList  = pr.self || { base: 25, extra: 10 };
+  const sSale  = (pr.sale && pr.sale.self) || {};
+  const sLower = (v, listVal) =>
+    (typeof v === 'number' && v >= 0 && v < listVal) ? v : listVal;
+  const sEff = live
+    ? { base: sLower(sSale.base, sList.base), extra: sLower(sSale.extra, sList.extra) }
+    : { base: sList.base, extra: sList.extra };
+  html += '<div style="height:8px;"></div>';
+  html += row('Self-service CV', sEff.base, sList.base);
+  html += row('Self-service \u00b7 each extra template', sEff.extra, sList.extra);
+  html += row('Self-service \u00b7 3-template pack',
+              sEff.base + sEff.extra * 2, sList.base + sList.extra * 2);
   // A package that costs MORE than buying the items separately is always a typo,
   // and it would quietly overcharge every customer who picks that combination.
   const warn = [];
@@ -1612,8 +1703,26 @@ async function savePricing(){
   const pr = pricingFromForm();
   if(pr.base <= 0){ showNotif('The CV price must be more than zero.', true); return; }
   if(pr.sale.active && !pr.sale.label){ showNotif('Please give the sale a name — customers will see it.', true); return; }
-  if(pr.sale.active && pr.sale.base === null && pr.sale.cl === null && pr.sale.rl === null){
+  if(pr.self.base <= 0){ showNotif('The self-service CV price must be more than zero.', true); return; }
+  if(pr.sale.active && pr.sale.base === null && pr.sale.cl === null && pr.sale.rl === null
+     && pr.sale.self.base === null && pr.sale.self.extra === null){
     showNotif('A sale needs at least one discounted price.', true); return;
+  }
+  // A "sale" price at or above the regular price is always a typo, and it would
+  // quietly charge more while the banner still says SALE.
+  if(pr.sale.active){
+    const higher = [
+      ['CV',                 pr.sale.base,       pr.base],
+      ['Cover Letter',       pr.sale.cl,         pr.cl],
+      ['Resignation Letter', pr.sale.rl,         pr.rl],
+      ['Self-service CV',    pr.sale.self.base,  pr.self.base],
+      ['Extra template',     pr.sale.self.extra, pr.self.extra]
+    ].filter(r => r[1] !== null && r[1] >= r[2]).map(r => r[0]);
+    if(higher.length){
+      showNotif('Sale price for ' + higher.join(' and ') + ' is not lower than the '
+                + 'regular price. Leave it blank to keep the regular price.', true);
+      return;
+    }
   }
   const live = saleIsLive(pr);
   const lb2 = pr.bundles||{}, sb2 = pr.sale.bundles||{};
@@ -1639,7 +1748,9 @@ async function savePricing(){
   const eff = eff2.base;
   const okPub = await showConfirm({
     type:'info', title:'Publish New Prices?',
-    message:`CV will show as <strong>${peso(eff)}</strong>.<br><br>New orders use the new prices. Existing orders keep what they were quoted.`,
+    message:`CV will show as <strong>${peso(eff)}</strong>, self-service as `
+      + `<strong>${peso(live ? (pr.sale.self.base ?? pr.self.base) : pr.self.base)}</strong>.`
+      + `<br><br>New orders use the new prices. Existing orders keep what they were quoted.`,
     confirmText:'Publish', confirmClass:'cdlg-btn-gold', cancelText:'Cancel'
   });
   if(!okPub) return;
@@ -1861,6 +1972,12 @@ function ageClass(s){
 }
 
 function renderSubmissions(){
+  // The row checkboxes are keyed on array position and are re-rendered unchecked
+  // every time, so a selection cannot survive this call. Leaving it in place meant
+  // the bulk bar still read "3 selected" over rows that were no longer visible —
+  // and after a hard delete those positions pointed at different orders.
+  if(typeof selectedIndices !== 'undefined' && selectedIndices.size) clearSelection();
+
   const q=document.getElementById('searchInput')?.value.toLowerCase().trim()||'';
 
   // Date range filter

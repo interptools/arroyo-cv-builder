@@ -746,7 +746,7 @@ textarea{resize:vertical;line-height:1.6;}
         <li><b>Fill in the form below.</b><small>Only name, phone, email, address, one school and a photo are required.</small></li>
         <li><b>Let AI write your profile summary</b>, or type your own.<small>Step 03. You get three versions to choose from.</small></li>
         <li><b>Pick a design and check the preview.</b><small>Tap <b>Preview</b> at the bottom of the screen to see your CV.</small></li>
-        <li><b>Pay ₱25 by GCash and send us the reference number.</b><small>Tap <b>Unlock — ₱25</b>, and we will show you where to send it.</small></li>
+        <li><b>Pay ₱<span class="how-price-n">25</span> by GCash and send us the reference number.</b><small>Tap <b>Unlock — ₱<span class="how-price-n">25</span></b>, and we will show you where to send it.</small></li>
         <li><b>We approve it, then Save and Print open here.</b><small>Usually within a few hours during the day. You can close the page and come back.</small></li>
       </ol>
       <div class="pay-strip">
@@ -1162,7 +1162,7 @@ textarea{resize:vertical;line-height:1.6;}
   <div class="mdl">
     <div class="mdl-h">
       <h2 id="ulTitle">Unlock Save &amp; Print</h2>
-      <p id="ulSub">Send your CV to us, pay ₱25 by GCash, and Save &amp; Print open as soon as we confirm it.</p>
+      <p id="ulSub">Send your CV to us, pay ₱<span class="how-price-n">25</span> by GCash, and Save &amp; Print open as soon as we confirm it.</p>
     </div>
     <div class="mdl-b" id="ulBody"></div>
     <div class="mdl-f" id="ulFoot"></div>
@@ -4127,16 +4127,24 @@ const DRAFT_KEY  = 'arroyo_selfservice_draft_v1';
 const UNLOCK_KEY = 'arroyo_selfservice_unlock_v1';
 
 // Self-service is cheaper than an assisted order because the customer does the
-// typing. FIXED at 25: it is never read from the pricing record, because
-// pricing.base is the ASSISTED price and picking it up here quoted 50 to a
-// self-service customer, then reported them 25 short when they paid 25.
-const SELF_SERVICE_PRICE = 25;
+// typing. Loaded from GET /pricing, which returns pricing.self — NEVER
+// pricing.base. That distinction is the entire bug history here: pricing.base is
+// the ASSISTED price, and reading it quoted 50 to a self-service customer who
+// then paid the advertised 25 and was reported short in the dashboard. The
+// Worker enforces the same rule server-side, so the two cannot drift.
+//
+// The values below are the fallback, used until /pricing answers and kept if it
+// never does. A pricing outage must not stop anyone building a CV.
+let SELF_SERVICE_PRICE = 25;
 // Every template after the first one in the pack. Buying a second layout is a
 // re-render of data we already hold, so it is priced as an add-on, not a CV.
-const EXTRA_TMPL_PRICE = 10;
-// Kept under the old name so the many peso(BASE_PRICE) call sites still read
-// correctly. It is a constant now — nothing may reassign it.
-const BASE_PRICE = SELF_SERVICE_PRICE;
+let EXTRA_TMPL_PRICE = 10;
+// Pre-sale figures, for strikethroughs. Equal to the live prices when no sale.
+let SELF_LIST = { base: 25, extra: 10 };
+let SELF_SALE = null;              // { label, endsAt } while a sale is live
+// Read by the several peso(BASE_PRICE) call sites. Kept in step with
+// SELF_SERVICE_PRICE inside loadPricing() — the only place either one moves.
+let BASE_PRICE = SELF_SERVICE_PRICE;
 const peso = n => '\u20b1' + Number(n).toLocaleString();
 
 /* ─── STATE ─────────────────────────────────────────────────────────────── */
@@ -6009,6 +6017,10 @@ function jumpTo(id){
 /* ─── SEND ORDER ────────────────────────────────────────────────────────── */
 async function sendOrder(){
   flushTags();
+  // Without this a fast customer is quoted the fallback and orderDue() freezes it
+  // into quotedTotal — which is exactly the "short by" report this page already
+  // fought once.
+  try { await pricingReady; } catch(e){}
   paint('Sending your CV', 'This takes a few seconds.',
     `<div style="text-align:center;padding:26px 0">
        <div class="spin" style="width:26px;height:26px;border-width:3px;margin:0 auto 14px"></div>
@@ -7152,6 +7164,7 @@ function toggleTopUp(n){
 // Writes the add-on as its own order and hands back its reference.
 async function sendTopUp(){
   if(!topUpPick.length) return;
+  try { await pricingReady; } catch(e){}
   const picks = topUpPick.slice();
   const fee = EXTRA_TMPL_PRICE * picks.length;
 
@@ -7262,7 +7275,10 @@ async function absorbTopUp(picks){
     const main = { ...collectData(), id: unlockRef };
     main.templates = { purchased: paidTemplates.slice(), base: SELF_SERVICE_PRICE,
                        extraFee: EXTRA_TMPL_PRICE };
-    main.quotedTotal = SELF_SERVICE_PRICE + EXTRA_TMPL_PRICE * (paidTemplates.length - 1);
+    // quotedTotal is deliberately NOT touched. It is the frozen quote for the CV,
+    // and the extra layouts were paid for on their own add-on order. Rewriting it
+    // here made the main order look short forever and double-counted the top-up in
+    // the dashboard's outstanding figure.
 
     // pushOrder merges { ...stored, ...data }, so any key present here WINS.
     // collectData() always stamps status:'New' and a fresh submittedAt, which
@@ -7947,26 +7963,72 @@ function doClear(silent){
 // Every place the price appears, updated in one pass. openTheLock() rewrites
 // the footer, so each element is checked rather than assumed.
 function paintPrice(){
-  const p = peso(BASE_PRICE);
+  const p = peso(SELF_SERVICE_PRICE);
   const b = $('btnUnlock');
   if(b) b.innerHTML = '\ud83d\udd13 Unlock Save &amp; Print \u2014 ' + p;
   const mb = $('mbAction');
   if(mb && !unlocked) mb.innerHTML = '\ud83d\udd13 Unlock \u2014 ' + p;
   const seal = document.querySelector('.seal .l2');
   if(seal) seal.textContent = p;
-  document.querySelectorAll('.how-price').forEach(e => e.textContent = p);
   // Written without the peso sign: these sit inside markup that already has one.
-  document.querySelectorAll('.how-price-n').forEach(e => e.textContent = BASE_PRICE);
+  // (.how-price was dropped — it matched no elements in this file.)
+  document.querySelectorAll('.how-price-n').forEach(e => e.textContent = SELF_SERVICE_PRICE);
+  document.querySelectorAll('.extra-price-n').forEach(e => e.textContent = EXTRA_TMPL_PRICE);
+
+  // ── SALE BANNER ─────────────────────────────────────────────────────────
+  // Inserted after the top bar rather than written into the markup, so the page
+  // carries no sale styling at all when nothing is discounted.
+  const bar = document.querySelector('.topbar');
+  let banner = document.getElementById('saleBanner');
+  if(SELF_SALE && bar){
+    if(!banner){
+      banner = document.createElement('div');
+      banner.id = 'saleBanner';
+      banner.style.cssText = 'background:#c8a84b;color:#1a2744;text-align:center;'
+        + 'padding:9px 16px;font-size:13px;font-weight:700;line-height:1.5;';
+      bar.parentNode.insertBefore(banner, bar.nextSibling);
+    }
+    // Only strike through a price that is genuinely lower, or the banner is
+    // advertising a discount that is not one.
+    banner.innerHTML = '\ud83d\udd25 ' + escHtml(SELF_SALE.label)
+      + ' \u2014 build your own CV for ' + p
+      + (SELF_SERVICE_PRICE < SELF_LIST.base
+          ? ' <span style="text-decoration:line-through;opacity:.65;font-weight:600;">'
+            + peso(SELF_LIST.base) + '</span>' : '')
+      + (SELF_SALE.endsAt ? ' \u00b7 ends ' + escHtml(SELF_SALE.endsAt) : '');
+  } else if(banner){
+    banner.remove();
+  }
 }
-// Self-service is a FIXED ₱25. It used to be read from the pricing record,
-// which is where the 50 came from: pricing.base is the ASSISTED price, and any
-// deployment that filled in selfService (or fell through to base) quoted 50 on
-// this page while the customer paid the advertised 25 - producing the
-// "short by ₱25" warning in the dashboard. Nothing remote may move it now.
-// The only variable part of the total is the number of templates in the pack,
-// and that is priced locally at EXTRA_TMPL_PRICE each.
-function loadPricing(){
+// Resolved once the price is known. sendOrder() and sendTopUp() await it, so a
+// customer who fills the form fast can never be quoted the fallback while the
+// real price is still in flight — the same guard index.html uses.
+let pricingReady = null;
+
+async function loadPricing(){
+  paintPrice();                       // show the fallback straight away
+  if(!API_BASE) return;               // no Worker deployed, no remote price
+  try{
+    const res = await fetch(API_BASE + '/pricing');
+    if(!res.ok) return;
+    const p = await res.json();
+    if(!p || !p.self) return;
+    const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v > 0) ? v : fb;
+    SELF_SERVICE_PRICE = num(p.self.base,  SELF_SERVICE_PRICE);
+    EXTRA_TMPL_PRICE   = num(p.self.extra, EXTRA_TMPL_PRICE);
+    BASE_PRICE         = SELF_SERVICE_PRICE;
+    SELF_LIST = { base:  num(p.self.listBase,  SELF_SERVICE_PRICE),
+                  extra: num(p.self.listExtra, EXTRA_TMPL_PRICE) };
+    SELF_SALE = p.sale || null;
+  }catch(e){
+    // Silent on purpose. /pricing is not deployed yet, so this fetch is expected
+    // to fail and the built-in price above stands. Once the Worker route exists,
+    // put the warning back — after that a failure here means something is wrong:
+    //   console.warn('Could not load pricing, using the built-in price:', e);
+  }
   paintPrice();
+  // The template strip quotes the extra-layout fee, so it needs a repaint too.
+  try{ buildStrip(); }catch(e){}
 }
 
 /* ─── RAIL SCROLL SPY ───────────────────────────────────────────────────── */
@@ -7998,7 +8060,7 @@ function init(){
   buildStrip();
   renderPreview();
   initSpy();
-  loadPricing();
+  pricingReady = loadPricing();
   loadQR();
   restoreUnlock();
 
