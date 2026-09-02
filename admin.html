@@ -578,8 +578,8 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <p>These are your normal prices. Customers see them unless a sale is running.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px;">
           <div><label class="field-label">CV / Resume</label><input type="number" min="0" id="pr-base" class="field-input" placeholder="50"></div>
-          <div><label class="field-label">Cover Letter</label><input type="number" min="0" id="pr-cl" class="field-input" placeholder="75"></div>
-          <div><label class="field-label">Resignation Letter</label><input type="number" min="0" id="pr-rl" class="field-input" placeholder="50"></div>
+          <div><label class="field-label">Cover Letter</label><input type="number" min="0" id="pr-cl" class="field-input" placeholder="60"></div>
+          <div><label class="field-label">Resignation Letter</label><input type="number" min="0" id="pr-rl" class="field-input" placeholder="60"></div>
         </div>
       </div>
 
@@ -966,9 +966,9 @@ const JSONBIN_API_KEY = '$2a$10$nFL02GTjngKoz62Rf/RsMuEEoJUujItio3x0qF98sn9AowSS
 // ─── PRICING (change here only — used everywhere) ──────────────────────────────
 // Loaded from JSONBin at login. Editable from the Pricing page.
 let BASE_PRICE = 50;   // CV / Resume
-let CL_PRICE   = 75;   // Cover Letter add-on
+let CL_PRICE   = 60;   // Cover Letter add-on
 let SALE = null;
-let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
+let LIST_PRICES = { base: 50, cl: 60, rl: 60 };
 let BUNDLES = {};      // fixed package prices that override the sum
 const peso = n => '₱' + n.toLocaleString();
 
@@ -995,7 +995,7 @@ const fullName = p => {
 // the customer was actually quoted, which survives later price changes.
 // Mirrors RESIGNATION_PRICE in order.html. addOnFee on the record wins where
 // present, so historical orders keep the price they were actually quoted.
-let RESIGNATION_ADDON_PRICE = 50;
+let RESIGNATION_ADDON_PRICE = 60;
 
 // ── SELF-SERVICE (builder.html) ───────────────────────────────────────────
 // A self-service customer types their own CV and pays a flat ₱25, plus ₱10
@@ -1088,8 +1088,8 @@ function applyPricingRecord(pr){
   const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : fb;
   LIST_PRICES = {
     base: num(pr.base, 50),
-    cl:   num(pr.cl,   75),
-    rl:   num(pr.rl,   50)
+    cl:   num(pr.cl,   60),
+    rl:   num(pr.rl,   60)
   };
   // Package prices override the sum for that exact combination. A sale can set
   // its own packages; anything it leaves blank falls back to the regular one.
@@ -1622,8 +1622,8 @@ async function renderPricing(){
   const sale = pr.sale || {};
   const set = (id, v) => { const el = document.getElementById(id); if(el) el.value = (v ?? '') === '' ? '' : v; };
   set('pr-base', pr.base ?? 50);
-  set('pr-cl',   pr.cl   ?? 75);
-  set('pr-rl',   pr.rl   ?? 50);
+  set('pr-cl',   pr.cl   ?? 60);
+  set('pr-rl',   pr.rl   ?? 60);
   set('pr-self-base',  pr.self?.base  ?? 25);
   set('pr-self-extra', pr.self?.extra ?? 10);
   set('pr-sale-self-base',  sale.self?.base  ?? '');
@@ -10989,7 +10989,7 @@ async function stTestCrossFile(){
       ['pCl',    'cover letter add-on', L.cl ?? null,
                  typeof CL_PRICE           !== 'undefined' ? CL_PRICE           : null],
       ['pRl',    'resignation add-on',  L.rl ?? null,
-                 typeof RESIGNATION_PRICE  !== 'undefined' ? RESIGNATION_PRICE  : null]
+                 typeof RESIGNATION_ADDON_PRICE !== 'undefined' ? RESIGNATION_ADDON_PRICE : null]
     ];
     let bad = 0;
     expect.forEach(([id, label, list, live]) => {

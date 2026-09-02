@@ -2454,9 +2454,9 @@ const JSONBIN_API_KEY = '$2a$10$nFL02GTjngKoz62Rf/RsMuEEoJUujItio3x0qF98sn9AowSS
 // admin Pricing page without editing this file. These are fallbacks used only
 // if the pricing record is missing or unreachable.
 let BASE_PRICE = 50;   // CV / Resume
-let CL_PRICE   = 75;   // Cover Letter add-on
+let CL_PRICE   = 60;   // Cover Letter add-on
 let SALE = null;       // { label, endsAt } when a sale is running
-let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
+let LIST_PRICES = { base: 50, cl: 60, rl: 60 };
 let BUNDLES = {};      // fixed package prices that override the sum   // pre-sale prices, for strikethroughs
 const peso = n => '₱' + n.toLocaleString();
 
@@ -3510,7 +3510,7 @@ function emailCoverLetterReceipt(d){
 // Shares showNotif, the styling, and the same JSONBin record array.
 // ══════════════════════════════════════════════════════════════════════════════
 // Change the price here only — every label on the page reads from this.
-let RESIGNATION_PRICE = 50;
+let RESIGNATION_PRICE = 60;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // PRICING
@@ -3537,8 +3537,8 @@ function applyPricingRecord(pr){
   const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : fb;
   LIST_PRICES = {
     base: num(pr.base, 50),
-    cl:   num(pr.cl,   75),
-    rl:   num(pr.rl,   50)
+    cl:   num(pr.cl,   60),
+    rl:   num(pr.rl,   60)
   };
   // Package prices override the sum for that exact combination. A sale can set
   // its own packages; anything it leaves blank falls back to the regular one.
