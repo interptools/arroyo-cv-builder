@@ -2468,7 +2468,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-block">
-      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName}</h1>
+      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName||""}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>

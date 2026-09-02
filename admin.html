@@ -790,6 +790,29 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <button onclick="testAIProviders()" id="aiTestBtn" style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;font-size:13px;font-weight:700;cursor:pointer;">▶ Run Provider Test</button>
         <div id="aiResults" style="margin-top:14px;"></div>
       </div>
+
+      <!-- SELF-TESTS -->
+      <!-- Everything here needs a real browser to answer: layout, rasterisation,
+           network and the actual contents of the other two files. Static review
+           cannot settle any of it, which is exactly why it lives behind a
+           button rather than in a code comment. -->
+      <div class="health-card" style="max-width:980px;">
+        <h3>🧪 Self-Tests &amp; Diagnostics</h3>
+        <p class="hc-sub">Runs the checks that only a live browser can answer — whether every template
+          actually fits one A4 page, whether the PDF pipeline really rasterises, whether the EU privacy
+          rules hold, whether user text is escaped, and whether this file still agrees with
+          <code>index.html</code> and <code>builder.html</code>. Read-only: nothing is saved or emailed.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button onclick="runSelfTests()" id="stBtn"
+            style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;font-size:13px;font-weight:700;cursor:pointer;">▶ Run All Tests</button>
+          <button onclick="runSelfTests({quick:true})" id="stBtnQuick"
+            style="padding:10px 16px;border-radius:8px;border:1.5px solid var(--gray-light);background:white;color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;">⚡ Quick (skip PDF &amp; fit)</button>
+          <span id="stTiming" style="font-size:11.5px;color:var(--gray);"></span>
+        </div>
+        <div class="meter" style="margin-top:14px;"><div class="meter-fill" id="stBar"></div></div>
+        <div class="meter-legend"><span id="stProgress">Not run yet</span><span id="stScore" style="color:var(--gray)"></span></div>
+        <div id="stResults" style="margin-top:14px;"></div>
+      </div>
     </div>
 
     <!-- CHANGE PASSWORD -->
@@ -6613,7 +6636,7 @@ ${pb}
   <div class="L">
     <div class="photo-wrap">${ph}</div>
     <div class="name-block">
-      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName}</h1>
+      <h1>${[p.firstName, (p.middleName||"").trim()].filter(Boolean).join(" ")}<br>${p.lastName||""}</h1>
       <div class="ttl">${p.jobTitle||''}</div>
     </div>
     <div class="ls"><div class="ls-h">Contact</div>
@@ -10371,6 +10394,760 @@ function renderRevenueChart(){
 }
 
 // ── end of improvements ───────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SELF-TESTS & DIAGNOSTICS
+//
+// Every check below exists because it CANNOT be settled by reading the code.
+// Reviewing a template tells you nothing about whether it overflows A4; reading
+// the PDF helper tells you nothing about whether html2canvas rasterises it;
+// reading this file tells you nothing about whether index.html still agrees with
+// it. Those answers need layout, a canvas and the network, so they need a
+// browser, so they live behind a button.
+//
+// Strictly read-only. No writes to the bin, no emails, no state changes.
+// ══════════════════════════════════════════════════════════════════════════════
+
+const ST_A4_W = 794;          // 210mm at 96dpi — the width the fitter lays out at
+const ST_A4_H = 1123;         // 297mm at 96dpi
+const ST_FIT_FLOOR = 0.62;    // the fitter refuses to shrink past this
+
+// A submission with every section populated, so a template that silently drops
+// a field is caught. Values are distinctive on purpose: "Filipino" appearing in
+// an EU CV is a privacy failure, and a generic value would hide it.
+function stSample(over){
+  return Object.assign({
+    id: 'SELFTEST-001', source: 'self-service', status: 'New',
+    submittedAt: new Date().toISOString(),
+    eduLevel: 'college',
+    personal: {
+      firstName: 'Juan', middleName: 'S', lastName: 'Dela Cruz',
+      jobTitle: 'Mechanical Engineer', email: 'juan@example.com',
+      phone: '+63 917 000 0000', address: 'Cebu City, Philippines',
+      linkedin: 'linkedin.com/in/juandc', social: 'fb.com/juandc',
+      dob: '1994-03-08', nationality: 'Filipino', civilStatus: 'Single',
+      gender: 'Male', photo: ''
+    },
+    education: [{ school: 'Cebu Institute of Technology', degree: 'BS Mechanical Engineering',
+                  yearStart: '2012', yearGrad: '2016', honors: 'Cum Laude' }],
+    workExperience: [{ company: 'ABC Manufacturing', position: 'Maintenance Engineer',
+                       dateStart: '2017', dateEnd: '2023', location: 'Cebu',
+                       responsibilities: 'Ran preventive maintenance.\nCut downtime 18%.' }],
+    ojt: [], references: [{ name: 'Maria Santos', position: 'Plant Manager',
+                            company: 'ABC Manufacturing', contact: '+63 917 111 2222' }],
+    skills: ['AutoCAD', 'Six Sigma', 'Preventive Maintenance'],
+    languages: ['English', 'Filipino', 'German'],
+    profileSummary: 'Mechanical engineer with six years in plant maintenance.',
+    aboutMe: 'Engineer.', trainings: 'Six Sigma Yellow Belt\nISO 9001 Awareness',
+    awards: 'Employee of the Year 2021', hobbies: 'Cycling, chess',
+    seaman: {
+      rank: 'Third Engineer', lastRank: 'Fourth Engineer', height: "5'8\"", weight: '72 kg',
+      bmi: '23.1', eyes: 'Brown', hair: 'Black', blood: 'O+', shoe: '9', coverall: 'L',
+      religion: 'Catholic', birthPlace: 'Cebu', govIds: 'SSS 33-1234567-8', nok: 'Ana Dela Cruz',
+      documents: [{ type: 'Passport', number: 'P1234567A', dateIssued: '2021-02-01',
+                    dateExpiry: '2031-02-01', placeIssued: 'DFA Cebu' }],
+      certificates: [{ name: 'BOSIET', number: 'C-99', issuedBy: 'MARINA',
+                       dateIssued: '2022-05-01', validUntil: '2027-05-01' }],
+      vaccinations: [{ name: 'Yellow Fever', placeIssued: 'BOQ Cebu',
+                       dateGiven: '2022-01-10', validUntil: 'Lifetime' }],
+      seaService: [{ vessel: 'MV Pacific Star', rank: '4/E', vesselType: 'Bulk Carrier',
+                     company: 'NYK', grt: '38000', kw: '9500', tradeArea: 'Worldwide',
+                     signOn: '2021-03-01', signOff: '2022-01-15' }]
+    },
+    europe: {
+      country: 'Germany', city: 'Berlin', permit: 'EU Blue Card', permitExpiry: '2027-01-01',
+      notice: '1 month', relocate: 'Yes', licence: 'Category B', currentLocation: 'Cebu',
+      recognition: 'Anerkennung in progress', memberships: 'PRC licensed',
+      notes: 'Available from March 2026',
+      cefrLanguages: [{ lang: 'German', level: 'B2', cert: 'Goethe B2' },
+                      { lang: 'English', level: 'C1', cert: '' }],
+      wantPhoto: false,
+      show: { dob: false, nationality: false, civil: false, gender: false },
+      gdprLine: true
+    },
+    overseas: {
+      country: 'Saudi Arabia', visaStatus: 'No visa yet', passportNo: 'P1234567A',
+      passportExpiry: '2031-02-01', religion: 'Catholic', dependants: '2',
+      availability: 'Immediate', notice: '30 days', expectedSalary: 'SAR 6,000',
+      workAuth: 'Needs sponsorship', relocate: 'Yes'
+    },
+    templatePref: '1'
+  }, over || {});
+}
+
+// A 1x1 red PNG. Real enough for html2canvas to paint, small enough to inline.
+const ST_PIXEL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg==';
+
+let stResults = [];
+let stRunning = false;
+
+function stAdd(group, name, status, detail){
+  stResults.push({ group, name, status, detail: detail || '' });
+}
+function stPass(g,n,d){ stAdd(g,n,'pass',d); }
+function stFail(g,n,d){ stAdd(g,n,'fail',d); }
+function stWarnR(g,n,d){ stAdd(g,n,'warn',d); }
+function stSkip(g,n,d){ stAdd(g,n,'skip',d); }
+
+function stProgress(done, total, label){
+  const bar = document.getElementById('stBar');
+  const pct = total ? Math.round(done/total*100) : 0;
+  if(bar){ bar.style.width = pct + '%'; bar.className = 'meter-fill'; }
+  const p = document.getElementById('stProgress');
+  if(p) p.textContent = label || `Running… ${done}/${total}`;
+}
+
+// Renders a template into a detached, off-screen iframe and hands back the live
+// document so height can actually be measured. Off-screen rather than
+// display:none — a hidden iframe has no layout and every measurement reads 0.
+function stRenderFrame(html, w, h){
+  return new Promise((resolve, reject) => {
+    const fr = document.createElement('iframe');
+    fr.setAttribute('aria-hidden','true');
+    fr.style.cssText = 'position:fixed;left:-20000px;top:0;border:0;width:'
+      + (w||ST_A4_W) + 'px;height:' + (h||ST_A4_H) + 'px;';
+    let done = false;
+    const bail = setTimeout(() => {
+      if(done) return; done = true; fr.remove();
+      reject(new Error('render timed out after 15s'));
+    }, 15000);
+    fr.onload = async () => {
+      if(done) return;
+      try{
+        const doc = fr.contentDocument;
+        if(doc.fonts && doc.fonts.ready) await doc.fonts.ready;
+        await new Promise(r => setTimeout(r, 250));   // let the auto-fitter settle
+        done = true; clearTimeout(bail);
+        resolve({ frame: fr, doc });
+      }catch(e){
+        done = true; clearTimeout(bail); fr.remove(); reject(e);
+      }
+    };
+    fr.srcdoc = html;
+    document.body.appendChild(fr);
+  });
+}
+
+/* ── A · every template renders ─────────────────────────────────────────────
+   String-level checks. A template that throws, loses its .page-wrap or leaks a
+   literal "undefined" is broken for every customer, not just an edge case. */
+function stTestRender(){
+  const G = 'Rendering';
+  const nums = ADMIN_TMPL.map(t => t.num);
+  const s = stSample();
+  nums.forEach(n => {
+    let html;
+    try{ html = buildCVHtml(s, n, 'preview'); }
+    catch(e){ stFail(G, 'T' + n + ' renders', e.message); return; }
+    const bad = [];
+    if(!html || html.length < 500) bad.push('output suspiciously short (' + (html||'').length + ' chars)');
+    if(!/class="page-wrap"/.test(html)) bad.push('no .page-wrap — the PDF would come out blank');
+    if(/undefined/.test(html)) bad.push('literal "undefined" in output');
+    if(/\[object Object\]/.test(html)) bad.push('[object Object] in output');
+    if(/>\s*NaN\s*</.test(html)) bad.push('NaN in output');
+    if(!/<\/html>\s*$/.test(html)) bad.push('HTML truncated');
+    bad.length ? stFail(G, 'T' + n + ' renders', bad.join('; '))
+               : stPass(G, 'T' + n + ' renders');
+  });
+
+  // Empty submission — a brand-new order with nothing typed must not throw.
+  const blank = { eduLevel:'college', personal:{}, education:[], workExperience:[],
+                  ojt:[], references:[], skills:[], languages:[] };
+  nums.forEach(n => {
+    try{
+      const h = buildCVHtml(blank, n, 'preview');
+      /undefined/.test(h) ? stFail(G,'T'+n+' survives an empty order','leaks "undefined"')
+                          : stPass(G, 'T' + n + ' survives an empty order');
+    }catch(e){ stFail(G, 'T' + n + ' survives an empty order', e.message); }
+  });
+}
+
+/* ── B · user text is escaped ───────────────────────────────────────────────
+   The CV is built by string concatenation from fields the customer controls, so
+   escaping is the only thing between a company name and script execution. */
+function stTestEscaping(){
+  const G = 'Escaping / XSS';
+  const P = '<script>window.__stXSS=1<\/script><img src=x onerror="window.__stXSS=2">';
+  const s = stSample({
+    personal: Object.assign(stSample().personal, { firstName: P, lastName: P, jobTitle: P, address: P }),
+    profileSummary: P, aboutMe: P, awards: P, hobbies: P, trainings: P,
+    skills: [P], languages: [P],
+    workExperience: [{ company: P, position: P, dateStart: P, dateEnd: P,
+                       location: P, responsibilities: P }],
+    education: [{ school: P, degree: P, yearStart: P, yearGrad: P, honors: P }],
+    references: [{ name: P, position: P, company: P, contact: P }]
+  });
+  ADMIN_TMPL.map(t => t.num).forEach(n => {
+    let html;
+    try{ html = buildCVHtml(s, n, 'preview'); }
+    catch(e){ stFail(G, 'T' + n + ' escapes user text', 'threw: ' + e.message); return; }
+    // The template's own markup legitimately contains <script> (the auto-fitter),
+    // so only look at what came from the payload.
+    const leaks = [];
+    if(html.includes('window.__stXSS=1<\/script>')) leaks.push('<script> from a user field survived');
+    if(/onerror\s*=\s*"window\.__stXSS/.test(html)) leaks.push('onerror handler survived');
+    leaks.length ? stFail(G, 'T' + n + ' escapes user text', leaks.join('; '))
+                 : stPass(G, 'T' + n + ' escapes user text');
+  });
+}
+
+/* ── C · EU privacy contract ────────────────────────────────────────────────
+   A European CV omits personal data unless the applicant ticks it. Getting this
+   wrong is a data-protection problem, not a layout preference, so it is asserted
+   in both directions: hidden when unticked AND shown when ticked. */
+function stTestEuPrivacy(){
+  const G = 'EU privacy';
+  const euNums = ADMIN_TMPL.filter(t => t.europeOnly).map(t => t.num);
+  if(!euNums.length){ stWarnR(G, 'EU templates present', 'none found in the registry'); return; }
+  euNums.forEach(n => {
+    const base = stSample({ eduLevel: 'europe' });
+    base.personal.photo = ST_PIXEL;
+    let hidden, shown;
+    try{
+      hidden = buildCVHtml(base, n, 'preview');
+      const open = stSample({ eduLevel: 'europe' });
+      open.personal.photo = ST_PIXEL;
+      open.europe = Object.assign({}, open.europe, { wantPhoto: true,
+        show: { dob: true, nationality: true, civil: true, gender: true } });
+      shown = buildCVHtml(open, n, 'preview');
+    }catch(e){ stFail(G, 'T' + n + ' privacy contract', e.message); return; }
+
+    const leaks = [];
+    if(/1994|08-Mar/.test(hidden)) leaks.push('date of birth shown while unticked');
+    if(/>\s*Filipino\s*</.test(hidden)) leaks.push('nationality shown while unticked');
+    if(/>\s*Single\s*</.test(hidden)) leaks.push('civil status shown while unticked');
+    if(/>\s*Male\s*</.test(hidden)) leaks.push('gender shown while unticked');
+    if(hidden.includes(ST_PIXEL)) leaks.push('photo embedded while wantPhoto is false');
+    if(leaks.length) stFail(G, 'T' + n + ' hides unticked personal data', leaks.join('; '));
+    else stPass(G, 'T' + n + ' hides unticked personal data');
+
+    const missing = [];
+    if(!/1994|08-Mar/.test(shown)) missing.push('date of birth missing when ticked');
+    if(!shown.includes(ST_PIXEL)) missing.push('photo missing when wantPhoto is true');
+    if(missing.length) stFail(G, 'T' + n + ' shows ticked personal data', missing.join('; '));
+    else stPass(G, 'T' + n + ' shows ticked personal data');
+
+    /B2|C1/.test(hidden) ? stPass(G, 'T' + n + ' renders CEFR levels')
+                         : stFail(G, 'T' + n + ' renders CEFR levels', 'no CEFR band in output');
+    hidden.includes('GDPR') ? stPass(G, 'T' + n + ' carries the GDPR line')
+                            : stFail(G, 'T' + n + ' carries the GDPR line', 'consent line absent');
+  });
+}
+
+/* ── D · ATS-safe templates really are ─────────────────────────────────────
+   These exist so a resume parser can read them. A photo or a table defeats the
+   entire point, and it is an easy thing to reintroduce by copy-paste. */
+function stTestAts(){
+  const G = 'ATS safety';
+  const s = stSample();
+  s.personal.photo = ST_PIXEL;
+  ADMIN_TMPL.filter(t => t.group === 'ats').map(t => t.num).forEach(n => {
+    let html;
+    try{ html = buildCVHtml(s, n, 'preview'); }
+    catch(e){ stFail(G, 'T' + n + ' parser-safe', e.message); return; }
+    const body = html.slice(html.indexOf('page-wrap'));
+    const bad = [];
+    if(/<table/i.test(body)) bad.push('contains a <table> — parsers mis-order table text');
+    if(body.includes(ST_PIXEL)) bad.push('embeds a photo');
+    bad.length ? stWarnR(G, 'T' + n + ' parser-safe', bad.join('; '))
+               : stPass(G, 'T' + n + ' parser-safe');
+  });
+}
+
+/* ── E · one-page A4 fit ────────────────────────────────────────────────────
+   THE check that cannot be done by reading code. Lays each template out at
+   exactly 210mm and measures real content height. Anything over one sheet gets
+   shrunk by the auto-fitter; below the 62% floor it is clipped and the customer
+   loses content off the bottom of the page. */
+async function stTestFit(){
+  const G = 'One-page fit';
+  const s = stSample();
+  const nums = ADMIN_TMPL.map(t => t.num);
+  for(let i = 0; i < nums.length; i++){
+    const n = nums[i];
+    stProgress(i, nums.length, `Measuring page fit… T${n} (${i+1}/${nums.length})`);
+    let ctx;
+    try{ ctx = await stRenderFrame(buildCVHtml(s, n, 'preview')); }
+    catch(e){ stFail(G, 'T' + n + ' fits one A4 page', e.message); continue; }
+    try{
+      const page = ctx.doc.querySelector('.page');
+      if(!page){ stFail(G, 'T' + n + ' fits one A4 page', 'no .page element to measure'); continue; }
+      // Same measurement the fitter makes: zero the 100vh min-height, else the
+      // reported height is the viewport rather than the content.
+      const prevMin = page.style.minHeight, prevTr = page.style.transform;
+      page.style.minHeight = '0px';
+      page.style.transform = 'none';
+      page.style.width = ST_A4_W + 'px';
+      void page.offsetHeight;
+      const h = page.scrollHeight;
+      page.style.minHeight = prevMin; page.style.transform = prevTr;
+
+      const scale = h > ST_A4_H ? ST_A4_H / h : 1;
+      const pctFull = Math.round(h / ST_A4_H * 100);
+      if(scale >= 1)
+        stPass(G, 'T' + n + ' fits one A4 page', `${pctFull}% of the sheet, no shrinking needed`);
+      else if(scale >= 0.85)
+        stPass(G, 'T' + n + ' fits one A4 page', `shrunk to ${Math.round(scale*100)}% — comfortable`);
+      else if(scale >= ST_FIT_FLOOR)
+        stWarnR(G, 'T' + n + ' fits one A4 page',
+          `needs ${Math.round(scale*100)}% scale (content is ${pctFull}% of a sheet). Readable but tight.`);
+      else
+        stFail(G, 'T' + n + ' fits one A4 page',
+          `needs ${Math.round(scale*100)}% scale, below the ${Math.round(ST_FIT_FLOOR*100)}% floor — `
+          + `content WILL be clipped off the bottom (content is ${pctFull}% of a sheet)`);
+    } finally { ctx.frame.remove(); }
+  }
+}
+
+/* ── F · the PDF pipeline actually rasterises ───────────────────────────────
+   Loads the same two CDN libraries downloadCV() uses, paints a template and
+   samples the canvas. A blank-but-successful canvas is the failure mode that
+   looks fine in the preview and hands the customer an empty PDF. */
+async function stTestPdf(){
+  const G = 'PDF pipeline';
+  const load = src => new Promise((ok, no) => {
+    if(document.querySelector('script[src="' + src + '"]')) return ok();
+    const el = document.createElement('script');
+    el.src = src; el.onload = ok; el.onerror = () => no(new Error('blocked or offline'));
+    document.head.appendChild(el);
+  });
+  const LIBS = [
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  ];
+  for(const src of LIBS){
+    const nm = src.split('/').slice(-1)[0];
+    try{ await load(src); stPass(G, 'library loads: ' + nm); }
+    catch(e){
+      stFail(G, 'library loads: ' + nm, e.message
+        + ' — every Save-as-PDF falls back to a .html download until this is reachable');
+      stSkip(G, 'canvas rasterises', 'library unavailable');
+      stSkip(G, 'jsPDF produces a file', 'library unavailable');
+      return;
+    }
+  }
+  if(!window.html2canvas || !window.jspdf){
+    stFail(G, 'libraries expose their globals', 'script loaded but html2canvas/jspdf missing');
+    return;
+  }
+  stPass(G, 'libraries expose their globals');
+
+  const s = stSample();
+  s.personal.photo = ST_PIXEL;
+  let ctx;
+  try{ ctx = await stRenderFrame(buildCVHtml(s, 1, 'pdf')); }
+  catch(e){ stFail(G, 'canvas rasterises', e.message); return; }
+  try{
+    const target = ctx.doc.querySelector('.page-wrap') || ctx.doc.body;
+    const canvas = await window.html2canvas(target, {
+      scale: 1, backgroundColor: '#ffffff',
+      width: ST_A4_W, height: ST_A4_H,
+      windowWidth: ST_A4_W, windowHeight: ST_A4_H,
+      useCORS: true, logging: false
+    });
+    if(!canvas || !canvas.width){ stFail(G, 'canvas rasterises', 'zero-sized canvas'); return; }
+    // Sample a grid. An all-white canvas means html2canvas "succeeded" and
+    // painted nothing, which is the silent-blank-PDF bug.
+    const cx = canvas.getContext('2d');
+    let ink = 0, n = 0;
+    for(let y = 5; y < canvas.height; y += Math.floor(canvas.height/40)){
+      for(let x = 5; x < canvas.width; x += Math.floor(canvas.width/40)){
+        const d = cx.getImageData(x, y, 1, 1).data;
+        n++;
+        if(d[0] < 245 || d[1] < 245 || d[2] < 245) ink++;
+      }
+    }
+    const pct = n ? Math.round(ink/n*100) : 0;
+    if(pct < 2) stFail(G, 'canvas rasterises',
+      `canvas is ${100-pct}% blank — the PDF would come out empty`);
+    else stPass(G, 'canvas rasterises', `${pct}% of sampled pixels carry ink`);
+
+    try{
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit:'mm', format:'a4', orientation:'portrait', compress:true });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+      const size = pdf.output('blob').size;
+      size > 5000 ? stPass(G, 'jsPDF produces a file', (size/1024).toFixed(0) + ' KB')
+                  : stFail(G, 'jsPDF produces a file', 'only ' + size + ' bytes — likely empty');
+    }catch(e){ stFail(G, 'jsPDF produces a file', e.message); }
+    canvas.width = 0; canvas.height = 0;
+  }catch(e){
+    stFail(G, 'canvas rasterises', e.message);
+  } finally { ctx.frame.remove(); }
+}
+
+/* ── G · expiry and purge logic ─────────────────────────────────────────────
+   purgeExpired() reduces an expired order to a receipt stub, destroying the CV.
+   A wrong answer here is silent data loss, so the boundary cases are asserted
+   rather than reasoned about — including the paid-but-no-paidAt record that
+   used to be treated as long expired. */
+function stTestExpiry(){
+  const G = 'Expiry / purge';
+  const iso = ms => new Date(Date.now() + ms).toISOString();
+  const H = 3600e3;
+  const cases = [
+    ['paid just now, paidAt present', { source:'self-service', submittedAt: iso(-72*H),
+        payment:{ paid:true, paidAt: iso(0) } }, false,
+        'a freshly approved order must stay'],
+    ['PAID but paidAt missing, sent 3 days ago', { source:'self-service', submittedAt: iso(-72*H),
+        payment:{ paid:true } }, false,
+        'no knowable deadline — must never be auto-purged, or a paid CV is destroyed'],
+    ['unpaid, sent 3 days ago', { source:'self-service', submittedAt: iso(-72*H),
+        payment:{ paid:false } }, true, 'a stale unpaid order should archive'],
+    ['unpaid, sent 1 hour ago', { source:'self-service', submittedAt: iso(-1*H),
+        payment:{ paid:false } }, false, 'still inside its window'],
+    ['agency order, sent 3 days ago', { source:'agency', submittedAt: iso(-72*H) }, false,
+        'only self-service orders have a download window'],
+    ['paid 25 hours ago', { source:'self-service', submittedAt: iso(-72*H),
+        payment:{ paid:true, paidAt: iso(-25*H) } }, true,
+        'window genuinely elapsed after payment']
+  ];
+  cases.forEach(([label, rec, wantExpired, why]) => {
+    let got;
+    try{ got = isExpired(rec); }
+    catch(e){ stFail(G, label, 'threw: ' + e.message); return; }
+    got === wantExpired
+      ? stPass(G, label, (wantExpired ? 'archives' : 'kept') + ' \u2014 ' + why)
+      : stFail(G, label, `expected ${wantExpired ? 'archive' : 'kept'} but got `
+          + `${got ? 'archive' : 'kept'}. ${why}`);
+  });
+}
+
+/* ── H · registry integrity in this file ───────────────────────────────────*/
+function stTestRegistry(){
+  const G = 'Registry';
+  const nums = ADMIN_TMPL.map(t => t.num);
+  const dup = nums.filter((n,i) => nums.indexOf(n) !== i);
+  dup.length ? stFail(G, 'no duplicate template numbers', 'duplicated: ' + dup.join(', '))
+             : stPass(G, 'no duplicate template numbers', nums.length + ' templates');
+
+  const holes = ADMIN_TMPL.filter(t => !t);
+  holes.length ? stFail(G, 'no holes in the array', holes.length + ' empty slots — .find() will throw')
+               : stPass(G, 'no holes in the array');
+
+  const groups = (typeof TMPL_GROUPS !== 'undefined') ? TMPL_GROUPS.map(g => g[0]) : [];
+  const orphan = [...new Set(ADMIN_TMPL.map(t => t.group))].filter(g => !groups.includes(g));
+  orphan.length ? stWarnR(G, 'every group has a heading', 'ungrouped: ' + orphan.join(', ')
+                    + ' — these fall into "Other"')
+                : stPass(G, 'every group has a heading');
+
+  const badColour = ADMIN_TMPL.filter(t =>
+    (t.bg && !/^(#[0-9a-fA-F]{3,8}|linear-gradient|white|transparent)/.test(t.bg)) ||
+    (t.color && !/^(#[0-9a-fA-F]{3,8}|white|black)/.test(t.color)));
+  badColour.length ? stFail(G, 'swatch colours well-formed',
+                       'malformed on T' + badColour.map(t=>t.num).join(', T'))
+                   : stPass(G, 'swatch colours well-formed');
+
+  // Every template must reach a renderer, and each track must offer something.
+  const s = stSample();
+  const sizes = {};
+  nums.forEach(n => { try{ sizes[n] = buildCVHtml(s, n, 'preview').length; }catch(e){ sizes[n] = 0; } });
+  const identical = {};
+  Object.entries(sizes).forEach(([n,l]) => { (identical[l] = identical[l] || []).push(n); });
+  const collided = Object.values(identical).filter(a => a.length > 1)
+    .filter(a => !(a.length === 2 && a.includes('18') && a.includes('19')));
+  collided.length
+    ? stWarnR(G, 'each template renders distinctly',
+        'byte-identical output: ' + collided.map(a => 'T' + a.join('/T')).join(', ')
+        + ' — a dispatch line may be pointing at the wrong renderer')
+    : stPass(G, 'each template renders distinctly');
+
+  ['seaman','europe','gulf'].forEach(track => {
+    const key = track === 'seaman' ? 'seamanOnly' : track === 'europe' ? 'europeOnly' : 'gulfOnly';
+    const c = ADMIN_TMPL.filter(t => t[key]).length;
+    c ? stPass(G, `the ${track} track has layouts`, c + ' template(s)')
+      : stFail(G, `the ${track} track has layouts`, 'none — that track cannot be fulfilled');
+  });
+}
+
+/* ── I · this file still agrees with the other two ─────────────────────────
+   The three pages each carry their own copy of the registry and the renderers.
+   Nothing enforces that they match, so drift is invisible until a customer
+   picks a template the builder has and the admin does not. */
+async function stTestCrossFile(){
+  const G = 'Cross-file alignment';
+  const mine = {};
+  ADMIN_TMPL.forEach(t => { mine[t.num] = {
+    group: t.group,
+    flags: ['seamanOnly','europeOnly','gulfOnly','retired'].filter(f => !!t[f]).join(',')
+  }; });
+
+  for(const file of ['index.html','builder.html']){
+    let text;
+    try{
+      const r = await fetch(file, { cache:'no-store' });
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      text = await r.text();
+    }catch(e){
+      stSkip(G, file + ' registry matches',
+        'could not read the file (' + e.message + '). Opening admin.html straight from '
+        + 'disk blocks this — serve the folder over http to enable it.');
+      continue;
+    }
+    const m = text.match(/const TMPL_INFO = \[[\s\S]*?\n\];/);
+    if(!m){ stFail(G, file + ' registry matches', 'no TMPL_INFO found in that file'); continue; }
+    const theirs = {};
+    m[0].split('\n').forEach(line => {
+      const n = line.match(/\{num:(\d+)/);
+      if(!n) return;
+      const g = line.match(/group:'(\w+)'/);
+      theirs[+n[1]] = {
+        group: g ? g[1] : null,
+        flags: ['seamanOnly','europeOnly','gulfOnly','retired']
+          .filter(f => new RegExp(f + '\\s*:\\s*true').test(line)).join(',')
+      };
+    });
+    const all = [...new Set([...Object.keys(mine), ...Object.keys(theirs)].map(Number))].sort((a,b)=>a-b);
+    const problems = [];
+    all.forEach(n => {
+      const a = mine[n], b = theirs[n];
+      if(a && !b) problems.push('T' + n + ' missing from ' + file);
+      else if(b && !a) problems.push('T' + n + ' only in ' + file);
+      else if(a.group !== b.group) problems.push('T' + n + ' group ' + a.group + ' vs ' + b.group);
+      else if(a.flags !== b.flags) problems.push('T' + n + ' flags "' + a.flags + '" vs "' + b.flags + '"');
+    });
+    problems.length
+      ? stFail(G, file + ' registry matches', problems.slice(0,8).join('; ')
+          + (problems.length > 8 ? ` (+${problems.length-8} more)` : ''))
+      : stPass(G, file + ' registry matches', all.length + ' templates agree on group and track flags');
+
+    // Renderers: every number must have a function, except 19 which reuses T18.
+    const fns = new Set([...text.matchAll(/function T(\d+)\s*\(/g)].map(x => +x[1]));
+    const disp = new Set([...text.matchAll(/tmpl\s*===\s*(\d+)/g)].map(x => +x[1]));
+    const noFn = all.filter(n => n !== 19 && theirs[n] && !fns.has(n));
+    const noDisp = all.filter(n => theirs[n] && !disp.has(n));
+    noFn.length ? stFail(G, file + ' has a renderer per template', 'missing T' + noFn.join(', T'))
+                : stPass(G, file + ' has a renderer per template');
+    noDisp.length ? stFail(G, file + ' dispatches every template', 'unreachable: T' + noDisp.join(', T'))
+                  : stPass(G, file + ' dispatches every template');
+
+    // Constants that exist separately in each file and must not drift. A
+    // mismatched price quotes the customer one figure and bills another; a
+    // mismatched TTL means the two pages disagree on when an order died.
+    const constCheck = [
+      ['SELF_SERVICE_PRICE', typeof SELF_SERVICE_PRICE !== 'undefined' ? SELF_SERVICE_PRICE : null],
+      ['EXTRA_TMPL_PRICE',   typeof EXTRA_TMPL_PRICE   !== 'undefined' ? EXTRA_TMPL_PRICE   : null],
+      ['ORDER_TTL_HOURS',    typeof ORDER_TTL_HOURS    !== 'undefined' ? ORDER_TTL_HOURS    : null]
+    ];
+    constCheck.forEach(([name, ours]) => {
+      if(ours === null) return;
+      const hit = text.match(new RegExp('(?:const|let)\\s+' + name + '\\s*=\\s*([0-9]+)'));
+      if(!hit){ stSkip(G, file + ' ' + name + ' matches', 'not declared in that file'); return; }
+      const theirsVal = parseInt(hit[1], 10);
+      theirsVal === ours
+        ? stPass(G, file + ' ' + name + ' matches', String(ours))
+        : stFail(G, file + ' ' + name + ' matches',
+            'this page says ' + ours + ', ' + file + ' says ' + theirsVal);
+    });
+
+    // The identity guard and the expiry rule are the two places a silent
+    // divergence costs a customer their paid CV, so confirm the fix is present
+    // in the other file rather than assuming it was applied everywhere.
+    /paid\s*&&\s*!paidAt/.test(text)
+      ? stPass(G, file + ' has the paid-without-paidAt guard')
+      : stWarnR(G, file + ' has the paid-without-paidAt guard',
+          'not detected — a paid order missing paidAt may be treated as expired there');
+  }
+}
+
+/* ── J · environment and endpoints ─────────────────────────────────────────*/
+async function stTestEnvironment(){
+  const G = 'Environment';
+  try{
+    const k = '__st_probe';
+    localStorage.setItem(k, '1'); localStorage.removeItem(k);
+    stPass(G, 'localStorage is writable');
+  }catch(e){
+    stFail(G, 'localStorage is writable', e.message
+      + ' — drafts and the unlock flag cannot persist (private mode?)');
+  }
+
+  typeof emailjs !== 'undefined'
+    ? stPass(G, 'EmailJS library present')
+    : stFail(G, 'EmailJS library present', 'notifications will not send');
+
+  stPass(G, 'page protocol', location.protocol
+    + (location.protocol === 'file:' ? ' — cross-file checks and fetch are limited' : ''));
+
+  try{
+    const t0 = performance.now();
+    const rec = await getFullRecord();
+    const ms = Math.round(performance.now() - t0);
+    const n = Array.isArray(rec.submissions) ? rec.submissions.length : 0;
+    stPass(G, 'cloud storage reachable', n + ' records in ' + ms + ' ms');
+  }catch(e){
+    stFail(G, 'cloud storage reachable', e.message);
+  }
+
+  if(typeof API_BASE !== 'undefined' && API_BASE){
+    try{
+      const r = await fetch(API_BASE + '/pricing', { cache:'no-store' });
+      const j = await r.json();
+      j && j.self
+        ? stPass(G, 'Worker /pricing returns a `self` object')
+        : stFail(G, 'Worker /pricing returns a `self` object',
+            'response has no `self` — the builder will silently use its built-in fallback prices');
+    }catch(e){ stFail(G, 'Worker /pricing reachable', e.message); }
+  } else {
+    stSkip(G, 'Worker /pricing', 'this page has no API_BASE — it reads pricing from the bin. '
+      + 'The builder talks to the Worker; that side is checked under Cross-file alignment.');
+  }
+}
+
+/* ── K · integrity of the real records ─────────────────────────────────────
+   Not a code test. Scans what is actually in the bin for the shapes that cause
+   the failures above — chiefly a paid order with no paidAt, which is the record
+   that used to be silently destroyed. */
+function stTestData(){
+  const G = 'Live data';
+  const all = Array.isArray(submissions) ? submissions : [];
+  if(!all.length){ stSkip(G, 'record scan', 'no submissions yet'); return; }
+  stPass(G, 'records loaded', all.length + ' submissions');
+
+  const paidNoStamp = all.filter(s => s && s.payment && s.payment.paid && !s.payment.paidAt);
+  paidNoStamp.length
+    ? stWarnR(G, 'paid orders carry a paidAt timestamp',
+        paidNoStamp.length + ' paid order(s) have no paidAt: '
+        + paidNoStamp.slice(0,5).map(s=>s.id).join(', ')
+        + '. They are protected from auto-archiving, but their download window cannot be computed.')
+    : stPass(G, 'paid orders carry a paidAt timestamp');
+
+  const ids = all.map(s => s && s.id).filter(Boolean);
+  const dup = [...new Set(ids.filter((x,i) => ids.indexOf(x) !== i))];
+  dup.length ? stFail(G, 'no duplicate order ids', dup.slice(0,5).join(', ')
+                 + ' — a merge will overwrite one with the other')
+             : stPass(G, 'no duplicate order ids');
+
+  const known = new Set(ADMIN_TMPL.map(t => t.num));
+  const strays = all.filter(s => s && s.templatePref && !known.has(parseInt(s.templatePref,10)));
+  strays.length ? stWarnR(G, 'every templatePref exists in the registry',
+                    strays.slice(0,5).map(s => s.id + '\u2192T' + s.templatePref).join(', ')
+                    + ' — these fall back to the track default')
+                : stPass(G, 'every templatePref exists in the registry');
+
+  const badDate = all.filter(s => s && s.submittedAt && isNaN(new Date(s.submittedAt).getTime()));
+  badDate.length ? stFail(G, 'submittedAt dates parse',
+                     badDate.slice(0,5).map(s=>s.id).join(', '))
+                 : stPass(G, 'submittedAt dates parse');
+
+  const soon = all.filter(s => { try{ const m = msLeft(s); return isFinite(m) && m > 0 && m < 2*3600e3; }catch(e){ return false; } });
+  soon.length ? stWarnR(G, 'nothing expiring imminently',
+                  soon.length + ' order(s) expire within 2 hours: ' + soon.slice(0,5).map(s=>s.id).join(', '))
+              : stPass(G, 'nothing expiring imminently');
+
+  // A track block present on the wrong eduLevel means the CV will render
+  // without the fields the customer filled in.
+  const mism = all.filter(s => s &&
+    ((s.europe && s.europe.country && s.eduLevel !== 'europe') ||
+     (s.overseas && s.overseas.country && s.eduLevel !== 'gulf')));
+  mism.length ? stWarnR(G, 'track data matches eduLevel',
+                  mism.slice(0,5).map(s=>s.id).join(', ')
+                  + ' carry track fields their format will not display')
+              : stPass(G, 'track data matches eduLevel');
+
+  const noEmail = all.filter(s => s && !(s.personal && s.personal.email));
+  noEmail.length ? stWarnR(G, 'every order has a customer email',
+                     noEmail.length + ' without one — the builder identity guard cannot lock those')
+                 : stPass(G, 'every order has a customer email');
+}
+
+/* ── runner ─────────────────────────────────────────────────────────────────*/
+async function runSelfTests(opts){
+  if(stRunning) return;
+  const quick = !!(opts && opts.quick);
+  stRunning = true;
+  stResults = [];
+  const btn = document.getElementById('stBtn'), btnQ = document.getElementById('stBtnQuick');
+  [btn, btnQ].forEach(b => { if(b){ b.disabled = true; b.style.opacity = .55; b.style.cursor='wait'; } });
+  document.getElementById('stResults').innerHTML = '';
+  document.getElementById('stTiming').textContent = '';
+  const t0 = performance.now();
+
+  const steps = [
+    ['Registry', stTestRegistry],
+    ['Rendering', stTestRender],
+    ['Escaping', stTestEscaping],
+    ['EU privacy', stTestEuPrivacy],
+    ['ATS safety', stTestAts],
+    ['Expiry logic', stTestExpiry],
+    ['Live data', stTestData],
+    ['Environment', stTestEnvironment],
+    ['Cross-file', stTestCrossFile]
+  ];
+  if(!quick){ steps.push(['One-page fit', stTestFit], ['PDF pipeline', stTestPdf]); }
+
+  for(let i = 0; i < steps.length; i++){
+    stProgress(i, steps.length, 'Running ' + steps[i][0] + '\u2026');
+    await new Promise(r => setTimeout(r, 0));      // let the bar paint
+    try{ await steps[i][1](); }
+    catch(e){ stFail(steps[i][0], 'test group completed', 'the group itself threw: ' + e.message); }
+    stRenderResults();
+  }
+  stProgress(steps.length, steps.length, 'Done');
+  document.getElementById('stTiming').textContent =
+    ((performance.now() - t0)/1000).toFixed(1) + 's'
+    + (quick ? ' \u00b7 quick run: page-fit and PDF checks were skipped' : '');
+  [btn, btnQ].forEach(b => { if(b){ b.disabled = false; b.style.opacity = 1; b.style.cursor='pointer'; } });
+  stRunning = false;
+  stRenderResults();
+}
+
+function stRenderResults(){
+  const box = document.getElementById('stResults');
+  if(!box) return;
+  const pass = stResults.filter(r => r.status==='pass').length;
+  const fail = stResults.filter(r => r.status==='fail').length;
+  const warn = stResults.filter(r => r.status==='warn').length;
+  const skip = stResults.filter(r => r.status==='skip').length;
+
+  const bar = document.getElementById('stBar');
+  if(bar) bar.className = 'meter-fill' + (fail ? ' crit' : warn ? ' warn' : '');
+  const sc = document.getElementById('stScore');
+  if(sc) sc.textContent = `${pass} passed \u00b7 ${fail} failed \u00b7 ${warn} warnings \u00b7 ${skip} skipped`;
+
+  const ICON = { pass:'\u2713', fail:'\u2717', warn:'!', skip:'\u2013' };
+  const COL  = { pass:'#166534', fail:'#b91c1c', warn:'#92400e', skip:'#6b7280' };
+  const BG   = { pass:'#f0fdf4', fail:'#fef2f2', warn:'#fffbeb', skip:'#f9fafb' };
+
+  const groups = [];
+  stResults.forEach(r => {
+    let g = groups.find(x => x.name === r.group);
+    if(!g){ g = { name: r.group, rows: [] }; groups.push(g); }
+    g.rows.push(r);
+  });
+
+  let html = '';
+  if(fail) html += `<div class="hc-alert crit"><strong>${fail} check${fail===1?'':'s'} failed.</strong> `
+    + `Each failure below says what broke and why it matters.</div>`;
+  else if(warn) html += `<div class="hc-alert warn"><strong>No failures, ${warn} warning${warn===1?'':'s'}.</strong> `
+    + `Warnings are things worth a look, not faults.</div>`;
+  else if(pass) html += `<div class="hc-alert ok"><strong>All ${pass} checks passed.</strong>`
+    + (skip ? ` ${skip} skipped — see the notes below for why.` : '') + `</div>`;
+
+  groups.forEach(g => {
+    const gf = g.rows.filter(r=>r.status==='fail').length;
+    const gw = g.rows.filter(r=>r.status==='warn').length;
+    const open = gf || gw ? ' open' : '';
+    html += `<details${open} style="margin-top:10px;border:1.5px solid var(--gray-light);border-radius:9px;overflow:hidden;">
+      <summary style="cursor:pointer;padding:9px 13px;font-size:12.5px;font-weight:700;color:var(--navy);background:#f9fafb;">
+        ${g.name}
+        <span style="font-weight:600;color:${gf?COL.fail:gw?COL.warn:COL.pass};">
+          &nbsp;${gf?gf+' failed':gw?gw+' warning'+(gw===1?'':'s'):'all clear'}</span>
+        <span style="font-weight:500;color:var(--gray);">&nbsp;(${g.rows.length} checks)</span>
+      </summary>
+      <div style="padding:6px 0;">`;
+    g.rows.forEach(r => {
+      html += `<div style="display:flex;gap:9px;padding:6px 13px;background:${BG[r.status]};
+          border-top:1px solid #f1f2f4;font-size:12px;line-height:1.55;">
+        <span style="color:${COL[r.status]};font-weight:800;flex-shrink:0;width:12px;">${ICON[r.status]}</span>
+        <span><span style="color:#111827;font-weight:600;">${r.name}</span>
+        ${r.detail?`<span style="color:${COL[r.status]};"> \u2014 ${r.detail}</span>`:''}</span>
+      </div>`;
+    });
+    html += `</div></details>`;
+  });
+  box.innerHTML = html;
+}
 </script>
 </body>
 </html>
