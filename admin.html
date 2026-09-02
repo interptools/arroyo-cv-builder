@@ -1466,18 +1466,29 @@ async function commitSubmissions(extra){
   const remote = Array.isArray(ex.submissions) ? ex.submissions : [];
   const localById = new Map(submissions.filter(s => s && s.id).map(s => [s.id, s]));
 
-  // ID-less records tracked by fingerprint so they can be deleted
+  // ID-less records tracked by fingerprint so they can be deleted.
+  // A Map, not a Set: matching the record was never the hard part — the branch
+  // below has to be able to reach the LOCAL copy, because that is the one
+  // carrying the edit that is being saved.
   const idlessFingerprint = s =>
     (s?.submittedAt||'')+'|'+(s?.personal?.email||'')+'|'+(s?.personal?.phone||'');
-  const localIdlessFingerprints = new Set(
-    submissions.filter(s => s && !s.id).map(idlessFingerprint)
+  const localIdless = new Map(
+    submissions.filter(s => s && !s.id).map(s => [idlessFingerprint(s), s])
   );
 
   const merged = [];
   const used = new Set();
   for(const r of remote){
     if(!r || !r.id){
-      if(localIdlessFingerprints.has(idlessFingerprint(r))) merged.push(r);
+      // Push the LOCAL copy. This used to push the remote `r`, which threw away
+      // every unsaved change to any record without an id — a soft delete, a
+      // status change, a payment, a note. The write then succeeded, so the
+      // dashboard said "Saved" while the server kept the untouched record, and
+      // `submissions = merged` below replaced the local copy with it, so the
+      // row reappeared exactly as it was. Absent from the map means the record
+      // was hard-deleted locally, so dropping it is correct.
+      const local = localIdless.get(idlessFingerprint(r));
+      if(local) merged.push(local);
       continue;
     }
     if(localById.has(r.id)){ merged.push(localById.get(r.id)); used.add(r.id); }
@@ -1487,6 +1498,11 @@ async function commitSubmissions(extra){
   // Anything created locally that the server has not seen yet.
   for(const l of submissions)
     if(l && l.id && !used.has(l.id) && !remote.some(r => r && r.id === l.id)) merged.push(l);
+  // Same for id-less records: without this an id-less record held only locally
+  // would be dropped from the write instead of added.
+  const remoteIdlessFps = new Set(remote.filter(r => r && !r.id).map(idlessFingerprint));
+  for(const l of submissions)
+    if(l && !l.id && !remoteIdlessFps.has(idlessFingerprint(l))) merged.push(l);
 
   submissions = merged;
   await putRecord({...ex, ...(extra || {}), submissions: merged});
