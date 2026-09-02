@@ -10972,24 +10972,43 @@ async function stTestCrossFile(){
       const m = t.match(new RegExp('id="' + id + '">\\s*([0-9]+)\\s*<'));
       return m ? parseInt(m[1], 10) : null;
     };
+    // Compare against the LIST price, not the sale price. The figures written
+    // into the landing page are the fallback used when the pricing fetch fails,
+    // so they must equal the normal price — baking a sale figure in would leave
+    // an offline page advertising a discount that has ended. BASE_PRICE and
+    // CL_PRICE are sale-adjusted; LIST_PRICES and SELF_LIST are not.
+    const L  = (typeof LIST_PRICES !== 'undefined') ? LIST_PRICES : {};
+    const SL = (typeof SELF_LIST   !== 'undefined') ? SELF_LIST   : {};
     const expect = [
-      ['pSelf',  'self-service CV',      typeof SELF_SERVICE_PRICE !== 'undefined' ? SELF_SERVICE_PRICE : null],
-      ['pExtra', 'extra layout',         typeof EXTRA_TMPL_PRICE   !== 'undefined' ? EXTRA_TMPL_PRICE   : null],
-      ['pMade',  'assisted CV',          typeof BASE_PRICE         !== 'undefined' ? BASE_PRICE         : null],
-      ['pCl',    'cover letter add-on',  typeof CL_PRICE           !== 'undefined' ? CL_PRICE           : null]
+      ['pSelf',  'self-service CV',     SL.base ?? null,
+                 typeof SELF_SERVICE_PRICE !== 'undefined' ? SELF_SERVICE_PRICE : null],
+      ['pExtra', 'extra layout',        SL.extra ?? null,
+                 typeof EXTRA_TMPL_PRICE   !== 'undefined' ? EXTRA_TMPL_PRICE   : null],
+      ['pMade',  'assisted CV',         L.base ?? null,
+                 typeof BASE_PRICE         !== 'undefined' ? BASE_PRICE         : null],
+      ['pCl',    'cover letter add-on', L.cl ?? null,
+                 typeof CL_PRICE           !== 'undefined' ? CL_PRICE           : null],
+      ['pRl',    'resignation add-on',  L.rl ?? null,
+                 typeof RESIGNATION_PRICE  !== 'undefined' ? RESIGNATION_PRICE  : null]
     ];
     let bad = 0;
-    expect.forEach(([id, label, ours]) => {
-      if(ours === null) return;
+    expect.forEach(([id, label, list, live]) => {
+      if(list === null || typeof list !== 'number') return;
       const theirs = span(id);
       if(theirs === null){ stWarnR(G, 'landing page ' + label + ' price', 'could not read #' + id); return; }
-      if(theirs !== ours){
-        bad++;
-        stFail(G, 'landing page ' + label + ' price',
-          'the landing page falls back to \u20b1' + theirs + ', this page says \u20b1' + ours);
-      }
+      if(theirs === list) return;
+      bad++;
+      // Naming both figures makes the cause obvious: if the landing page matches
+      // the live price but not the list price a sale is running, and if it
+      // matches neither the fallback is simply stale.
+      const onSale = (live !== null && live !== list);
+      stFail(G, 'landing page ' + label + ' price',
+        'the landing page falls back to \u20b1' + theirs + ', but the list price is \u20b1' + list
+        + (onSale ? ' (currently discounted to \u20b1' + live + ')' : '')
+        + '. Update the number written into index.html.');
     });
-    if(!bad) stPass(G, 'landing page fallback prices match', 'landing page agrees on all four');
+    if(!bad) stPass(G, 'landing page fallback prices match',
+      'all five agree with the list prices');
 
     // The public link must never expose the back office.
     /href\s*=\s*["'][^"']*admin\.html/.test(t)
