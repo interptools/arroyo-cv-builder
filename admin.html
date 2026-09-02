@@ -10958,6 +10958,50 @@ async function stTestCrossFile(){
         + 'will be treated as long expired there');
     }
   }
+
+  // start.html is the single public link. Its prices are hardcoded fallbacks
+  // used whenever the pricing fetch fails, so if they drift the most-visited
+  // page of the site quietly advertises a figure the order pages will not honour.
+  try{
+    const r = await fetch('start.html', { cache:'no-store' });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const t = await r.text();
+    const span = id => {
+      const m = t.match(new RegExp('id="' + id + '">\\s*([0-9]+)\\s*<'));
+      return m ? parseInt(m[1], 10) : null;
+    };
+    const expect = [
+      ['pSelf',  'self-service CV',      typeof SELF_SERVICE_PRICE !== 'undefined' ? SELF_SERVICE_PRICE : null],
+      ['pExtra', 'extra layout',         typeof EXTRA_TMPL_PRICE   !== 'undefined' ? EXTRA_TMPL_PRICE   : null],
+      ['pMade',  'assisted CV',          typeof BASE_PRICE         !== 'undefined' ? BASE_PRICE         : null],
+      ['pCl',    'cover letter add-on',  typeof CL_PRICE           !== 'undefined' ? CL_PRICE           : null]
+    ];
+    let bad = 0;
+    expect.forEach(([id, label, ours]) => {
+      if(ours === null) return;
+      const theirs = span(id);
+      if(theirs === null){ stWarnR(G, 'start.html ' + label + ' price', 'could not read #' + id); return; }
+      if(theirs !== ours){
+        bad++;
+        stFail(G, 'start.html ' + label + ' price',
+          'the landing page falls back to \u20b1' + theirs + ', this page says \u20b1' + ours);
+      }
+    });
+    if(!bad) stPass(G, 'start.html fallback prices match', 'landing page agrees on all four');
+
+    // The public link must never expose the back office.
+    /href\s*=\s*["'][^"']*admin\.html/.test(t)
+      ? stFail(G, 'start.html does not link the admin panel', 'it links admin.html publicly')
+      : stPass(G, 'start.html does not link the admin panel');
+
+    ['builder.html','index.html'].forEach(dest => {
+      t.includes('href="' + dest + '"')
+        ? stPass(G, 'start.html links ' + dest)
+        : stFail(G, 'start.html links ' + dest, 'that route is unreachable from the public link');
+    });
+  }catch(e){
+    stSkip(G, 'start.html checks', 'could not read start.html (' + e.message + ')');
+  }
 }
 
 /* ── J · environment and endpoints ─────────────────────────────────────────*/
