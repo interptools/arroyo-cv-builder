@@ -11065,18 +11065,70 @@ async function stTestEnvironment(){
     stFail(G, 'cloud storage reachable', e.message);
   }
 
-  if(typeof API_BASE !== 'undefined' && API_BASE){
-    try{
-      const r = await fetch(API_BASE + '/pricing', { cache:'no-store' });
-      const j = await r.json();
-      j && j.self
-        ? stPass(G, 'Worker /pricing returns a `self` object')
-        : stFail(G, 'Worker /pricing returns a `self` object',
-            'response has no `self` — the builder will silently use its built-in fallback prices');
-    }catch(e){ stFail(G, 'Worker /pricing reachable', e.message); }
+  // Which prices actually reach the public pages is decided by what the Worker
+  // returns, and that is invisible from any of these files. builder.html and
+  // index.html both read /pricing, so this reports field by field which of them
+  // will pick up a change made in Pricing & Sales and which will silently keep
+  // showing their built-in fallback. The URL is read out of builder.html rather
+  // than copied here, so there is only ever one copy of it.
+  let workerBase = null;
+  try{
+    const bt = await (await fetch('builder.html', { cache:'no-store' })).text();
+    const m = bt.match(/API_BASE\s*=\s*['"]([^'"]+)['"]/);
+    if(m) workerBase = m[1];
+  }catch(e){ /* reported below */ }
+
+  if(!workerBase){
+    stSkip(G, 'Worker /pricing fields',
+      'could not read API_BASE out of builder.html — serve the folder over http, '
+      + 'or check that builder.html sits beside this file');
   } else {
-    stSkip(G, 'Worker /pricing', 'this page has no API_BASE — it reads pricing from the bin. '
-      + 'The builder talks to the Worker; that side is checked under Cross-file alignment.');
+    try{
+      const r = await fetch(workerBase + '/pricing', { cache:'no-store' });
+      if(!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json() || {};
+      stPass(G, 'Worker /pricing reachable', workerBase);
+
+      // Self-service side: builder.html and the landing page both read these.
+      (j.self && typeof j.self.base === 'number')
+        ? stPass(G, 'self-service price is served', '\u20b1' + j.self.base
+            + ' \u2014 builder.html and the landing page will both follow a change')
+        : stFail(G, 'self-service price is served',
+            'no `self.base` in the response. builder.html and the landing page will keep '
+            + 'showing their built-in \u20b125 no matter what you set in Pricing & Sales.');
+
+      (j.self && typeof j.self.extra === 'number')
+        ? stPass(G, 'extra-layout price is served', '\u20b1' + j.self.extra)
+        : stWarnR(G, 'extra-layout price is served', 'no `self.extra` in the response');
+
+      // Assisted side: ONLY the landing page reads these. Nothing else does,
+      // so an absence here has never shown up as a bug before.
+      const assisted = [['base','assisted CV'], ['cl','cover letter'], ['rl','resignation letter']];
+      const missing = assisted.filter(([k]) => typeof j[k] !== 'number').map(([,l]) => l);
+      missing.length === 0
+        ? stPass(G, 'assisted prices are served',
+            '\u20b1' + j.base + ' / \u20b1' + j.cl + ' / \u20b1' + j.rl
+            + ' \u2014 the landing page will follow a change')
+        : stWarnR(G, 'assisted prices are served',
+            'the Worker does not return ' + missing.join(', ')
+            + '. The landing page will keep showing its built-in figures for those, so update '
+            + 'them in index.html by hand whenever you change them in Pricing & Sales.');
+
+      // The sale block drives the banner and the discounted figures.
+      if(j.sale){
+        const live = !j.sale.endsAt || new Date(j.sale.endsAt) >= new Date();
+        stPass(G, 'sale block is served',
+          (j.sale.label || 'unnamed sale') + (live ? ' \u2014 currently live' : ' \u2014 already ended')
+          + (typeof j.sale.base === 'number' || typeof j.sale.cl === 'number'
+              ? '; carries discounted figures' : '; label only, no discounted figures'));
+        if(typeof j.sale.base !== 'number' && typeof j.sale.cl !== 'number')
+          stWarnR(G, 'sale carries its discounted prices',
+            'the Worker forwards the sale label but not the discounted amounts, so the landing '
+            + 'page will show the banner while still printing the normal prices');
+      } else {
+        stPass(G, 'sale block is served', 'no sale set at the moment');
+      }
+    }catch(e){ stFail(G, 'Worker /pricing reachable', e.message); }
   }
 }
 
