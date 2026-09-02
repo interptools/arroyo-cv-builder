@@ -11119,13 +11119,30 @@ async function stTestEnvironment(){
       }catch(e){ return { status: 0, ok: false, body: e.message }; }
     };
 
+    // /status is probed with a REAL order where one exists. A made-up reference
+    // only exercises the not-found path, and a Worker that throws on a miss
+    // rather than answering "not found" would look identical to one that is
+    // genuinely broken — very different consequences for a paying customer.
+    const realOrder = (Array.isArray(submissions) ? submissions : []).find(
+      x => x && x.id && x.personal && x.personal.email && isSelfService(x));
+    const statusPath = realOrder
+      ? '/status?ref=' + encodeURIComponent(realOrder.id)
+        + '&email=' + encodeURIComponent(String(realOrder.personal.email).toLowerCase())
+      : '/status?ref=SELFTEST-000&email=selftest%40example.com';
+
     const routes = {
       '/pricing': await probe('/pricing'),
       '/qr':      await probe('/qr'),
-      // Nonsense reference on purpose. A 400 or 404 here is a PASS: it proves
-      // the Worker is alive and routing, which is what we are testing.
-      '/status':  await probe('/status?ref=SELFTEST-000&email=selftest%40example.com')
+      '/status':  await probe(statusPath)
     };
+
+    // Separately: how does the route answer a reference that does not exist?
+    // builder.html expects a normal reply it can read `found` from. A 5xx makes
+    // api() throw, and the check screen then says "could not check just now"
+    // instead of telling the customer their reference was not found.
+    const missProbe = realOrder
+      ? await probe('/status?ref=SELFTEST-000&email=selftest%40example.com')
+      : null;
 
     const dead   = Object.entries(routes).filter(([, r]) => r.status === 0);
     const broken = Object.entries(routes).filter(([, r]) => r.status >= 500);
@@ -11143,14 +11160,31 @@ async function stTestEnvironment(){
         : 'every probed route is erroring';
       const critical = broken.some(([p]) => p === '/status');
       const impact = critical
-        ? ' /status is what confirms a payment, so paying customers cannot unlock their CV.'
+        ? (realOrder
+            ? ' /status was called with a REAL paid order (' + realOrder.id + ') and still failed,'
+              + ' so this is not just the not-found path \u2014 paying customers cannot unlock'
+              + ' their CV.'
+            : ' Only a made-up reference could be tried, because no self-service order with an'
+              + ' email is on file. This may only be the not-found path erroring rather than the'
+              + ' route being broken \u2014 re-run once a real order exists.')
         : ' Ordering still works; prices and sales fall back to the figures built into each page.';
       (critical ? stFail : stWarnR)(G, 'Worker routes healthy',
         scope + '.' + impact + ' Response: ' + (broken[0][1].body || '(empty body)')
         + ' \u2014 check the Cloudflare Worker logs.');
     } else {
       stPass(G, 'Worker routes healthy',
-        alive.map(([p, r]) => p + ' \u2192 ' + r.status).join(', '));
+        alive.map(([p, r]) => p + ' \u2192 ' + r.status).join(', ')
+        + (realOrder ? ' (/status checked with real order ' + realOrder.id + ')' : ''));
+    }
+
+    if(missProbe){
+      missProbe.status >= 500
+        ? stWarnR(G, '/status answers an unknown reference cleanly',
+            'it returns HTTP ' + missProbe.status + ' instead of a normal "not found" reply, so a '
+            + 'customer who mistypes their reference is told "could not check just now" rather '
+            + 'than that the reference was not found. Ordering and unlocking are unaffected.')
+        : stPass(G, '/status answers an unknown reference cleanly',
+            'HTTP ' + missProbe.status);
     }
 
     try{
