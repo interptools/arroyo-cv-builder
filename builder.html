@@ -8005,14 +8005,34 @@ function paintPrice(){
 // real price is still in flight — the same guard index.html uses.
 let pricingReady = null;
 
+// Records what actually happened, so a wrong price on this page can be
+// diagnosed in one console command instead of guesswork. See checkPricing().
+let pricingState = { status: 'not started', source: 'built-in', raw: null };
+
 async function loadPricing(){
   paintPrice();                       // show the fallback straight away
-  if(!API_BASE) return;               // no Worker deployed, no remote price
+  if(!API_BASE){ pricingState.status = 'no API_BASE configured'; return; }
   try{
-    const res = await fetch(API_BASE + '/pricing');
-    if(!res.ok) return;
+    // cache: 'no-store' matters. The /pricing response carries no Cache-Control,
+    // and a browser is free to heuristically cache a plain GET like that — which
+    // means publishing a new price in the dashboard could leave this page showing
+    // the old one until a hard refresh. This makes every load ask the Worker.
+    const res = await fetch(API_BASE + '/pricing', { cache: 'no-store' });
+    if(!res.ok){
+      pricingState.status = 'HTTP ' + res.status + ' from /pricing';
+      return;
+    }
     const p = await res.json();
-    if(!p || !p.self) return;
+    pricingState.raw = p;
+    // The old Worker returned { selfService, currency } with no `self` object.
+    // Silently bailing here is what made a deploy that had not taken look
+    // identical to one that had.
+    if(!p || !p.self){
+      pricingState.status = p && typeof p.selfService === 'number'
+        ? 'Worker is running the OLD getPricing (no `self` object) — deploy the new worker.js'
+        : '/pricing answered but the response had no `self` object';
+      return;
+    }
     const num = (v, fb) => (typeof v === 'number' && !isNaN(v) && v > 0) ? v : fb;
     SELF_SERVICE_PRICE = num(p.self.base,  SELF_SERVICE_PRICE);
     EXTRA_TMPL_PRICE   = num(p.self.extra, EXTRA_TMPL_PRICE);
@@ -8020,16 +8040,34 @@ async function loadPricing(){
     SELF_LIST = { base:  num(p.self.listBase,  SELF_SERVICE_PRICE),
                   extra: num(p.self.listExtra, EXTRA_TMPL_PRICE) };
     SELF_SALE = p.sale || null;
+    pricingState.status = 'ok';
+    pricingState.source = 'worker';
   }catch(e){
-    // Silent on purpose. /pricing is not deployed yet, so this fetch is expected
-    // to fail and the built-in price above stands. Once the Worker route exists,
-    // put the warning back — after that a failure here means something is wrong:
-    //   console.warn('Could not load pricing, using the built-in price:', e);
+    // Kept quiet for customers — the built-in price still works and they can
+    // still order. checkPricing() surfaces it when you need it.
+    pricingState.status = 'fetch failed: ' + e.message;
   }
   paintPrice();
   // The template strip quotes the extra-layout fee, so it needs a repaint too.
   try{ buildStrip(); }catch(e){}
 }
+
+// Paste checkPricing() in the console to see the whole chain at once: what the
+// Worker said, what this page is using, and what the buttons actually show.
+window.checkPricing = async function(){
+  await loadPricing();
+  const btn = document.getElementById('btnUnlock');
+  console.log(
+    '\nstatus        : ' + pricingState.status +
+    '\nprice source  : ' + pricingState.source + (pricingState.source === 'built-in'
+      ? '   <-- the dashboard price is NOT reaching this page' : '') +
+    '\nworker said   : ' + JSON.stringify(pricingState.raw) +
+    '\npage is using : CV ' + peso(SELF_SERVICE_PRICE)
+                  + ', extra template ' + peso(EXTRA_TMPL_PRICE) +
+    '\nsale          : ' + (SELF_SALE ? SELF_SALE.label : 'none') +
+    '\nbutton shows  : ' + (btn ? btn.textContent.trim() : '(not found)') + '\n');
+  return pricingState;
+};
 
 /* ─── RAIL SCROLL SPY ───────────────────────────────────────────────────── */
 function initSpy(){
@@ -8062,7 +8100,11 @@ function init(){
   initSpy();
   pricingReady = loadPricing();
   loadQR();
-  restoreUnlock();
+  // restoreUnlock() rewrites the footer button (lockChromeClosed/Open) and can
+  // finish either side of the /pricing fetch, so the price is painted once more
+  // after both have settled rather than depending on which won the race.
+  Promise.allSettled([pricingReady, restoreUnlock()])
+    .then(() => { try{ paintPrice(); }catch(e){} });
 
   // One listener for the whole form rather than an oninput on every field.
   document.querySelector('.form-col').addEventListener('input', queuePreview);
