@@ -1175,8 +1175,8 @@ textarea{resize:vertical;line-height:1.6;}
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    TEMPLATE ENGINE
-   Copied from index.html so this page renders the same nineteen layouts the
-   admin panel prints. It is a duplicate on purpose: index.html, admin.html and
+   Copied from order.html so this page renders the same nineteen layouts the
+   admin panel prints. It is a duplicate on purpose: order.html, admin.html and
    this file each carry their own copy, so a template added to one must be added
    to all three or that file quietly falls through to Template 1.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -1580,7 +1580,7 @@ function buildCVHtml(s,tmpl,mode){
 function T18(p,s,edu,work,refs,isFresh,pb,pc,accent){
 const E=s.europe||{};
 const SH=E.show||{};
-// Self-contained on purpose: index.html carries its own copy of the template
+// Self-contained on purpose: order.html carries its own copy of the template
 // engine and has no prettyDOBShort(), so this function must not depend on
 // helpers that exist in only one of the two files.
 const fmtD=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
@@ -5008,13 +5008,13 @@ ${pc}
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
    ARROYO CV BUILDER — SELF SERVICE
-   Companion page to index.html (assisted orders) and admin.html (back office).
+   Companion page to order.html (assisted orders) and admin.html (back office).
 
    Flow: fill form → live preview → request unlock (writes an order to the same
    JSONBin the admin panel reads) → pay by GCash → admin ticks "Mark paid" in
    admin.html → this page sees payment.paid === true and opens Save & Print.
 
-   The order record is written in EXACTLY the schema index.html uses, so the
+   The order record is written in EXACTLY the schema order.html uses, so the
    existing admin panel lists, opens, prints and marks these orders with no
    changes on its side. Anything renamed here silently breaks admin.html.
    ══════════════════════════════════════════════════════════════════════════ */
@@ -5042,7 +5042,7 @@ const GCASH_NAME      = 'Reymar Arroyo';
 const GCASH_QR_FILE   = 'gcash-qr.png';
 const SUPPORT_EMAIL   = 'areymar36@gmail.com';
 
-// EmailJS — same service, template and key index.html already uses, so the
+// EmailJS — same service, template and key order.html already uses, so the
 // alerts land in the same inbox and template as assisted orders.
 const EMAILJS_SVC = 'service_wog8mwj';
 const EMAILJS_TPL = 'template_31e2nts';
@@ -5749,7 +5749,7 @@ function syncSections(){
     a.classList.toggle('hide', $(a.dataset.sec).classList.contains('hide')));
 }
 
-/* ─── COLLECT (schema must stay identical to index.html) ────────────────── */
+/* ─── COLLECT (schema must stay identical to order.html) ────────────────── */
 function collectData(){
   const lvl = eduLevel();
 
@@ -6056,7 +6056,7 @@ function aiErrorAdvice(){
 }
 
 /* ─── SCAN AN EXISTING CV ───────────────────────────────────────────────────
-   Ported from index.html. Uses the Gemini proxy specifically because this needs
+   Ported from order.html. Uses the Gemini proxy specifically because this needs
    VISION — the other providers in the chain are text-only, so there is nothing
    to fall back to here.
    ────────────────────────────────────────────────────────────────────────── */
@@ -6203,7 +6203,7 @@ Rules:
 
   } catch(err){
     console.error('CV scan failed:', err);
-    // Three different causes, three different fixes. index.html separates these
+    // Three different causes, three different fixes. order.html separates these
     // too, and "try a clearer photo" is useless advice for a timeout.
     const msg = String(err.message || '');
     const timedOut = err.name === 'AbortError' || /abort|timed out/i.test(msg);
@@ -6624,7 +6624,7 @@ function applyData(d){
   languages = Array.isArray(d.languages) ? d.languages.slice() : [];
   drawTags('skill'); drawTags('lang');
 
-  // Fields are matched by NAME, not by position. Orders created in index.html
+  // Fields are matched by NAME, not by position. Orders created in order.html
   // store OJT keys in a different order than this form lays them out, so
   // walking the object's own values would put the hours into the role box.
   const fill = (listId, adder, keys, rows) => {
@@ -6697,7 +6697,7 @@ function applyData(d){
    trusted from this browser.
 
    Scope note: this is a courtesy lock, not a security boundary. The JSONBin
-   key sits in this file's source like it does in index.html, so anyone who
+   key sits in this file's source like it does in order.html, so anyone who
    opens devtools can read around it. It stops casual copying, nothing more.
    ══════════════════════════════════════════════════════════════════════════ */
 
@@ -7366,7 +7366,7 @@ function copyGcash(){
     .catch(() => toast('Copy did not work \u2014 the number is ' + n, true));
 }
 
-// Borrowed from index.html, which has never shown a broken QR. The image
+// Borrowed from order.html, which has never shown a broken QR. The image
 // starts as an inline SVG placeholder that cannot 404, and a real QR is only
 // swapped in once something has been PROVED to load. My earlier version put
 // the filename straight in src and relied on onerror, which fired during page
@@ -8997,7 +8997,7 @@ function paintPrice(){
 }
 // Resolved once the price is known. sendOrder() and sendTopUp() await it, so a
 // customer who fills the form fast can never be quoted the fallback while the
-// real price is still in flight — the same guard index.html uses.
+// real price is still in flight — the same guard order.html uses.
 let pricingReady = null;
 
 // Records what actually happened, so a wrong price on this page can be

@@ -674,7 +674,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
           </p>
           <ol style="font-size:12.5px;color:var(--gray);line-height:1.9;padding-left:20px;margin-bottom:10px;">
             <li>Save your QR image as <code style="background:var(--off-white);padding:1px 5px;border-radius:4px;">gcash-qr.png</code></li>
-            <li>Upload it to your GitHub repo, in the same folder as <code style="background:var(--off-white);padding:1px 5px;border-radius:4px;">index.html</code></li>
+            <li>Upload it to your GitHub repo, in the same folder as <code style="background:var(--off-white);padding:1px 5px;border-radius:4px;">order.html</code></li>
             <li>Open the link below — if the QR appears, your emails will show it too</li>
           </ol>
           <a href="https://interptools.github.io/arroyo-cv-builder/gcash-qr.png" target="_blank" rel="noopener"
@@ -801,7 +801,7 @@ tr:hover td{background:rgba(247,248,252,.8);}
         <p class="hc-sub">Runs the checks that only a live browser can answer — whether every template
           actually fits one A4 page, whether the PDF pipeline really rasterises, whether the EU privacy
           rules hold, whether user text is escaped, and whether this file still agrees with
-          <code>index.html</code> and <code>builder.html</code>. Read-only: nothing is saved or emailed.</p>
+          <code>order.html</code> and <code>builder.html</code>. Read-only: nothing is saved or emailed.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button onclick="runSelfTests()" id="stBtn"
             style="padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--navy),var(--navy-light));color:white;font-size:13px;font-weight:700;cursor:pointer;">▶ Run All Tests</button>
@@ -947,7 +947,7 @@ const ADMIN_CC='areymar36@gmail.com';
 // Payment QR for the emails. This is a URL, not the base64 image stored in
 // JSONBin, because Gmail and most clients strip data: URIs — a base64 QR would
 // arrive as a broken image for nearly every customer. Commit the QR PNG next to
-// index.html in the repo and it renders everywhere. Set to '' to hide the QR
+// order.html in the repo and it renders everywhere. Set to '' to hide the QR
 // block entirely and fall back to the GCash number alone.
 const GCASH_QR_URL = 'https://interptools.github.io/arroyo-cv-builder/gcash-qr.png';
 const GCASH_NUMBER = '09063964052';
@@ -972,7 +972,7 @@ let LIST_PRICES = { base: 50, cl: 75, rl: 50 };
 let BUNDLES = {};      // fixed package prices that override the sum
 const peso = n => '₱' + n.toLocaleString();
 
-// Mirrors the helper in index.html. Middle name is optional, so this collapses
+// Mirrors the helper in order.html. Middle name is optional, so this collapses
 // the gap when it's absent and appends a period to a bare initial ("S" → "S.").
 // Older submissions predate the middleName field entirely and degrade cleanly.
 // The one escaper for anything customer-typed that reaches innerHTML.
@@ -993,7 +993,7 @@ const fullName = p => {
 // Resignation letters are a separate service with their own price, so they can't
 // use the CV base price. The stored amountDue is authoritative — it records what
 // the customer was actually quoted, which survives later price changes.
-// Mirrors RESIGNATION_PRICE in index.html. addOnFee on the record wins where
+// Mirrors RESIGNATION_PRICE in order.html. addOnFee on the record wins where
 // present, so historical orders keep the price they were actually quoted.
 let RESIGNATION_ADDON_PRICE = 50;
 
@@ -1023,7 +1023,7 @@ const SELF_LEGACY_EXTRA = 10;
 // download. Derived from timestamps the record already carries, which is what
 // keeps this file and builder.html agreeing on the deadline to the second.
 //
-// Assisted orders — anything from index.html — have NO clock and are never
+// Assisted orders — anything from order.html — have NO clock and are never
 // touched. You build and send those yourself, on your own schedule: an order
 // waiting three days on a customer's missing document is normal work, not
 // litter, and archiving it would delete the CV out from under you mid-job.
@@ -1817,7 +1817,7 @@ async function savePricing(){
 // ── FUNNEL ────────────────────────────────────────────────────────────────────
 // Reads the separate stats bin written by the public form. Submissions alone
 // can't tell you why people don't order — this shows the step they stopped at.
-const STATS_BIN_ID = '6a82a036da38895dfeed95ee';   // must match STATS_BIN_ID in index.html
+const STATS_BIN_ID = '6a82a036da38895dfeed95ee';   // must match STATS_BIN_ID in order.html
 
 const FUNNEL_LABELS = [
   ['visits',    'Opened the page',      'Landed on the site'],
@@ -1837,7 +1837,7 @@ async function renderFunnel(){
       + '<strong style="color:var(--navy);">Not set up yet.</strong><br>'
       + 'Create a second bin in JSONBin with the contents '
       + '<code style="background:var(--off-white);padding:2px 6px;border-radius:4px;">{"visits":0,"form":0,"filling":0,"consent":0,"submitted":0}</code>, '
-      + 'then paste its ID into <code>STATS_BIN_ID</code> in both index.html and admin.html.'
+      + 'then paste its ID into <code>STATS_BIN_ID</code> in both order.html and admin.html.'
       + '</div>';
     return;
   }
@@ -4607,7 +4607,7 @@ function buildCVHtml(s,tmpl,mode){
 function T18(p,s,edu,work,refs,isFresh,pb,pc,accent){
 const E=s.europe||{};
 const SH=E.show||{};
-// Self-contained on purpose: index.html carries its own copy of the template
+// Self-contained on purpose: order.html carries its own copy of the template
 // engine and has no prettyDOBShort(), so this function must not depend on
 // helpers that exist in only one of the two files.
 const fmtD=v=>{ if(!v) return ''; const t=new Date(v); if(isNaN(t)) return v;
@@ -10401,7 +10401,7 @@ function renderRevenueChart(){
 // Every check below exists because it CANNOT be settled by reading the code.
 // Reviewing a template tells you nothing about whether it overflows A4; reading
 // the PDF helper tells you nothing about whether html2canvas rasterises it;
-// reading this file tells you nothing about whether index.html still agrees with
+// reading this file tells you nothing about whether order.html still agrees with
 // it. Those answers need layout, a canvas and the network, so they need a
 // browser, so they live behind a button.
 //
@@ -10872,7 +10872,7 @@ async function stTestCrossFile(){
     flags: ['seamanOnly','europeOnly','gulfOnly','retired'].filter(f => !!t[f]).join(',')
   }; });
 
-  for(const file of ['index.html','builder.html']){
+  for(const file of ['order.html','builder.html']){
     let text;
     try{
       const r = await fetch(file, { cache:'no-store' });
@@ -10943,7 +10943,7 @@ async function stTestCrossFile(){
     // The identity guard and the expiry rule are the two places a silent
     // divergence costs a customer their paid CV, so confirm the fix is present
     // in the other file rather than assuming it was applied everywhere.
-    // Only meaningful where that file computes a deadline at all: index.html is
+    // Only meaningful where that file computes a deadline at all: order.html is
     // the intake form, it submits orders and never reads a download window, so
     // asserting the guard there would report a fault against absent code.
     const hasExpiryLogic = /ORDER_TTL_HOURS|function expiryOf|payment\?\.paidAt/.test(text);
@@ -10959,11 +10959,13 @@ async function stTestCrossFile(){
     }
   }
 
-  // start.html is the single public link. Its prices are hardcoded fallbacks
-  // used whenever the pricing fetch fails, so if they drift the most-visited
-  // page of the site quietly advertises a figure the order pages will not honour.
+  // index.html is the landing page and the single public link. Its prices are
+  // hardcoded fallbacks used whenever the pricing fetch fails, so if they drift
+  // the most-visited page of the site quietly advertises a figure the order
+  // pages will not honour. (The assisted order form is order.html, checked
+  // above alongside builder.html.)
   try{
-    const r = await fetch('start.html', { cache:'no-store' });
+    const r = await fetch('index.html', { cache:'no-store' });
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const t = await r.text();
     const span = id => {
@@ -10980,27 +10982,38 @@ async function stTestCrossFile(){
     expect.forEach(([id, label, ours]) => {
       if(ours === null) return;
       const theirs = span(id);
-      if(theirs === null){ stWarnR(G, 'start.html ' + label + ' price', 'could not read #' + id); return; }
+      if(theirs === null){ stWarnR(G, 'landing page ' + label + ' price', 'could not read #' + id); return; }
       if(theirs !== ours){
         bad++;
-        stFail(G, 'start.html ' + label + ' price',
+        stFail(G, 'landing page ' + label + ' price',
           'the landing page falls back to \u20b1' + theirs + ', this page says \u20b1' + ours);
       }
     });
-    if(!bad) stPass(G, 'start.html fallback prices match', 'landing page agrees on all four');
+    if(!bad) stPass(G, 'landing page fallback prices match', 'landing page agrees on all four');
 
     // The public link must never expose the back office.
     /href\s*=\s*["'][^"']*admin\.html/.test(t)
-      ? stFail(G, 'start.html does not link the admin panel', 'it links admin.html publicly')
-      : stPass(G, 'start.html does not link the admin panel');
+      ? stFail(G, 'landing page does not link the admin panel', 'it links admin.html publicly')
+      : stPass(G, 'landing page does not link the admin panel');
 
-    ['builder.html','index.html'].forEach(dest => {
-      t.includes('href="' + dest + '"')
-        ? stPass(G, 'start.html links ' + dest)
-        : stFail(G, 'start.html links ' + dest, 'that route is unreachable from the public link');
-    });
+    // The landing page routes self-service to builder.html and assisted orders
+    // to Messenger. order.html is NOT linked on purpose — it is the tool used
+    // to type up an assisted order, it carries the bin's master key, and it
+    // must never be reachable from a public page.
+    t.includes('href="builder.html"')
+      ? stPass(G, 'landing page links builder.html')
+      : stFail(G, 'landing page links builder.html', 'self-service is unreachable from the public link');
+
+    /href\s*=\s*["']https:\/\/m\.me\//.test(t)
+      ? stPass(G, 'landing page links Messenger for assisted orders')
+      : stFail(G, 'landing page links Messenger for assisted orders', 'no m.me link found');
+
+    /href\s*=\s*["'][^"']*order\.html/.test(t)
+      ? stFail(G, 'landing page does not expose order.html',
+          'order.html is linked publicly and it carries the JSONBin master key')
+      : stPass(G, 'landing page does not expose order.html');
   }catch(e){
-    stSkip(G, 'start.html checks', 'could not read start.html (' + e.message + ')');
+    stSkip(G, 'landing page checks', 'could not read index.html (' + e.message + ')');
   }
 }
 
