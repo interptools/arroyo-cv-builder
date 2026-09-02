@@ -11219,8 +11219,12 @@ async function stTestEnvironment(){
             + ' \u2014 the landing page will follow a change')
         : stWarnR(G, 'assisted prices are served',
             'the Worker does not return ' + missing.join(', ')
-            + '. The landing page will keep showing its built-in figures for those, so update '
-            + 'them in index.html by hand whenever you change them in Pricing & Sales.');
+            + '. Nothing else reads these from the Worker, so it has never shown up before \u2014 '
+            + 'the landing page is the first page to ask. Fix it in worker.js by adding the three '
+            + 'list prices to the /pricing response alongside `self`: '
+            + '{ base: pricing.base, cl: pricing.cl, rl: pricing.rl }. '
+            + 'Until then the landing page keeps its built-in figures, so edit those in index.html '
+            + 'whenever you change a price in Pricing & Sales \u2014 this check will fail if they drift.');
 
       // The sale block drives the banner and the discounted figures.
       if(j.sale){

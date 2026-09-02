@@ -408,12 +408,17 @@ const num = v => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : null;
   set('pSelf2', num(self.base));   // the same figure repeated in the GCash steps
   set('pExtra', num(self.extra));
 
-  // Assisted pricing sits at the top level. A live sale overrides it.
+  // Assisted pricing. The Worker does not currently return these at all, so the
+  // figures written into the HTML above stand until worker.js forwards them.
+  // Read from either the top level or a nested object, because whoever adds
+  // them may group them rather than flatten them, and a page that only accepts
+  // one shape would silently keep showing stale prices.
+  const A = p.assisted || p.cv || p;
   const sale = p.sale && (!p.sale.endsAt || new Date(p.sale.endsAt) >= new Date())
     ? p.sale : null;
-  set('pMade', num((sale && sale.base) ?? p.base));
-  set('pCl',   num((sale && sale.cl)   ?? p.cl));
-  set('pRl',   num((sale && sale.rl)   ?? p.rl));
+  set('pMade', num((sale && sale.base) ?? A.base ?? p.base));
+  set('pCl',   num((sale && sale.cl)   ?? A.cl   ?? p.cl));
+  set('pRl',   num((sale && sale.rl)   ?? A.rl   ?? p.rl));
 
   if(sale && sale.label){
     const bar = document.getElementById('saleBar');
