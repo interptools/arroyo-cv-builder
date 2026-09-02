@@ -10943,10 +10943,20 @@ async function stTestCrossFile(){
     // The identity guard and the expiry rule are the two places a silent
     // divergence costs a customer their paid CV, so confirm the fix is present
     // in the other file rather than assuming it was applied everywhere.
-    /paid\s*&&\s*!paidAt/.test(text)
-      ? stPass(G, file + ' has the paid-without-paidAt guard')
-      : stWarnR(G, file + ' has the paid-without-paidAt guard',
-          'not detected — a paid order missing paidAt may be treated as expired there');
+    // Only meaningful where that file computes a deadline at all: index.html is
+    // the intake form, it submits orders and never reads a download window, so
+    // asserting the guard there would report a fault against absent code.
+    const hasExpiryLogic = /ORDER_TTL_HOURS|function expiryOf|payment\?\.paidAt/.test(text);
+    if(!hasExpiryLogic){
+      stSkip(G, file + ' has the paid-without-paidAt guard',
+        'that file computes no download window — no expiry logic to guard');
+    } else if(/paid\s*&&\s*!paidAt/.test(text)){
+      stPass(G, file + ' has the paid-without-paidAt guard');
+    } else {
+      stFail(G, file + ' has the paid-without-paidAt guard',
+        'that file computes a deadline but has no guard — a paid order missing paidAt '
+        + 'will be treated as long expired there');
+    }
   }
 }
 
