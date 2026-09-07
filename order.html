@@ -4125,6 +4125,136 @@ function escapeHtml(t){
 // Downscale a page before sending. Phone photos are 3–8 MB each; two of them
 // raw would blow past the proxy's request limit and time out. 1600px on the
 // long edge keeps small print legible to the model while cutting size ~90%.
+/* ── SCANNER FIELD WRITERS ──────────────────────────────────────────────────
+   The scan used to write every value with a plain `el.value = text`, which is
+   correct for a text box and silently wrong for the other two kinds of field
+   on this form:
+
+     <input type="date">  ignores anything that is not exactly yyyy-mm-dd, so
+                          "14 May 2001" left the box EMPTY while the old code
+                          still reported the section as filled.
+     <select>             ignores any value that is not one of its options, so
+                          "single" (lower case) or "Able Seaman" (without the
+                          "(AB)") silently selected nothing.
+
+   Identical to the block in builder.html on purpose: the two scanners read the
+   same CVs into the same schema and must not drift apart.
+   ────────────────────────────────────────────────────────────────────────── */
+
+const SCAN_MONTHS = {jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,
+  may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,
+  oct:10,october:10,nov:11,november:11,dec:12,december:12};
+
+// Rejects impossible dates (31 February) rather than letting the browser
+// quietly round them, which would put a wrong date on the CV.
+function scanISO(y, mo, d){
+  if(!(y >= 1900 && y <= 2100) || mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+  const dt = new Date(y, mo - 1, d);
+  if(dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return '';
+  return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+// Everything a Philippine CV, passport page or STCW certificate realistically
+// prints, reduced to the yyyy-mm-dd that <input type="date"> demands.
+function toISODate(raw){
+  if(raw == null) return '';
+  let s = String(raw).trim().replace(/\u2013|\u2014/g, '-');
+  if(!s) return '';
+  // Not dates. "Present" in an expiry box is a statement, not a value.
+  if(/^(present|current|ongoing|to ?date|until now|n\.?\/?a\.?|none|nil|valid|unlimited|indefinite|lifetime|permanent)$/i.test(s)) return '';
+
+  let m;
+  // 2001-05-14, optionally with a time after it
+  if((m = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ].*)?$/.exec(s))) return scanISO(+m[1], +m[2], +m[3]);
+  // 2001/05/14
+  if((m = /^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})$/.exec(s)))     return scanISO(+m[1], +m[2], +m[3]);
+  // 14 May 2001 · 14-MAY-2001 · 14 May, 2001
+  if((m = /^(\d{1,2})(?:st|nd|rd|th)?[\s\-.\/]+([A-Za-z]{3,9})\.?[\s\-.\/,]+(\d{4})$/.exec(s))
+     && SCAN_MONTHS[m[2].toLowerCase()])
+    return scanISO(+m[3], SCAN_MONTHS[m[2].toLowerCase()], +m[1]);
+  // May 14, 2001 · May 14 2001 · Sept. 3rd 1999
+  if((m = /^([A-Za-z]{3,9})\.?[\s\-.\/]+(\d{1,2})(?:st|nd|rd|th)?[\s,\-.\/]+(\d{4})$/.exec(s))
+     && SCAN_MONTHS[m[1].toLowerCase()])
+    return scanISO(+m[3], SCAN_MONTHS[m[1].toLowerCase()], +m[2]);
+  // May 2001 — no day printed, so the 1st is the only defensible reading
+  if((m = /^([A-Za-z]{3,9})\.?[\s\-.\/,]+(\d{4})$/.exec(s)) && SCAN_MONTHS[m[1].toLowerCase()])
+    return scanISO(+m[2], SCAN_MONTHS[m[1].toLowerCase()], 1);
+  // 2001 May
+  if((m = /^(\d{4})[\s\-.\/,]+([A-Za-z]{3,9})\.?$/.exec(s)) && SCAN_MONTHS[m[2].toLowerCase()])
+    return scanISO(+m[1], SCAN_MONTHS[m[2].toLowerCase()], 1);
+  // 14/05/2001 or 05/14/2001. A component over 12 can only be the day; when
+  // both are ambiguous the month-first reading is used, because that is what
+  // Philippine forms and PRC/agency paperwork overwhelmingly print.
+  if((m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/.exec(s))){
+    let a = +m[1], b = +m[2], y = +m[3];
+    if(y < 100) y += y > 50 ? 1900 : 2000;
+    if(a > 12 && b <= 12) return scanISO(y, b, a);
+    if(b > 12 && a <= 12) return scanISO(y, a, b);
+    return scanISO(y, a, b);
+  }
+  return '';                                    // year alone is not a date
+}
+
+// Matches free text against a dropdown's real options. Deliberately a cascade
+// of precise steps rather than a substring test: "male" is a substring of
+// "Female", so `includes` would have picked the wrong option every time.
+// An ambiguous answer selects NOTHING — a blank the customer can see and fix
+// beats a confident wrong value they will not notice.
+function scanSelect(el, raw){
+  const want = String(raw == null ? '' : raw).trim();
+  if(!want) return false;
+  const norm = t => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const toks = t => norm(t).split(' ').filter(Boolean);
+  const w = norm(want), wt = toks(want);
+  if(!w) return false;
+
+  const opts = [...el.options].filter(o => o.value !== '' || o.textContent.trim() !== '\u2014');
+  const real = opts.filter(o => (o.value || o.textContent).trim() && norm(o.textContent));
+  const pick = o => { el.value = o.value !== '' ? o.value : o.textContent.trim(); return true; };
+
+  // 1 — the whole string is the option (this is the normal path: the prompt
+  //     tells the model to return the exact option text)
+  let hit = real.find(o => norm(o.value) === w) || real.find(o => norm(o.textContent) === w);
+  if(hit) return pick(hit);
+
+  // 2 — same set of words in a different order or with different punctuation
+  hit = real.find(o => {
+    const ot = toks(o.textContent);
+    return ot.length === wt.length && ot.every(t => wt.includes(t));
+  });
+  if(hit) return pick(hit);
+
+  // 3 — the answer is a shorthand for exactly one option ("AB", "B2")
+  let cands = real.filter(o => { const ot = toks(o.textContent); return wt.every(t => ot.includes(t)); });
+  if(cands.length === 1) return pick(cands[0]);
+
+  // 4 — the answer is one option plus extra words ("Married with 2 children")
+  cands = real.filter(o => { const ot = toks(o.textContent); return ot.length && ot.every(t => wt.includes(t)); });
+  if(cands.length === 1) return pick(cands[0]);
+
+  return false;                                  // ambiguous: leave it blank
+}
+
+// The single writer every part of the scan goes through. Returns true only when
+// the value is now actually in the field, so the "filled N sections" count
+// cannot overstate what happened.
+function scanFill(el, v, force){
+  if(!el) return false;
+  if(!force && String(el.value || '').trim()) return false;   // never overwrite typing
+  const raw = v == null ? '' : String(v).trim();
+  if(!raw) return false;
+  if(el.tagName === 'SELECT') return scanSelect(el, raw);
+  if(el.type === 'date'){
+    const iso = toISODate(raw);
+    if(!iso) return false;
+    el.value = iso;
+    return el.value === iso;                     // the browser is the arbiter
+  }
+  if(el.type === 'checkbox'){ el.checked = /^(y|yes|true|1)$/i.test(raw); return true; }
+  el.value = raw;
+  return true;
+}
+
 function prepScanImage(file, maxEdge = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -4219,37 +4349,79 @@ async function scanExistingCV(input) {
       : 'Look at this CV image and extract all the information you can see.'} Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with these exact keys:
 
 {
-  "fullName": "",
-  "email": "",
-  "phone": "",
-  "address": "",
-  "linkedin": "",
-  "jobTitle": "",
-  "summary": "",
-  "skills": "",
-  "languages": "",
-  "certifications": "",
-  "trainings": "",
-  "achievements": "",
-  "interests": "",
-  "workHistory": [
-    {"company": "", "position": "", "startDate": "", "endDate": "", "description": ""}
-  ],
-  "education": [
-    {"school": "", "degree": "", "field": "", "startYear": "", "endYear": "", "gwa": ""}
-  ],
-  "references": [
-    {"name": "", "title": "", "company": "", "contact": ""}
-  ]
+  "fullName": "", "email": "", "phone": "", "address": "", "linkedin": "", "facebook": "",
+  "jobTitle": "", "summary": "", "skills": "", "languages": "",
+  "certifications": "", "trainings": "", "achievements": "", "interests": "",
+  "nationality": "", "dateOfBirth": "", "civilStatus": "", "gender": "",
+  "workHistory": [{"company":"","position":"","startDate":"","endDate":"","location":"","description":""}],
+  "education": [{"school":"","degree":"","field":"","startYear":"","endYear":"","gwa":""}],
+  "references": [{"name":"","title":"","company":"","contact":""}],
+  "cefrLanguages": [{"language":"","level":"","certificate":""}],
+  "seafarer": {
+    "rank": "", "lastRank": "", "height": "", "weight": "", "bmi": "",
+    "eyeColour": "", "hairColour": "", "bloodType": "", "shoeSize": "",
+    "coverallSize": "", "religion": "", "placeOfBirth": "", "govIds": "", "nextOfKin": "",
+    "documents":    [{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
+    "certificates": [{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
+    "vaccinations": [{"name":"","placeIssued":"","dateGiven":"","validUntil":""}],
+    "seaService":   [{"vessel":"","rank":"","vesselType":"","company":"","grt":"","kw":"","tradeArea":"","signOn":"","signOff":""}]
+  },
+  "overseas": {
+    "country": "", "visaStatus": "", "passportNo": "", "passportExpiry": "",
+    "religion": "", "dependants": "", "availability": "", "notice": "",
+    "expectedSalary": "", "workAuth": "", "relocate": ""
+  },
+  "europe": {
+    "country": "", "city": "", "permit": "", "permitExpiry": "", "notice": "",
+    "relocate": "", "licence": "", "currentLocation": "", "recognition": "",
+    "memberships": "", "notes": ""
+  }
 }
 
-Rules:
-- skills: comma-separated list
-- languages: comma-separated list  
-- trainings: seminars, workshops and short courses attended, ONE PER LINE. Put licences and certificates under certifications instead
+DATES — this matters, the form has real date pickers:
+- dateOfBirth, dateIssued, dateExpiry, validUntil, dateGiven, signOn, signOff,
+  passportExpiry and permitExpiry must be "YYYY-MM-DD" (e.g. "2001-05-14").
+- If only a month and year are printed, use the 1st: "May 2001" -> "2001-05-01".
+- If a date is genuinely not shown, leave it "". Never guess a date.
+- startDate/endDate in workHistory are NOT date pickers — copy them as written
+  ("Jan 2022", "Present"). startYear/endYear in education are years ("2020").
+
+FIXED-CHOICE FIELDS — copy one of these EXACTLY, or leave "" if not shown.
+These are this form's own dropdown values; do not invent variations:
+- civilStatus: "Single" | "Married" | "Widowed" | "Separated"
+- gender: "Male" | "Female" | "Prefer not to say"
+- overseas.country: "UAE" | "Saudi Arabia" | "Qatar" | "Kuwait" | "Bahrain" |
+  "Oman" | "Other Gulf"
+- overseas.visaStatus: "Tourist / Visit Visa" | "Employment Visa" |
+  "Residence Visa" | "Dependent Visa" | "Currently in Philippines" | "Other"
+- overseas.relocate: "Yes — within the Gulf" | "Yes — anywhere" |
+  "Preferred city only" | "No"
+- europe.relocate: "Yes" | "No" | "Already in country"
+- cefrLanguages[].level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "Native"
+- seafarer.rank, exactly as spelled here: "Master" | "Chief Officer" |
+  "Second Officer" | "Third Officer" | "Deck Cadet" | "Bosun" |
+  "Able Seaman (AB)" | "Ordinary Seaman (OS)" | "Deck Fitter" |
+  "Chief Engineer" | "Second Engineer" | "Third Engineer" | "Fourth Engineer" |
+  "Engine Cadet" | "Electrician / ETO" | "Fitter" | "Oiler" | "Wiper" |
+  "Motorman" | "Chief Cook" | "Second Cook" | "Messman" | "Steward"
+
+OTHER RULES:
+- skills and languages: comma-separated lists
+- trainings: seminars, workshops and short courses attended, ONE PER LINE. Put
+  licences and certificates under certifications instead
+- description: the person's duties, ONE PER LINE, separated by newlines
+- location: the city the job was in, if printed
+- facebook: a Facebook profile URL or handle if one is printed; linkedin likewise
+- "seafarer" ONLY if this is a seaman/maritime CV (rank, vessels, STCW
+  certificates, seaman's book). Otherwise omit it or leave its fields "".
+  Seaman's book, passport and visas go in documents; STCW/BST/training
+  certificates go in certificates.
+- "overseas" ONLY if the CV targets the Gulf/Middle East or shows passport and
+  visa status. "europe" ONLY if it targets Europe or prints CEFR levels.
+  "cefrLanguages" only where a CEFR level (A1-C2) is actually printed.
 - If a field is not visible in the CV, leave it as empty string ""
-- workHistory and education should be arrays even if only one item
-- Extract ALL work experiences and education entries you can see
+- All arrays must be arrays even with one item; use [] when there is nothing
+- Extract ALL work experiences, education entries, certificates and vessels
 - Never invent data. If something is unreadable, leave it empty
 - Do not output duplicate entries
 - Return ONLY the JSON, nothing else`;
@@ -4271,9 +4443,12 @@ Rules:
       parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
     });
 
-    // More pages means more to read and more to write back.
-    const timeoutMs = Math.min(20000 + (pages.length - 1) * 12000, 55000);
-    const maxTokens = Math.min(2000 + (pages.length - 1) * 1200, 6000);
+    // More pages means more to read and more to write back. The schema now
+    // covers the seafarer, Gulf and Europe blocks too, so a full maritime CV is
+    // a far longer reply — a budget that truncates the JSON mid-object loses
+    // the whole scan, not just the tail.
+    const timeoutMs = Math.min(28000 + (pages.length - 1) * 14000, 70000);
+    const maxTokens = Math.min(4000 + (pages.length - 1) * 2000, 10000);
 
     const label = pages.length > 1 ? `${pages.length} pages` : 'your CV';
     status.innerHTML = `⏳ Reading ${label}… this can take up to ${Math.round(timeoutMs/1000)}s (attempt 1/2)`;
@@ -4319,111 +4494,302 @@ Rules:
 
     const data = JSON.parse(text);
 
-    // ── AUTO-FILL FORM FIELDS ──────────────────────────────────
-    const set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
-
-    // Personal fields
-    // Splitting a Filipino name on whitespace alone gets the surname wrong:
-    // "Juan Santos dela Cruz" would give middle "Santos dela", surname "Cruz".
-    // Surname particles have to travel with the surname.
-    const nameParts = (data.fullName||'').trim().split(/\s+/).filter(Boolean);
-    const PARTICLES = new Set(['de','dela','del','dels','delos','los','la','las',
-      'san','santa','sta','sta.','sto','sto.','santo','da','das','di','du',
-      'van','von','der','den','ten','ter','y','e']);
-    set('firstName', nameParts[0] || '');
-    if (nameParts.length >= 3) {
-      // Walk back from the final word, pulling in any particles that precede it.
-      let start = nameParts.length - 1;
-      while (start > 1 && PARTICLES.has(nameParts[start-1].toLowerCase())) start--;
-      set('lastName',   nameParts.slice(start).join(' '));
-      set('middleName', nameParts.slice(1, start).join(' '));
-    } else {
-      set('lastName', nameParts.slice(1).join(' ') || '');
-    }
-    set('email', data.email);
-    set('phone', data.phone);
-    set('address', data.address);
-    set('linkedin', data.linkedin);
-    set('jobTitle', data.jobTitle);
-
-    // Skills and languages as tags. addTag splits on commas itself now, so the
-    // scanned list goes in whole rather than one round-trip through the box.
-    if (data.skills) addTag('skill', data.skills);
-    if (data.languages) addTag('lang', data.languages);
-
-    // Achievements / awards
-    set('awards', data.achievements || '');
-    set('trainings', [data.trainings, data.certifications].filter(Boolean).join('\n'));
-
-    // Work history — fill the first entry (already created by addWorkEntry())
-    if (data.workHistory && data.workHistory.length > 0) {
-      data.workHistory.forEach((w, i) => {
-        if (i > 0) addWorkEntry(); // add extra entries as needed
-        const entry = document.getElementById(`work-${i+1}`);
-        if (!entry) return;
-        const inputs = entry.querySelectorAll('input');
-        const textarea = entry.querySelector('textarea');
-        if (inputs[0]) inputs[0].value = w.company || '';
-        if (inputs[1]) inputs[1].value = w.position || '';
-        if (inputs[2]) inputs[2].value = w.startDate || '';
-        if (inputs[3]) inputs[3].value = w.endDate || '';
-        if (textarea) textarea.value = w.description || '';
-      });
-    }
-
-    // Education — fill first entry
-    if (data.education && data.education.length > 0) {
-      data.education.forEach((edu, i) => {
-        if (i > 0) addEduEntry();
-        const entry = document.getElementById(`edu-${i+1}`);
-        if (!entry) return;
-        const inputs = entry.querySelectorAll('input');
-        if (inputs[0]) inputs[0].value = edu.school || '';
-        if (inputs[1]) inputs[1].value = edu.degree || '';
-        if (inputs[2]) inputs[2].value = edu.endYear || '';
-        if (inputs[3]) inputs[3].value = edu.startYear || '';
-        if (inputs[4]) inputs[4].value = edu.gwa || '';
-      });
-    }
-
-    // References
-    if (data.references && data.references.length > 0) {
-      data.references.forEach((ref, i) => {
-        if (i > 0) addRefEntry();
-        const entry = document.getElementById(`ref-${i+1}`);
-        if (!entry) return;
-        const inputs = entry.querySelectorAll('input');
-        if (inputs[0]) inputs[0].value = ref.name || '';
-        if (inputs[1]) inputs[1].value = ref.title || '';
-        if (inputs[2]) inputs[2].value = ref.company || '';
-        if (inputs[3]) inputs[3].value = ref.contact || '';
-      });
-    }
-
-    // Count filled
+    /* ── AUTO-FILL FORM FIELDS ────────────────────────────────────────────
+       Every write goes through scanFill(), which normalises dates, matches
+       dropdowns against their real options, and refuses to overwrite anything
+       already on the form. It returns whether the value actually landed, so
+       the count below reports what happened rather than what was hoped for. */
     let filled = 0;
-    if (data.fullName) filled++;
-    if (data.email) filled++;
-    if (data.phone) filled++;
-    if (data.address) filled++;
-    if (data.jobTitle) filled++;
-    if (data.skills) filled++;
-    if (data.workHistory && data.workHistory.length) filled++;
-    if (data.education && data.education.length) filled++;
+    const notes = [];
+    const sections = [];
+    const set = (id, v) => {
+      const ok = scanFill(document.getElementById(id), v);
+      if(ok) filled++;
+      return ok;
+    };
+    const setAll = (prefix, obj, map) => {
+      let n = 0;
+      Object.keys(map).forEach(k => { if(set(prefix + map[k], obj && obj[k])) n++; });
+      return n;
+    };
+    const obj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+
+    /* NAME. Splitting a Filipino name on whitespace alone gets the surname
+       wrong: "Juan Santos dela Cruz" would give middle "Santos dela", surname
+       "Cruz". Particles travel with the surname, and a suffix (Jr., III) does
+       too — otherwise "Jr." ends up alone in the last-name box. */
+    const rawName = String(data.fullName || '').trim().replace(/\s+/g, ' ');
+    const PARTICLES = new Set(['de','dela','del','dels','delos','delas','los','la','las',
+      'san','santa','sta','sta.','sto','sto.','santo','da','das','di','du',
+      'van','von','der','den','ten','ter','y','e','ng','bin','binte']);
+    const SUFFIX_RE = /^(jr|sr|ii|iii|iv|v)\.?$/i;
+    let nFirst = '', nMiddle = '', nLast = '';
+    // "DELA CRUZ, Juan Santos Jr." — surname-first is common on Philippine
+    // forms, and the comma says exactly where the surname ends.
+    const commaName = /^([^,]+),\s*(.+)$/.exec(rawName);
+    if(commaName){
+      nLast = commaName[1].trim();
+      const given = commaName[2].trim().split(' ').filter(Boolean);
+      while(given.length > 1 && SUFFIX_RE.test(given[given.length - 1]))
+        nLast += ' ' + given.pop();
+      nFirst  = given[0] || '';
+      nMiddle = given.slice(1).join(' ');
+    } else {
+      const np = rawName.split(' ').filter(Boolean);
+      if(np.length >= 3){
+        let end = np.length;
+        while(end > 2 && SUFFIX_RE.test(np[end-1])) end--;
+        let st = end - 1;
+        while(st > 1 && PARTICLES.has(np[st-1].toLowerCase())) st--;
+        nFirst  = np[0];
+        nMiddle = np.slice(1, st).join(' ');
+        nLast   = np.slice(st, end).concat(np.slice(end)).join(' ');
+      } else {
+        nFirst = np[0] || '';
+        nLast  = np.slice(1).join(' ');
+      }
+    }
+    set('firstName', nFirst);
+    set('middleName', nMiddle);
+    set('lastName', nLast);
+    if(rawName) sections.push('name');
+
+    // Contact and personal. dob is a date picker and civilStatus/gender are
+    // dropdowns — none of the three were even asked for before, let alone set.
+    let personal = 0;
+    ['email','phone','address','linkedin','jobTitle','nationality']
+      .forEach(k => { if(set(k, data[k])) personal++; });
+    if(set('social', data.facebook)) personal++;
+    const dobOk = set('dob', data.dateOfBirth);
+    if(dobOk) personal++;
+    if(set('civilStatus', data.civilStatus)) personal++;
+    if(set('gender', data.gender)) personal++;
+    if(personal) sections.push('contact details');
+    // Only a warning when the box is genuinely still empty. scanFill also
+    // returns false when it declined to overwrite a date the customer had
+    // already picked, and reporting that as "could not be read" was wrong.
+    if(data.dateOfBirth && !dobOk && !(document.getElementById('dob') || {}).value)
+      notes.push('the date of birth could not be read as a date \u2014 please pick it');
+
+    // order.html has no profile-summary box — that is written later, from the
+    // submitted data — so the scanned summary goes to the About Me field,
+    // which is the nearest equivalent the customer actually fills in.
+    if(set('aboutMe', data.summary)) sections.push('about me');
+    if(set('awards', data.achievements)) sections.push('achievements');
+    if(set('hobbies', data.interests)) sections.push('interests');
+
+    // Certificates are itemised as their own rows on a seafarer CV, so folding
+    // them into the trainings box as well would print them twice.
+    const _sf = obj(data.seafarer);
+    const isSea = !!(_sf.rank
+      || (Array.isArray(_sf.certificates) ? _sf.certificates.length : 0)
+      || (Array.isArray(_sf.seaService)   ? _sf.seaService.length   : 0));
+    if(set('trainings', isSea
+        ? String(data.trainings || '')
+        : [data.trainings, data.certifications].filter(Boolean).join('\n')))
+      sections.push('trainings');
+
+    // Skills and languages as tags. Split on newlines and bullets too: plenty
+    // of CVs print these one per line, and a comma-only split turned an entire
+    // skills column into one giant tag.
+    const addTags = (raw, kind) => {
+      const arr = kind === 'skill' ? skills : languages;
+      const before = arr.length;
+      String(raw || '')
+        .split(/[,;\u00b7|\u2022\r\n\/]+/)
+        .map(t => t.replace(/^\s*[-*\u2013\u2014]\s*/, '').trim())
+        .filter(t => t && t.length <= 60)
+        .slice(0, 30)
+        .forEach(t => addTag(kind, t));
+      return arr.length - before;
+    };
+    if(addTags(data.skills, 'skill')) sections.push('skills');
+    if(addTags(data.languages, 'lang')) sections.push('languages');
+
+    /* REPEATING ROWS.
+       Rows are located by their POSITION in the container, not by a
+       `work-${i+1}` id. removeEntry() deletes a row without renumbering and
+       the counter never decrements, so after any add/remove the ids have gaps:
+       scanning three jobs onto a form whose rows were work-1 and work-3 used to
+       write one entry into the wrong row and silently drop another when
+       getElementById returned null. The container's children are always in
+       order and always complete. */
+    const fillRows = (containerId, adder, rows, map, label, opts) => {
+      const box = document.getElementById(containerId);
+      if(!box) return 0;
+      const src = Array.isArray(rows) ? rows : [];
+      const clean = src.filter(r => r && typeof r === 'object')
+                       .map(map)
+                       .filter(r => r.some(Boolean));
+      if(!clean.length) return 0;
+
+      /* Anything already typed is left completely alone — but a value the FORM
+         put there itself is not typing. seedSeamanDocs() pre-fills the four
+         document rows with "Passport", "Seaman's Book (SIRB)" and so on, so a
+         plain emptiness test saw those presets and skipped the whole documents
+         table, meaning a scanned passport number and expiry never landed. */
+      const ignore = (opts && opts.ignore) || null;
+      const isTyped = f => {
+        const v = (f.value || '').trim();
+        if(!v) return false;
+        if(ignore && ignore.some(x => x.toLowerCase() === v.toLowerCase())) return false;
+        return true;
+      };
+      const typed = [...box.children].some(e =>
+        [...e.querySelectorAll('input, textarea, select')].some(isTyped));
+      if(typed) return 0;
+
+      let wrote = 0;
+      clean.slice(0, 10).forEach((vals, i) => {
+        while(box.children.length <= i) adder();
+        const row = box.children[i];
+        if(!row) return;
+        const fields = row.querySelectorAll('input, textarea, select');
+        // force: a preset the form wrote is overwritten by the real value from
+        // the CV, which is the whole point of scanning it.
+        vals.forEach((v, k) => { if(fields[k] && scanFill(fields[k], v, !!ignore)) wrote++; });
+      });
+      if(wrote){ filled += wrote; if(label) sections.push(label); }
+      return wrote;
+    };
+
+    const dutyLines = t => String(t || '')
+      .split(/\r?\n|\s*\u2022\s*/)
+      .map(x => x.replace(/^\s*[-*\u2013\u2014]\s*/, '').trim())
+      .filter(Boolean).join('\n');
+
+    // Field order matches the markup each adder produces.
+    fillRows('workEntries', addWorkEntry, data.workHistory, w => ([
+      w.company || '', w.position || '', w.startDate || '', w.endDate || '',
+      w.location || '',                       // was never filled or even asked for
+      dutyLines(w.description)
+    ]), 'work experience');
+
+    fillRows('eduEntries', addEduEntry, data.education, e => ([
+      e.school || '',
+      [e.degree, e.field].filter(Boolean).join(' '),
+      e.endYear || '', e.startYear || '', e.gwa || ''
+    ]), 'education');
+
+    fillRows('refEntries', addRefEntry, data.references, r => ([
+      r.name || '', r.title || '', r.company || '', r.contact || ''
+    ]), 'references');
+
+    /* SEAFARER. Filled even while the card is hidden — the data is kept on
+       submit, and the customer is told below which track shows it. */
+    let seaFilled = setAll('sm-', _sf, {
+      rank:'rank', lastRank:'lastRank', height:'height', weight:'weight', bmi:'bmi',
+      eyeColour:'eyes', hairColour:'hair', bloodType:'blood', shoeSize:'shoe',
+      coverallSize:'coverall', religion:'religion', placeOfBirth:'birthPlace',
+      govIds:'govIds', nextOfKin:'nok'
+    });
+    if(_sf.rank && !(document.getElementById('sm-rank') || {}).value)
+      notes.push('the rank \u201c' + tagEsc(_sf.rank) + '\u201d did not match the rank list \u2014 please choose it');
+
+    if(document.getElementById('docEntries')){
+      seaFilled += fillRows('docEntries', addDocEntry, _sf.documents, r => ([
+        r.type || '', r.number || '', r.dateIssued || '', r.dateExpiry || '', r.placeIssued || ''
+      ]), null, { ignore: (typeof DOC_PRESETS !== 'undefined' ? DOC_PRESETS : []) });
+      seaFilled += fillRows('certEntries', addCertEntry, _sf.certificates, r => ([
+        r.name || '', r.number || '', r.issuedBy || '', r.dateIssued || '', r.validUntil || ''
+      ]));
+      seaFilled += fillRows('vaxEntries', addVaxEntry, _sf.vaccinations, r => ([
+        r.name || '', r.placeIssued || '', r.dateGiven || '', r.validUntil || ''
+      ]));
+      seaFilled += fillRows('seaEntries', addSeaEntry, _sf.seaService, r => ([
+        r.vessel || '', r.rank || '', r.vesselType || '', r.company || '',
+        r.grt || '', r.kw || '', r.tradeArea || '', r.signOn || '', r.signOff || ''
+      ]));
+    }
+    if(seaFilled) sections.push('seafarer records');
+
+    // GULF. visaStatus, country and relocate are dropdowns; passportExpiry a date.
+    const G = obj(data.overseas);
+    const gulfFilled = setAll('gf-', G, {
+      country:'country', visaStatus:'visaStatus', passportNo:'passportNo',
+      passportExpiry:'passportExpiry', religion:'religion', dependants:'dependants',
+      availability:'availability', notice:'notice', expectedSalary:'expectedSalary',
+      workAuth:'workAuth', relocate:'relocate'
+    });
+    if(gulfFilled) sections.push('Gulf details');
+
+    // EUROPE.
+    const E = obj(data.europe);
+    let euFilled = setAll('eu-', E, {
+      country:'country', city:'city', permit:'permit', permitExpiry:'permitExpiry',
+      notice:'notice', relocate:'relocate', licence:'licence',
+      currentLocation:'currentLoc', recognition:'recognition',
+      memberships:'memberships', notes:'notes'
+    });
+
+    // CEFR rows are hand-built (the level is a fixed dropdown), so they get
+    // their own pass rather than the generic row filler.
+    const cefr = (Array.isArray(data.cefrLanguages) ? data.cefrLanguages : [])
+      .filter(l => l && typeof l === 'object' && l.language);
+    const euBox = document.getElementById('euLangEntries');
+    if(cefr.length && euBox){
+      const typed = [...euBox.children].some(r =>
+        (r.querySelector('.cefr-lang') || {}).value);
+      if(!typed){
+        euBox.innerHTML = '';
+        cefr.slice(0, 10).forEach(l => {
+          addEuLangEntry();
+          const row = euBox.lastElementChild;
+          if(!row) return;
+          if(scanFill(row.querySelector('.cefr-lang'), l.language)) euFilled++;
+          if(scanFill(row.querySelector('.cefr-level'), l.level)) euFilled++;
+          if(scanFill(row.querySelector('.cefr-cert'), l.certificate)) euFilled++;
+        });
+      }
+    }
+    if(euFilled) sections.push('Europe details');
+
+    // A seafarer or Gulf CV read while the form is on another track leaves its
+    // records off screen, so say which option reveals them.
+    const curLvl = (document.querySelector('input[name="eduLevel"]:checked') || {}).value;
+    if(seaFilled && curLvl !== 'seaman')
+      notes.push('this looks like a seaman CV \u2014 pick <strong>Seafarer</strong> to show the records that were read');
+    if(gulfFilled && curLvl !== 'gulf')
+      notes.push('passport and visa details were read \u2014 pick <strong>Gulf / Middle East</strong> to show them');
+    if(euFilled && curLvl !== 'europe')
+      notes.push('CEFR languages were read \u2014 pick <strong>Europe</strong> to show them');
+
+    try { saveDraft(); } catch(e){}
+
+    const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
+    const cappedTxt = capped ? ` <br><small>Only the first ${MAX_PAGES} pages were read — add anything missing by hand.</small>` : '';
+
+    // `filled` is now the number of fields that ACTUALLY landed, so a scan that
+    // read nothing usable can no longer present itself as a success.
+    if (!filled && !sections.length) {
+      status.className = 'scan-status error';
+      status.innerHTML = `❌ Read the image${pagesTxt ? '' : ''} but could not pull any details out of it. `
+        + 'The photo may be too dark, too small or at an angle — try a straight-on shot in good light.'
+        + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try another photo</button>'
+        + (fromForm ? '' : ' <button onclick="startFresh()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">✏️ Fill it in myself</button>');
+      input.value = '';
+      return;
+    }
 
     status.className = 'scan-status success';
     // The form is a separate screen now, so the old "filled in below" wording
     // pointed at nothing. Say what happened, then move them there.
-    const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
-    const cappedTxt = capped ? ` <br><small>Only the first ${MAX_PAGES} pages were read — add anything missing by hand.</small>` : '';
+    const listTxt = sections.length
+      ? `<br><small>Filled: ${tagEsc(sections.join(', '))}.</small>`
+      : '';
+    const notesTxt = notes.length
+      ? `<br><br><small>${notes.length === 1 ? 'One thing' : notes.length + ' things'} to finish by hand:<br>• `
+        + notes.join('<br>• ') + '</small>'
+      : '';
     status.innerHTML = (fromForm
-      ? `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} filled in below — please review each one before submitting.`
-      : `✅ Scanned${pagesTxt}. ${filled} section${filled===1?'':'s'} picked up — taking you to the form to review…`) + cappedTxt;
+      ? `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} filled in below — please review before submitting.`
+      : `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} picked up — taking you to the form to review…`)
+      + listTxt + cappedTxt + notesTxt;
 
     // Only travel to the form if we're not already on it.
     setTimeout(() => {
       if (!fromForm) showFormPage();
-      showNotif(`✅ ${filled} section${filled===1?'':'s'} filled from your CV — please check each one`);
+      showNotif(`✅ ${filled} field${filled===1?'':'s'} filled from your CV — please check each one`);
     }, 1400);
 
   } catch(err) {

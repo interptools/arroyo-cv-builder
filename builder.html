@@ -6544,8 +6544,11 @@ function applyScan(d){
   personal += set('gender', d.gender) ? 1 : 0;
   if(personal) sections.push('contact details');
   // Said out loud, because a date the reader saw but could not parse is the one
-  // failure the customer would otherwise never notice.
-  if(d.dateOfBirth && !dobOk) notes.push('the date of birth could not be read as a date \u2014 please pick it');
+  // failure the customer would otherwise never notice. Guarded on the box still
+  // being empty: scanFill also returns false when it declined to overwrite a
+  // date already picked, and calling that "could not be read" was wrong.
+  if(d.dateOfBirth && !dobOk && !val('dob'))
+    notes.push('the date of birth could not be read as a date \u2014 please pick it');
 
   if(set('profileSummary', d.summary)) sections.push('profile summary');
   if(set('awards', d.achievements)) sections.push('achievements');
@@ -6687,6 +6690,7 @@ function applyScan(d){
     workAuth:'workAuth', relocate:'relocate'
   });
   if(gulfCount) sections.push('Gulf details');
+  // Same guard: only if the box is still empty after the attempt.
   if(G.passportExpiry && !val('gf-passportExpiry'))
     notes.push('the passport expiry could not be read as a date \u2014 please pick it');
 
