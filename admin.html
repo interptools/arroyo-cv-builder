@@ -1266,6 +1266,17 @@ async function sha256(text){
 const PW_LAST = { reason: '', status: 0 };
 
 async function loadPasswordFromCloud(){
+  // No point spending two attempts and three seconds on a request that cannot
+  // succeed. A saved copy of this file can neither call the storage service nor
+  // hash a password, so say so immediately.
+  if(location.protocol === 'file:'){
+    cloudHash = null; legacyPlain = null;
+    PW_LAST.status = 0;
+    PW_LAST.reason = 'This page is open from a file on your device (the address starts with '
+      + '<code>file://</code>). Saved copies cannot call the storage service or hash a password. '
+      + 'Open the dashboard at its <strong>https://</strong> address instead.';
+    return { ok:false, reason: PW_LAST.reason, status: 0 };
+  }
   // 429 and 5xx are transient, so they are worth one retry before the admin is
   // told to go away. 401/403/404 are not — retrying a revoked key just wastes
   // another request against the quota.
@@ -1314,8 +1325,25 @@ async function loadPasswordFromCloud(){
       if(isNet){
         if(attempt === 1){ await new Promise(r => setTimeout(r, 1500)); continue; }
         PW_LAST.status = 0;
-        PW_LAST.reason = 'Could not reach the storage service at all. Either this device is offline, '
-          + 'or the page is open from a downloaded file \u2014 open it at its https:// address instead.';
+        /* "Failed to fetch" means no response came back at all, so the status
+           code cannot say why. But the page knows three things for certain, and
+           each one has a completely different fix — guessing between them was
+           what made the old message useless. */
+        PW_LAST.reason =
+          location.protocol === 'file:'
+            ? 'This page is open from a file on your device (the address starts with '
+              + '<code>file://</code>). Saved copies cannot call the storage service or hash a '
+              + 'password. Open the dashboard at its <strong>https://</strong> address instead.'
+          : navigator.onLine === false
+            ? 'This device reports no internet connection. Reconnect and press Try again.'
+          : !window.isSecureContext
+            ? 'This page is not running in a secure context, so the browser blocks the sign-in '
+              + 'request. Open it over <strong>https://</strong> rather than http://.'
+            : 'The request to <code>api.jsonbin.io</code> was blocked before it reached the '
+              + 'network \u2014 the connection itself is working, since this page loaded. The usual '
+              + 'causes are an ad-blocker or privacy extension, or a work/school network that '
+              + 'filters unknown domains. Try a private window with extensions off, or a '
+              + 'different network such as a phone hotspot.';
       }
       if(attempt === 2 || !isNet){
         console.warn('Could not reach password store:', e, PW_LAST);
