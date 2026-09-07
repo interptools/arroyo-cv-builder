@@ -1330,7 +1330,13 @@ async function loadPasswordFromCloud(){
             ? 'The storage quota is used up for now (HTTP 429). JSONBin is rate-limiting this key, '
               + 'so sign-in will work again once the limit resets. Closing other copies of this dashboard helps.'
           : res.status >= 500
-            ? 'The storage service is having problems (HTTP ' + res.status + '). Not your connection \u2014 try again shortly.'
+            ? (res.status >= 520 && res.status <= 527
+                ? 'The storage service is down (HTTP ' + res.status + '). This is a Cloudflare '
+                  + 'origin error \u2014 JSONBin\u2019s own server is not responding, so the fault is '
+                  + 'entirely at their end. Nothing is wrong with this dashboard and nothing has '
+                  + 'been lost. Press Try again in a few minutes.'
+                : 'The storage service is having problems (HTTP ' + res.status + '). '
+                  + 'Not your connection \u2014 try again shortly.')
             : 'The storage service returned HTTP ' + res.status + '.';
         throw new Error('HTTP ' + res.status);
       }
@@ -1359,13 +1365,26 @@ async function loadPasswordFromCloud(){
           PW_LAST.reason = 'This page is not running in a secure context, so the browser blocks the '
             + 'sign-in request. Open it over <strong>https://</strong> rather than http://.';
         } else if(await probeStoreReachable()){
-          // The domain answered. So it is not a block — the reply was simply
-          // unreadable, which for this API means the key or the quota.
-          PW_LAST.reason = '<code>api.jsonbin.io</code> <strong>is reachable</strong> from this browser, '
-            + 'so nothing is blocking it. The reply could not be read, which for this API means the '
-            + 'request was rejected before CORS headers were added \u2014 almost always an '
-            + '<strong>invalid/revoked master key</strong> or an <strong>exhausted request quota</strong>. '
-            + 'Check the key and the usage figure in your JSONBin account.';
+          /* Something answered, so nothing is blocking the domain. The reply
+             was unreadable, which means it arrived with no CORS headers.
+
+             That points at the INFRASTRUCTURE, not the account. JSONBin sets
+             its CORS headers in the application, so a 401 for a bad key or a
+             429 for a spent quota still comes back readable and is handled by
+             the status branch above. A reply with no CORS headers at all was
+             generated in front of the application — a Cloudflare 5xx such as
+             521 "Web Server Is Down", which is what an outage looks like from
+             here. The real status is in DevTools > Network, because CORS keeps
+             it away from JavaScript. */
+          PW_LAST.reason = '<code>api.jsonbin.io</code> answered, so nothing is blocking it and '
+            + 'your key and quota are almost certainly fine. But the reply carried no CORS headers, '
+            + 'which means it was produced in front of JSONBin rather than by it \u2014 '
+            + '<strong>the storage service is down or restarting</strong> '
+            + '(a Cloudflare 5xx, typically 521 "Web Server Is Down").'
+            + '<br><br>Nothing is wrong with this dashboard and nothing has been lost. '
+            + 'Sign-in works again as soon as JSONBin is back \u2014 press Try again in a few minutes. '
+            + 'For the exact status code, open DevTools \u2192 Network and look at the '
+            + '<code>latest</code> request.';
         } else {
           PW_LAST.reason = 'The request to <code>api.jsonbin.io</code> never left this browser, and the '
             + 'domain does not respond even to a plain no-CORS request \u2014 while this page itself '
