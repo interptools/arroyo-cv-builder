@@ -1254,25 +1254,78 @@ async function sha256(text){
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
+/* Reads the stored password. Returns an object so the caller can say what
+   actually went wrong — the old version returned a bare boolean, so every
+   possible failure (revoked key, deleted bin, exhausted quota, JSONBin outage,
+   blocked CORS) was reported to the admin as "check your internet connection",
+   which is the one cause it almost never is: the page itself had just loaded
+   over that same connection.
+
+   `ok` keeps the old truthiness for the call sites that only care whether the
+   read worked. */
+const PW_LAST = { reason: '', status: 0 };
+
 async function loadPasswordFromCloud(){
-  try {
-    const res  = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
-    // fetch() does NOT throw on 401/429/500 — it only throws on network
-    // failure. Without this check an error response parses as JSON, leaves
-    // cloudHash null, and verifyPassword falls back to BOOTSTRAP_HASH,
-    // which makes the old default password start working again.
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const json = await res.json();
-    const rec  = json?.record;
-    if(!rec || typeof rec !== 'object') throw new Error('Empty record');
-    cloudHash   = rec.adminPasswordHash || null;
-    legacyPlain = rec.adminPassword     || null;
-    return true;
-  } catch(e){
-    console.warn('Could not reach password store:', e);
-    cloudHash = null; legacyPlain = null;
-    return false;
+  // 429 and 5xx are transient, so they are worth one retry before the admin is
+  // told to go away. 401/403/404 are not — retrying a revoked key just wastes
+  // another request against the quota.
+  for(let attempt = 1; attempt <= 2; attempt++){
+    try {
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+                              {headers:{'X-Master-Key':JSONBIN_API_KEY}, cache:'no-store'});
+      // fetch() does NOT throw on 401/429/500 — it only throws on network
+      // failure. Without this check an error response parses as JSON, leaves
+      // cloudHash null, and verifyPassword falls back to BOOTSTRAP_HASH,
+      // which makes the old default password start working again.
+      if(!res.ok){
+        const transient = res.status === 429 || res.status >= 500;
+        if(transient && attempt === 1){
+          await new Promise(r => setTimeout(r, 1500));
+          continue;
+        }
+        PW_LAST.status = res.status;
+        PW_LAST.reason =
+          res.status === 401 || res.status === 403
+            ? 'The dashboard\u2019s API key was rejected (HTTP ' + res.status + '). '
+              + 'The JSONBin master key has been changed or revoked \u2014 paste the current key into this file.'
+          : res.status === 404
+            ? 'The storage bin was not found (HTTP 404). The bin ID in this file no longer exists.'
+          : res.status === 429
+            ? 'The storage quota is used up for now (HTTP 429). JSONBin is rate-limiting this key, '
+              + 'so sign-in will work again once the limit resets. Closing other copies of this dashboard helps.'
+          : res.status >= 500
+            ? 'The storage service is having problems (HTTP ' + res.status + '). Not your connection \u2014 try again shortly.'
+            : 'The storage service returned HTTP ' + res.status + '.';
+        throw new Error('HTTP ' + res.status);
+      }
+      const json = await res.json();
+      const rec  = json?.record;
+      if(!rec || typeof rec !== 'object'){
+        PW_LAST.status = 200;
+        PW_LAST.reason = 'The storage bin was reached but holds no record, so there is no password to check against.';
+        throw new Error('Empty record');
+      }
+      cloudHash   = rec.adminPasswordHash || null;
+      legacyPlain = rec.adminPassword     || null;
+      PW_LAST.status = 200; PW_LAST.reason = '';
+      return { ok:true, reason:'', status:200 };
+    } catch(e){
+      const isNet = e instanceof TypeError || /failed to fetch|networkerror|load failed/i.test(e.message || '');
+      if(isNet){
+        if(attempt === 1){ await new Promise(r => setTimeout(r, 1500)); continue; }
+        PW_LAST.status = 0;
+        PW_LAST.reason = 'Could not reach the storage service at all. Either this device is offline, '
+          + 'or the page is open from a downloaded file \u2014 open it at its https:// address instead.';
+      }
+      if(attempt === 2 || !isNet){
+        console.warn('Could not reach password store:', e, PW_LAST);
+        cloudHash = null; legacyPlain = null;
+        return { ok:false, reason: PW_LAST.reason || (e.message || 'Unknown error'), status: PW_LAST.status };
+      }
+    }
   }
+  cloudHash = null; legacyPlain = null;
+  return { ok:false, reason: PW_LAST.reason || 'Unknown error', status: PW_LAST.status };
 }
 
 // Returns true if the typed password is correct, using (in order):
@@ -1320,7 +1373,15 @@ async function changePassword(){
   const cf=document.getElementById('confirmPass').value;
   if(!c||!n||!cf){showNotif('Fill in all fields.',true);return;}
 
-  await loadPasswordFromCloud();
+  const reach = await loadPasswordFromCloud();
+  // Without this, a failed read leaves cloudHash and legacyPlain null, and
+  // verifyPassword() falls through to BOOTSTRAP_HASH — so during a storage
+  // outage the ORIGINAL default password would be accepted as the "current"
+  // one here, and could be used to set a new password.
+  if(!reach.ok){
+    showNotif('Cannot change the password right now: ' + reach.reason, true);
+    return;
+  }
   try {
     if(!(await verifyPassword(c))){showNotif('Current password is incorrect.',true);return;}
   } catch(err){ showNotif(err.message || 'Could not verify the current password.', true); return; }
@@ -1365,9 +1426,16 @@ async function doLogin(){
   errEl.style.display='block';
   errEl.textContent='Verifying...';
 
-  const reachable = await loadPasswordFromCloud();
-  if(!reachable){
-    errEl.textContent='Could not reach the server. Check your internet connection and try again.';
+  const reach = await loadPasswordFromCloud();
+  if(!reach.ok){
+    // The actual cause, not a guess about the connection. Rendered as HTML so
+    // the reason can carry emphasis; the reason strings are all written here,
+    // never taken from the server response body.
+    errEl.style.display='block';
+    errEl.innerHTML = '<strong>Cannot sign in yet.</strong><br>' + reach.reason
+      + '<br><button type="button" onclick="doLogin()" style="margin-top:9px;padding:7px 16px;'
+      + 'background:#1a2744;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;'
+      + 'cursor:pointer;">Try again</button>';
     return;
   }
 
@@ -10219,7 +10287,15 @@ function markLastSaved(success){
 // ── AUTO-REFRESH POLLING ──────────────────────────────────────────────────────
 let _autoRefreshTimer = null;
 let _refreshFailCount = 0;
-const AUTO_REFRESH_MS = 90000;
+/* Was 90 seconds. JSONBin's free plan allows 10,000 requests a month, and a
+   dashboard left open on a desk polls 40 times an hour — about 28,000 a month
+   from this one timer alone, before any of the reads and writes doing actual
+   work. Exhausting the quota returns HTTP 429 to EVERY request including the
+   password read, which is what locks the admin out of signing in altogether.
+   Five minutes is still well inside the "did a new order arrive" window and
+   costs roughly 8,600 a month at worst, and the visibility pause below cuts
+   that again because the tab is usually in the background. */
+const AUTO_REFRESH_MS = 300000;
 
 function startAutoRefresh(){
   stopAutoRefresh();
@@ -10228,6 +10304,21 @@ function startAutoRefresh(){
 function stopAutoRefresh(){
   if(_autoRefreshTimer){ clearInterval(_autoRefreshTimer); _autoRefreshTimer = null; }
 }
+
+/* Polling a tab nobody is looking at spends quota for nothing. The timer stops
+   when the dashboard is hidden and resumes — with one immediate catch-up tick —
+   when it comes back, so returning to the tab still shows current orders. */
+document.addEventListener('visibilitychange', () => {
+  const loggedIn = document.getElementById('adminApp')
+    && document.getElementById('adminApp').style.display === 'block';
+  if(!loggedIn) return;
+  if(document.hidden){
+    stopAutoRefresh();
+  } else if(!_autoRefreshTimer){
+    autoRefreshTick();
+    startAutoRefresh();
+  }
+});
 async function autoRefreshTick(){
   try{
     const res = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,{headers:{'X-Master-Key':JSONBIN_API_KEY}});
