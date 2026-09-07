@@ -1265,6 +1265,31 @@ async function sha256(text){
    read worked. */
 const PW_LAST = { reason: '', status: 0 };
 
+/* Distinguishes "the request never left the browser" from "JSONBin answered,
+   but the answer had no CORS headers so the browser hid it".
+
+   This matters because the two look identical to JavaScript. The real read
+   sends an X-Master-Key header, which is a custom header, which forces a CORS
+   preflight. If JSONBin rejects the key or the quota is spent and its error
+   reply omits Access-Control-Allow-Origin, fetch() rejects with exactly the
+   same TypeError as an ad-blocker abort — so an auth or quota problem was being
+   reported as a network block.
+
+   mode:'no-cors' sends no preflight and needs no CORS headers on the way back.
+   The response is opaque and useless for reading data, but it RESOLVES whenever
+   the request genuinely reached JSONBin — even for a 401 or 429. So:
+     resolves -> the domain is reachable; the problem is the key, quota or CORS
+     rejects  -> the request really is being blocked before it leaves          */
+async function probeStoreReachable(){
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`,
+                { mode:'no-cors', cache:'no-store' });
+    return true;
+  } catch(e){
+    return false;
+  }
+}
+
 async function loadPasswordFromCloud(){
   // No point spending two attempts and three seconds on a request that cannot
   // succeed. A saved copy of this file can neither call the storage service nor
@@ -1325,25 +1350,31 @@ async function loadPasswordFromCloud(){
       if(isNet){
         if(attempt === 1){ await new Promise(r => setTimeout(r, 1500)); continue; }
         PW_LAST.status = 0;
-        /* "Failed to fetch" means no response came back at all, so the status
-           code cannot say why. But the page knows three things for certain, and
-           each one has a completely different fix — guessing between them was
-           what made the old message useless. */
-        PW_LAST.reason =
-          location.protocol === 'file:'
-            ? 'This page is open from a file on your device (the address starts with '
-              + '<code>file://</code>). Saved copies cannot call the storage service or hash a '
-              + 'password. Open the dashboard at its <strong>https://</strong> address instead.'
-          : navigator.onLine === false
-            ? 'This device reports no internet connection. Reconnect and press Try again.'
-          : !window.isSecureContext
-            ? 'This page is not running in a secure context, so the browser blocks the sign-in '
-              + 'request. Open it over <strong>https://</strong> rather than http://.'
-            : 'The request to <code>api.jsonbin.io</code> was blocked before it reached the '
-              + 'network \u2014 the connection itself is working, since this page loaded. The usual '
-              + 'causes are an ad-blocker or privacy extension, or a work/school network that '
-              + 'filters unknown domains. Try a private window with extensions off, or a '
-              + 'different network such as a phone hotspot.';
+        /* "Failed to fetch" carries no status code, so the cause has to be
+           established rather than guessed. Three of these the page knows for
+           certain; the last two are separated by the no-cors probe. */
+        if(navigator.onLine === false){
+          PW_LAST.reason = 'This device reports no internet connection. Reconnect and press Try again.';
+        } else if(!window.isSecureContext){
+          PW_LAST.reason = 'This page is not running in a secure context, so the browser blocks the '
+            + 'sign-in request. Open it over <strong>https://</strong> rather than http://.';
+        } else if(await probeStoreReachable()){
+          // The domain answered. So it is not a block — the reply was simply
+          // unreadable, which for this API means the key or the quota.
+          PW_LAST.reason = '<code>api.jsonbin.io</code> <strong>is reachable</strong> from this browser, '
+            + 'so nothing is blocking it. The reply could not be read, which for this API means the '
+            + 'request was rejected before CORS headers were added \u2014 almost always an '
+            + '<strong>invalid/revoked master key</strong> or an <strong>exhausted request quota</strong>. '
+            + 'Check the key and the usage figure in your JSONBin account.';
+        } else {
+          PW_LAST.reason = 'The request to <code>api.jsonbin.io</code> never left this browser, and the '
+            + 'domain does not respond even to a plain no-CORS request \u2014 while this page itself '
+            + 'loaded fine. That is an <strong>ad-blocker or privacy extension</strong>, or a '
+            + 'work/school network filtering the domain. Try a private window with extensions off, '
+            + 'or a different network such as a phone hotspot.';
+        }
+        // The raw message, for when none of the above is the answer.
+        PW_LAST.reason += '<br><small style="opacity:.7">(' + String(e.message || 'network error') + ')</small>';
       }
       if(attempt === 2 || !isNet){
         console.warn('Could not reach password store:', e, PW_LAST);
