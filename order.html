@@ -3001,6 +3001,15 @@ const DRAFT_SIMPLE_IDS = ['firstName','middleName','lastName','jobTitle','nation
   'specialInstructions','templatePref','cl-position','cl-company','cl-reason','cl-strengths','cl-tone',
   'rl-position','rl-company','rl-manager','rl-managertitle','rl-lastday','rl-noticetype',
   'rl-justcause','rl-reason','rl-tone','rl-notes',
+  // Standalone cover-letter and resignation forms. These had NO draft cover at
+  // all: saveDraft only ran for inputs inside #formPage, so a customer who
+  // filled in either of these and hit a failed submit lost every answer with
+  // no way back. Consent checkboxes are left out on purpose — saveDraft stores
+  // .value, which is meaningless for a checkbox.
+  'c-name','c-email','c-mobile','c-position','c-company','c-currentrole','c-years',
+  'c-education','c-achievement','c-strengths','c-reason','c-general','c-source','c-tone',
+  'r-name','r-email','r-mobile','r-position','r-company','r-tenure','r-manager',
+  'r-managertitle','r-lastday','r-noticetype','r-justcause','r-reason','r-tone','r-notes',
   // Seafarer scalars — harmless on other formats, the elements simply won't exist
   'sm-rank','sm-lastRank','sm-height','sm-weight','sm-bmi','sm-eyes','sm-hair','sm-blood',
   'sm-shoe','sm-coverall','sm-religion','sm-birthPlace','sm-govIds','sm-nok',
@@ -3062,9 +3071,12 @@ function saveDraft() {
 function startAutosave() {
   document.addEventListener('input', e => {
     if (e.target.closest('#formPage')) { markFunnel('filling'); saveDraft(); }
+    // The standalone letter forms live outside #formPage, so they were never
+    // reached by the line above and nothing they held was ever persisted.
+    else if (e.target.closest('#clPage, #resignPage')) saveDraft();
   });
   document.addEventListener('change', e => {
-    if (e.target.closest('#formPage')) saveDraft();
+    if (e.target.closest('#formPage, #clPage, #resignPage')) saveDraft();
   });
 }
 
@@ -3455,7 +3467,11 @@ async function submitCoverLetter(){
     window.scrollTo({top:0, behavior:'smooth'});
 
   } catch(e){
-    showNotif('Could not submit — please check your connection and try again.', true);
+    // Not necessarily their connection. During a storage outage (JSONBin
+    // returns a Cloudflare 521) this told customers to check their internet
+    // while the page had plainly just loaded over it — and said nothing about
+    // whether their answers had survived, which is the thing they care about.
+    showNotif(submitFailMessage(e), true);
     btn.disabled = false; label.textContent = 'Submit My Request';
     spinner.classList.add('hidden');
   }
@@ -3937,7 +3953,11 @@ async function submitResignation(){
     window.scrollTo({top:0, behavior:'smooth'});
 
   } catch(e){
-    showNotif('Could not submit — please check your connection and try again.', true);
+    // Not necessarily their connection. During a storage outage (JSONBin
+    // returns a Cloudflare 521) this told customers to check their internet
+    // while the page had plainly just loaded over it — and said nothing about
+    // whether their answers had survived, which is the thing they care about.
+    showNotif(submitFailMessage(e), true);
     btn.disabled = false;
     label.textContent = 'Submit My Request';
     spinner.classList.add('hidden');
@@ -5269,6 +5289,22 @@ function addRefEntry() {
 
 function removeEntry(id) {
   document.getElementById(id)?.remove();
+}
+
+// Turns a failed submit into something true and useful. The customer's answers
+// are held in the draft either way, so say so — that is the actual worry.
+function submitFailMessage(err){
+  const msg = String((err && err.message) || '');
+  const offline = navigator.onLine === false;
+  const blocked = /failed to fetch|networkerror|load failed/i.test(msg);
+  if(offline)
+    return 'You appear to be offline. Your answers are saved on this device \u2014 '
+         + 'reconnect and press Submit again.';
+  if(blocked)
+    return 'Our records service is not responding right now. This is on our side, not yours. '
+         + 'Your answers are saved on this device \u2014 please try Submit again in a few minutes.';
+  return 'That did not go through: ' + (msg || 'unknown error')
+       + '. Your answers are saved on this device \u2014 please try Submit again in a moment.';
 }
 
 // ─── TAGS ─────────────────────────────────────────────────────────────────────
