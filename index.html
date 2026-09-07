@@ -6,14 +6,21 @@
 <title>Arroyo CV Builder — Build your own CV, or have it made for you</title>
 <meta name="description" content="Two ways to get a professional Philippine CV: build it yourself online for ₱25, or message me and I make it for you from ₱50. Pay by GCash.">
 
+<link rel="canonical" href="https://interptools.github.io/arroyo-cv-builder/">
+<meta name="theme-color" content="#1a2744">
+
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://interptools.github.io/arroyo-cv-builder/">
 <meta property="og:title" content="Arroyo CV Builder">
 <meta property="og:description" content="Build your own CV for ₱25, or message me and I make it for you from ₱50. Seafarer, Gulf and Europe formats included.">
 <!-- Facebook, Messenger, Viber and LinkedIn all flatten this to a single still
-     frame, so it is a PNG and not the GIF. Replace the two image URLs below
-     with the full https:// address once the site has a domain — the scrapers
-     are documented to want an absolute URL and some ignore a relative one. -->
-<meta property="og:image" content="og-image.png">
+     frame, so it is a PNG and not the GIF. These are absolute https:// URLs
+     because the scrapers are documented to want one and several ignore a
+     relative path outright — a relative URL here meant no preview image at all.
+     builder.html already uses the absolute form; these now match it. -->
+<meta property="og:image" content="https://interptools.github.io/arroyo-cv-builder/og-image.png">
+<meta property="og:image:secure_url" content="https://interptools.github.io/arroyo-cv-builder/og-image.png">
+<meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Arroyo CV Builder — build it yourself for 25 pesos, or have it made for you from 50 pesos.">
@@ -22,7 +29,8 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Arroyo CV Builder">
 <meta name="twitter:description" content="Build your own CV for ₱25, or have it made for you from ₱50.">
-<meta name="twitter:image" content="og-image.png">
+<meta name="twitter:image" content="https://interptools.github.io/arroyo-cv-builder/og-image.png">
+<meta name="twitter:image:alt" content="Arroyo CV Builder — build it yourself for 25 pesos, or have it made for you from 50 pesos.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -405,8 +413,22 @@ const num = v => (typeof v === 'number' && !isNaN(v) && v >= 0) ? v : null;
   set('pExtra', num(self.extra));
 
   // Assisted pricing sits at the top level. A live sale overrides it.
-  const sale = p.sale && (!p.sale.endsAt || new Date(p.sale.endsAt) >= new Date())
-    ? p.sale : null;
+  //
+  // A bare "2026-09-30" is parsed by Date as UTC midnight, which is 08:00 in
+  // Manila — so a sale advertised as ending on the 30th used to stop showing
+  // partway through the 29th here. A date-only value is therefore treated as
+  // running to the END of that local day.
+  const saleLive = s => {
+    if(!s) return false;
+    if(!s.endsAt) return true;
+    const raw = String(s.endsAt).trim();
+    const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+    const end = d
+      ? new Date(+d[1], +d[2] - 1, +d[3], 23, 59, 59, 999)   // local end of day
+      : new Date(raw);
+    return !isNaN(end) && end >= new Date();
+  };
+  const sale = saleLive(p.sale) ? p.sale : null;
   set('pMade', num((sale && sale.base) ?? p.base));
   set('pCl',   num((sale && sale.cl)   ?? p.cl));
   set('pRl',   num((sale && sale.rl)   ?? p.rl));
