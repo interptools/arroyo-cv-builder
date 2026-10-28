@@ -4322,21 +4322,18 @@ async function scanExistingCV(input) {
   if (bad.length) {
     status.className = 'scan-status error';
     status.style.display = 'block';
-    status.innerHTML = '❌ ' + bad.map(f => f.name).join(', ') +
-      ' is not an image. Please upload photos or screenshots (JPG or PNG). PDFs are not supported — screenshot each page instead.';
+    status.innerHTML = '❌ ' + bad.map(f => f.name).join(', ') + ' is not an image. Please upload photos or screenshots (JPG or PNG). PDFs are not supported — screenshot each page instead.';
     input.value = '';
     return;
   }
 
   status.className = 'scan-status loading';
   status.style.display = 'block';
-  status.innerHTML = files.length > 1
-    ? `⏳ Preparing ${files.length} pages…`
-    : '⏳ Preparing your CV…';
+  status.innerHTML = files.length > 1 ? `⏳ Preparing ${files.length} pages…` : '⏳ Preparing your CV…';
 
   let pages = [];
   try {
-    // Compress to 1200px to keep payload small for Llama 3.2 and avoid timeouts
+    // Compress to 1200px to keep payload small for Llama 3.2
     for (let i = 0; i < files.length; i++) {
       status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
       pages.push(await prepScanImage(files[i], 1200, 0.75));
@@ -4348,22 +4345,17 @@ async function scanExistingCV(input) {
     }
     if (strip) {
       strip.innerHTML = pages.length > 1
-        ? pages.map((p, i) =>
-            `<div class="sp-thumb"><img src="${p.dataUrl}" alt="Page ${i+1}"><span>${i+1}</span></div>`
-          ).join('')
+        ? pages.map((p, i) => `<div class="sp-thumb"><img src="${p.dataUrl}" alt="Page ${i+1}"><span>${i+1}</span></div>`).join('')
         : '';
       strip.style.display = pages.length > 1 ? 'flex' : 'none';
     }
 
-    // UPDATED: Pointing to your new Cloudflare Worker
     const workerUrl = 'https://arroyo-cv-api.areymar36.workers.dev/scan';
     let combinedData = {};
     
-    // Loop through pages one by one to prevent 502 timeouts
     for (let i = 0; i < pages.length; i++) {
       status.innerHTML = `⏳ Reading page ${i + 1} of ${pages.length}… this may take up to 30s.`;
       
-      // UPDATED: Payload is now { image: "data:image/jpeg;base64,..." }
       const res = await fetch(workerUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -4376,10 +4368,18 @@ async function scanExistingCV(input) {
       }
       
       const json = await res.json();
+      console.log("Worker returned:", json);
+      
       if (!json.ok) throw new Error(json.error || 'Worker failed to read the image.');
       
-      // Merge multi-page results
-      const extracted = json.data || {};
+      let extracted = json.data || {};
+      if (extracted.rawText) {
+        const match = extracted.rawText.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { extracted = JSON.parse(match[0]); } catch (e) { console.error("Failed to parse AI text", e); }
+        }
+      }
+      
       if (extracted.education) combinedData.education = (combinedData.education || []).concat(extracted.education);
       if (extracted.workExperience) combinedData.workExperience = (combinedData.workExperience || []).concat(extracted.workExperience);
       if (extracted.skills) combinedData.skills = [...new Set([...(combinedData.skills || []), ...extracted.skills])];
@@ -4392,9 +4392,8 @@ async function scanExistingCV(input) {
       if (!combinedData.links) combinedData.links = extracted.links;
     }
 
-    // --- FILL THE FORM FIELDS (This is the applyScan logic built-in) ---
+    // --- FILL THE FORM FIELDS ---
     let filled = 0;
-    const notes = [];
     const sections = [];
     const set = (id, v, force) => {
       const ok = scanFill(document.getElementById(id), v, force);
@@ -4470,7 +4469,6 @@ async function scanExistingCV(input) {
 
     drawTagList('skill');
     drawTagList('lang');
-    try { saveDraft(); } catch(e){}
     // --- END OF FIELD FILLING ---
 
     const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
@@ -4490,15 +4488,11 @@ async function scanExistingCV(input) {
     const listTxt = sections.length
       ? `<br><small>Filled: ${tagEsc(sections.join(', '))}.</small>`
       : '';
-    const notesTxt = notes.length
-      ? `<br><br><small>${notes.length === 1 ? 'One thing' : notes.length + ' things'} to finish by hand:<br>• `
-        + notes.join('<br>• ') + '</small>'
-      : '';
-      
+    
     status.innerHTML = (fromForm
       ? `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} filled in below — please review before submitting.`
       : `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} picked up — taking you to the form to review…`)
-      + listTxt + cappedTxt + notesTxt;
+      + listTxt + cappedTxt;
 
     setTimeout(() => {
       if (!fromForm) showFormPage();
