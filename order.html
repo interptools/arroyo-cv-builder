@@ -4446,7 +4446,7 @@ OTHER RULES:
 - Do not output duplicate entries
 - Return ONLY the JSON, nothing else`;
 
-    // ── CV Scan: try Gemini (vision) with timeout, retry once ────────────────
+    // ── CV Scan: try arroyo-cv-api (vision) with timeout, retry once ────────────────
     async function fetchWithTimeout(url, opts, ms=18000){
       const ctrl=new AbortController();
       const id=setTimeout(()=>ctrl.abort(),ms);
@@ -4476,7 +4476,7 @@ OTHER RULES:
     for(let attempt = 1; attempt <= 2; attempt++){
       try {
         if(attempt === 2) status.innerHTML = `⏳ Still reading ${label}… trying again (attempt 2/2)`;
-        const res = await fetchWithTimeout('https://gemini-proxy.areymar36.workers.dev', {
+        const res = await fetchWithTimeout('arroyo-cv-api.areymar36.workers.dev', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -4486,7 +4486,7 @@ OTHER RULES:
         }, timeoutMs);
         if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
         const d = await res.json();
-        if (d.error) throw new Error(d.error.message || 'Gemini error');
+        if (d.error) throw new Error(d.error.message || 'arroyo-cv-api error');
         resJson = d;
         break; // success — exit loop
       } catch(e){
