@@ -4372,9 +4372,11 @@ async function scanExistingCV(input) {
       
       if (!json.ok) throw new Error(json.error || 'Worker failed to read the image.');
       
-      let extracted = json.data || {};
+            let extracted = json.data || {};
+      if (typeof extracted === 'string') { try { extracted = JSON.parse(extracted); } catch(e){} }
       if (extracted.rawText) {
-        const match = extracted.rawText.match(/\{[\s\S]*\}/);
+        const rawStr = String(extracted.rawText);
+        const match = rawStr.match(/\{[\s\S]*\}/);
         if (match) {
           try { extracted = JSON.parse(match[0]); } catch (e) { console.error("Failed to parse AI text", e); }
         }
