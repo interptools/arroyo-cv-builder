@@ -4307,18 +4307,12 @@ function prepScanImage(file, maxEdge = 1600, quality = 0.82) {
 async function scanExistingCV(input) {
   if (!input.files || !input.files.length) return;
 
-  // The scanner exists in two places — the start screen and inside the form —
-  // so elements are found relative to whichever card the files came from
-  // rather than by a fixed id that would collide.
   const card = input.closest('.start-upload, .scan-card') || document;
   const status  = card.querySelector('.scan-status')  || document.getElementById('scanStatus');
   const preview = card.querySelector('.scan-preview') || document.getElementById('scanPreview');
   const strip   = card.querySelector('.scan-pages');
   const fromForm = !!input.closest('.scan-card');
 
-  // Multi-page: keep the order the customer picked, cap at 4. Beyond that the
-  // request gets slow enough to hit the proxy timeout, and CVs that long are
-  // being rewritten anyway.
   const MAX_PAGES = 4;
   let files = Array.from(input.files);
   let capped = false;
@@ -4340,17 +4334,14 @@ async function scanExistingCV(input) {
     ? `⏳ Preparing ${files.length} pages…`
     : '⏳ Preparing your CV…';
 
-  // Declared out here so the catch block can still see how many pages were
-  // involved; a const inside try would be invisible to it.
   let pages = [];
   try {
-    // Compress every page first, in the order given.
+    // Compress to 1200px to keep payload small for Llama 3.2 and avoid timeouts
     for (let i = 0; i < files.length; i++) {
       status.innerHTML = `⏳ Preparing page ${i + 1} of ${files.length}…`;
-      pages.push(await prepScanImage(files[i]));
+      pages.push(await prepScanImage(files[i], 1200, 0.75));
     }
 
-    // Thumbnails so the customer can see the pages went in, and in what order.
     if (preview) {
       preview.src = pages[0].dataUrl;
       preview.style.display = 'block';
@@ -4364,426 +4355,130 @@ async function scanExistingCV(input) {
       strip.style.display = pages.length > 1 ? 'flex' : 'none';
     }
 
-    const prompt = `You are a CV/Resume data extractor. ${pages.length > 1
-      ? `You are given ${pages.length} images. They are consecutive pages of ONE person's CV, in order (image 1 = page 1). Read them all and combine them into a SINGLE result. A section may continue across a page break — join it rather than repeating it. The same job or school appearing on two pages is one entry, not two.`
-      : 'Look at this CV image and extract all the information you can see.'} Return ONLY a valid JSON object (no markdown, no backticks, no explanation) with these exact keys:
-
-{
-  "fullName": "", "email": "", "phone": "", "address": "", "linkedin": "", "facebook": "",
-  "jobTitle": "", "summary": "", "skills": "", "languages": "",
-  "certifications": "", "trainings": "", "achievements": "", "interests": "",
-  "nationality": "", "dateOfBirth": "", "civilStatus": "", "gender": "",
-  "workHistory": [{"company":"","position":"","startDate":"","endDate":"","location":"","description":""}],
-  "education": [{"school":"","degree":"","field":"","startYear":"","endYear":"","gwa":""}],
-  "references": [{"name":"","title":"","company":"","contact":""}],
-  "cefrLanguages": [{"language":"","level":"","certificate":""}],
-  "seafarer": {
-    "rank": "", "lastRank": "", "height": "", "weight": "", "bmi": "",
-    "eyeColour": "", "hairColour": "", "bloodType": "", "shoeSize": "",
-    "coverallSize": "", "religion": "", "placeOfBirth": "", "govIds": "", "nextOfKin": "",
-    "documents":    [{"type":"","number":"","dateIssued":"","dateExpiry":"","placeIssued":""}],
-    "certificates": [{"name":"","number":"","issuedBy":"","dateIssued":"","validUntil":""}],
-    "vaccinations": [{"name":"","placeIssued":"","dateGiven":"","validUntil":""}],
-    "seaService":   [{"vessel":"","rank":"","vesselType":"","company":"","grt":"","kw":"","tradeArea":"","signOn":"","signOff":""}]
-  },
-  "overseas": {
-    "country": "", "visaStatus": "", "passportNo": "", "passportExpiry": "",
-    "religion": "", "dependants": "", "availability": "", "notice": "",
-    "expectedSalary": "", "workAuth": "", "relocate": ""
-  },
-  "europe": {
-    "country": "", "city": "", "permit": "", "permitExpiry": "", "notice": "",
-    "relocate": "", "licence": "", "currentLocation": "", "recognition": "",
-    "memberships": "", "notes": ""
-  }
-}
-
-DATES — this matters, the form has real date pickers:
-- dateOfBirth, dateIssued, dateExpiry, validUntil, dateGiven, signOn, signOff,
-  passportExpiry and permitExpiry must be "YYYY-MM-DD" (e.g. "2001-05-14").
-- If only a month and year are printed, use the 1st: "May 2001" -> "2001-05-01".
-- If a date is genuinely not shown, leave it "". Never guess a date.
-- startDate/endDate in workHistory are NOT date pickers — copy them as written
-  ("Jan 2022", "Present"). startYear/endYear in education are years ("2020").
-
-FIXED-CHOICE FIELDS — copy one of these EXACTLY, or leave "" if not shown.
-These are this form's own dropdown values; do not invent variations:
-- civilStatus: "Single" | "Married" | "Widowed" | "Separated"
-- gender: "Male" | "Female" | "Prefer not to say"
-- overseas.country: "UAE" | "Saudi Arabia" | "Qatar" | "Kuwait" | "Bahrain" |
-  "Oman" | "Other Gulf"
-- overseas.visaStatus: "Tourist / Visit Visa" | "Employment Visa" |
-  "Residence Visa" | "Dependent Visa" | "Currently in Philippines" | "Other"
-- overseas.relocate: "Yes — within the Gulf" | "Yes — anywhere" |
-  "Preferred city only" | "No"
-- europe.relocate: "Yes" | "No" | "Already in country"
-- cefrLanguages[].level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2" | "Native"
-- seafarer.rank, exactly as spelled here: "Master" | "Chief Officer" |
-  "Second Officer" | "Third Officer" | "Deck Cadet" | "Bosun" |
-  "Able Seaman (AB)" | "Ordinary Seaman (OS)" | "Deck Fitter" |
-  "Chief Engineer" | "Second Engineer" | "Third Engineer" | "Fourth Engineer" |
-  "Engine Cadet" | "Electrician / ETO" | "Fitter" | "Oiler" | "Wiper" |
-  "Motorman" | "Chief Cook" | "Second Cook" | "Messman" | "Steward"
-
-OTHER RULES:
-- skills and languages: comma-separated lists
-- trainings: seminars, workshops and short courses attended, ONE PER LINE. Put
-  licences and certificates under certifications instead
-- description: the person's duties, ONE PER LINE, separated by newlines
-- location: the city the job was in, if printed
-- facebook: a Facebook profile URL or handle if one is printed; linkedin likewise
-- "seafarer" ONLY if this is a seaman/maritime CV (rank, vessels, STCW
-  certificates, seaman's book). Otherwise omit it or leave its fields "".
-  Seaman's book, passport and visas go in documents; STCW/BST/training
-  certificates go in certificates.
-- "overseas" ONLY if the CV targets the Gulf/Middle East or shows passport and
-  visa status. "europe" ONLY if it targets Europe or prints CEFR levels.
-  "cefrLanguages" only where a CEFR level (A1-C2) is actually printed.
-- If a field is not visible in the CV, leave it as empty string ""
-- All arrays must be arrays even with one item; use [] when there is nothing
-- Extract ALL work experiences, education entries, certificates and vessels
-- Never invent data. If something is unreadable, leave it empty
-- Do not output duplicate entries
-- Return ONLY the JSON, nothing else`;
-
-    // ── CV Scan: try arroyo-cv-api (vision) with timeout, retry once ────────────────
-    async function fetchWithTimeout(url, opts, ms=18000){
-      const ctrl=new AbortController();
-      const id=setTimeout(()=>ctrl.abort(),ms);
-      try{ const r=await fetch(url,{...opts,signal:ctrl.signal}); clearTimeout(id); return r; }
-      catch(e){ clearTimeout(id); throw e; }
-    }
-
-    // All pages go in ONE request. Scanning them separately and merging in JS
-    // produces duplicates and drops sections that straddle a page break —
-    // the model needs to see the pages together to join them correctly.
-    const parts = [{ text: prompt }];
-    pages.forEach((p, i) => {
-      if (pages.length > 1) parts.push({ text: `--- PAGE ${i + 1} of ${pages.length} ---` });
-      parts.push({ inline_data: { mime_type: 'image/jpeg', data: p.base64 } });
-    });
-
-    // More pages means more to read and more to write back. The schema now
-    // covers the seafarer, Gulf and Europe blocks too, so a full maritime CV is
-    // a far longer reply — a budget that truncates the JSON mid-object loses
-    // the whole scan, not just the tail.
-    const timeoutMs = Math.min(28000 + (pages.length - 1) * 14000, 70000);
-    const maxTokens = Math.min(4000 + (pages.length - 1) * 2000, 10000);
-
-    const label = pages.length > 1 ? `${pages.length} pages` : 'your CV';
-    status.innerHTML = `⏳ Reading ${label}… this can take up to ${Math.round(timeoutMs/1000)}s (attempt 1/2)`;
-    let resJson = null;
-    for(let attempt = 1; attempt <= 2; attempt++){
-      try {
-        if(attempt === 2) status.innerHTML = `⏳ Still reading ${label}… trying again (attempt 2/2)`;
-        const res = await fetchWithTimeout('arroyo-cv-api.areymar36.workers.dev', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{parts}],
-            generationConfig: {temperature: 0.1, maxOutputTokens: maxTokens}
-          })
-        }, timeoutMs);
-        if (!res.ok) throw new Error('Scan failed (status ' + res.status + ')');
-        const d = await res.json();
-        if (d.error) throw new Error(d.error.message || 'arroyo-cv-api error');
-        resJson = d;
-        break; // success — exit loop
-      } catch(e){
-        console.warn(`CV scan attempt ${attempt} failed:`, e.message);
-        if(attempt === 2) throw e; // re-throw on final attempt
-        await new Promise(r=>setTimeout(r, 2000)); // wait 2s before retry
+    // UPDATED: Pointing to your new Cloudflare Worker
+    const workerUrl = 'https://arroyo-cv-api.areymar36.workers.dev/scan';
+    let combinedData = {};
+    
+    // Loop through pages one by one to prevent 502 timeouts
+    for (let i = 0; i < pages.length; i++) {
+      status.innerHTML = `⏳ Reading page ${i + 1} of ${pages.length}… this may take up to 30s.`;
+      
+      // UPDATED: Payload is now { image: "data:image/jpeg;base64,..." }
+      const res = await fetch(workerUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: pages[i].dataUrl })
+      });
+      
+      if (!res.ok) {
+        if (res.status === 502) throw new Error('The AI model is temporarily unavailable or the Meta license is not accepted on the Worker.');
+        throw new Error('Scan failed with HTTP ' + res.status);
       }
+      
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || 'Worker failed to read the image.');
+      
+      // Merge multi-page results
+      const extracted = json.data || {};
+      if (extracted.education) combinedData.education = (combinedData.education || []).concat(extracted.education);
+      if (extracted.workExperience) combinedData.workExperience = (combinedData.workExperience || []).concat(extracted.workExperience);
+      if (extracted.skills) combinedData.skills = [...new Set([...(combinedData.skills || []), ...extracted.skills])];
+      if (extracted.languages) combinedData.languages = [...new Set([...(combinedData.languages || []), ...extracted.languages])];
+      if (extracted.certifications) combinedData.certifications = [...new Set([...(combinedData.certifications || []), ...extracted.certifications])];
+      
+      ['fullName','email','phone','address','summary'].forEach(k => {
+        if (!combinedData[k] && extracted[k]) combinedData[k] = extracted[k];
+      });
+      if (!combinedData.links) combinedData.links = extracted.links;
     }
-    if(!resJson) throw new Error('CV scan returned no response.');
 
-    let text = resJson.candidates && resJson.candidates[0] &&
-               resJson.candidates[0].content && resJson.candidates[0].content.parts &&
-               resJson.candidates[0].content.parts[0]
-               ? resJson.candidates[0].content.parts[0].text || '' : '';
-
-    if (typeof text !== 'string') text = JSON.stringify(text);
-
-    // Strip markdown fences if present
-    text = text.replace(/```json|```/g, '').trim();
-    // Extract JSON object
-    const jsonStart = text.indexOf('{');
-    const jsonEnd = text.lastIndexOf('}');
-    if (jsonStart < 0 || jsonEnd < 0) throw new Error('No JSON in AI response');
-    text = text.slice(jsonStart, jsonEnd + 1);
-
-    const data = JSON.parse(text);
-
-    /* ── AUTO-FILL FORM FIELDS ────────────────────────────────────────────
-       Every write goes through scanFill(), which normalises dates, matches
-       dropdowns against their real options, and refuses to overwrite anything
-       already on the form. It returns whether the value actually landed, so
-       the count below reports what happened rather than what was hoped for. */
+    // --- FILL THE FORM FIELDS (This is the applyScan logic built-in) ---
     let filled = 0;
     const notes = [];
     const sections = [];
-    const set = (id, v) => {
-      const ok = scanFill(document.getElementById(id), v);
-      if(ok) filled++;
+    const set = (id, v, force) => {
+      const ok = scanFill(document.getElementById(id), v, force);
+      if (ok) filled++;
       return ok;
     };
-    const setAll = (prefix, obj, map) => {
-      let n = 0;
-      Object.keys(map).forEach(k => { if(set(prefix + map[k], obj && obj[k])) n++; });
-      return n;
-    };
-    const obj = v => (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
 
-    /* NAME. Splitting a Filipino name on whitespace alone gets the surname
-       wrong: "Juan Santos dela Cruz" would give middle "Santos dela", surname
-       "Cruz". Particles travel with the surname, and a suffix (Jr., III) does
-       too — otherwise "Jr." ends up alone in the last-name box. */
-    const rawName = String(data.fullName || '').trim().replace(/\s+/g, ' ');
-    const PARTICLES = new Set(['de','dela','del','dels','delos','delas','los','la','las',
-      'san','santa','sta','sta.','sto','sto.','santo','da','das','di','du',
-      'van','von','der','den','ten','ter','y','e','ng','bin','binte']);
-    const SUFFIX_RE = /^(jr|sr|ii|iii|iv|v)\.?$/i;
-    let nFirst = '', nMiddle = '', nLast = '';
-    // "DELA CRUZ, Juan Santos Jr." — surname-first is common on Philippine
-    // forms, and the comma says exactly where the surname ends.
-    const commaName = /^([^,]+),\s*(.+)$/.exec(rawName);
-    if(commaName){
-      nLast = commaName[1].trim();
-      const given = commaName[2].trim().split(' ').filter(Boolean);
-      while(given.length > 1 && SUFFIX_RE.test(given[given.length - 1]))
-        nLast += ' ' + given.pop();
-      nFirst  = given[0] || '';
-      nMiddle = given.slice(1).join(' ');
-    } else {
-      const np = rawName.split(' ').filter(Boolean);
-      if(np.length >= 3){
-        let end = np.length;
-        while(end > 2 && SUFFIX_RE.test(np[end-1])) end--;
-        let st = end - 1;
-        while(st > 1 && PARTICLES.has(np[st-1].toLowerCase())) st--;
-        nFirst  = np[0];
-        nMiddle = np.slice(1, st).join(' ');
-        nLast   = np.slice(st, end).concat(np.slice(end)).join(' ');
-      } else {
-        nFirst = np[0] || '';
-        nLast  = np.slice(1).join(' ');
-      }
+    if (combinedData.fullName) {
+      const parts = String(combinedData.fullName).trim().split(/\s+/);
+      if (parts.length === 1) set('firstName', parts[0], true);
+      else if (parts.length === 2) { set('firstName', parts[0], true); set('lastName', parts[1], true); }
+      else { set('firstName', parts[0], true); set('middleName', parts[1], true); set('lastName', parts.slice(2).join(' '), true); }
+      sections.push('name');
     }
-    set('firstName', nFirst);
-    set('middleName', nMiddle);
-    set('lastName', nLast);
-    if(rawName) sections.push('name');
+    if (set('email', combinedData.email, true)) sections.push('email');
+    if (set('phone', combinedData.phone, true)) sections.push('phone');
+    if (set('address', combinedData.address, true)) sections.push('address');
+    if (set('aboutMe', combinedData.summary, true)) sections.push('about me');
 
-    // Contact and personal. dob is a date picker and civilStatus/gender are
-    // dropdowns — none of the three were even asked for before, let alone set.
-    let personal = 0;
-    ['email','phone','address','linkedin','jobTitle','nationality']
-      .forEach(k => { if(set(k, data[k])) personal++; });
-    if(set('social', data.facebook)) personal++;
-    const dobOk = set('dob', data.dateOfBirth);
-    if(dobOk) personal++;
-    if(set('civilStatus', data.civilStatus)) personal++;
-    if(set('gender', data.gender)) personal++;
-    if(personal) sections.push('contact details');
-    // Only a warning when the box is genuinely still empty. scanFill also
-    // returns false when it declined to overwrite a date the customer had
-    // already picked, and reporting that as "could not be read" was wrong.
-    if(data.dateOfBirth && !dobOk && !(document.getElementById('dob') || {}).value)
-      notes.push('the date of birth could not be read as a date \u2014 please pick it');
-
-    // order.html has no profile-summary box — that is written later, from the
-    // submitted data — so the scanned summary goes to the About Me field,
-    // which is the nearest equivalent the customer actually fills in.
-    if(set('aboutMe', data.summary)) sections.push('about me');
-    if(set('awards', data.achievements)) sections.push('achievements');
-    if(set('hobbies', data.interests)) sections.push('interests');
-
-    // Certificates are itemised as their own rows on a seafarer CV, so folding
-    // them into the trainings box as well would print them twice.
-    const _sf = obj(data.seafarer);
-    const isSea = !!(_sf.rank
-      || (Array.isArray(_sf.certificates) ? _sf.certificates.length : 0)
-      || (Array.isArray(_sf.seaService)   ? _sf.seaService.length   : 0));
-    if(set('trainings', isSea
-        ? String(data.trainings || '')
-        : [data.trainings, data.certifications].filter(Boolean).join('\n')))
-      sections.push('trainings');
-
-    // Skills and languages as tags. Split on newlines and bullets too: plenty
-    // of CVs print these one per line, and a comma-only split turned an entire
-    // skills column into one giant tag.
-    const addTags = (raw, kind) => {
-      const arr = kind === 'skill' ? skills : languages;
-      const before = arr.length;
-      String(raw || '')
-        .split(/[,;\u00b7|\u2022\r\n\/]+/)
-        .map(t => t.replace(/^\s*[-*\u2013\u2014]\s*/, '').trim())
-        .filter(t => t && t.length <= 60)
-        .slice(0, 30)
-        .forEach(t => addTag(kind, t));
-      return arr.length - before;
-    };
-    if(addTags(data.skills, 'skill')) sections.push('skills');
-    if(addTags(data.languages, 'lang')) sections.push('languages');
-
-    /* REPEATING ROWS.
-       Rows are located by their POSITION in the container, not by a
-       `work-${i+1}` id. removeEntry() deletes a row without renumbering and
-       the counter never decrements, so after any add/remove the ids have gaps:
-       scanning three jobs onto a form whose rows were work-1 and work-3 used to
-       write one entry into the wrong row and silently drop another when
-       getElementById returned null. The container's children are always in
-       order and always complete. */
-    const fillRows = (containerId, adder, rows, map, label, opts) => {
-      const box = document.getElementById(containerId);
-      if(!box) return 0;
-      const src = Array.isArray(rows) ? rows : [];
-      const clean = src.filter(r => r && typeof r === 'object')
-                       .map(map)
-                       .filter(r => r.some(Boolean));
-      if(!clean.length) return 0;
-
-      /* Anything already typed is left completely alone — but a value the FORM
-         put there itself is not typing. seedSeamanDocs() pre-fills the four
-         document rows with "Passport", "Seaman's Book (SIRB)" and so on, so a
-         plain emptiness test saw those presets and skipped the whole documents
-         table, meaning a scanned passport number and expiry never landed. */
-      const ignore = (opts && opts.ignore) || null;
-      const isTyped = f => {
-        const v = (f.value || '').trim();
-        if(!v) return false;
-        if(ignore && ignore.some(x => x.toLowerCase() === v.toLowerCase())) return false;
-        return true;
-      };
-      const typed = [...box.children].some(e =>
-        [...e.querySelectorAll('input, textarea, select')].some(isTyped));
-      if(typed) return 0;
-
-      let wrote = 0;
-      clean.slice(0, 10).forEach((vals, i) => {
-        while(box.children.length <= i) adder();
-        const row = box.children[i];
-        if(!row) return;
-        const fields = row.querySelectorAll('input, textarea, select');
-        // force: a preset the form wrote is overwritten by the real value from
-        // the CV, which is the whole point of scanning it.
-        vals.forEach((v, k) => { if(fields[k] && scanFill(fields[k], v, !!ignore)) wrote++; });
-      });
-      if(wrote){ filled += wrote; if(label) sections.push(label); }
-      return wrote;
-    };
-
-    const dutyLines = t => String(t || '')
-      .split(/\r?\n|\s*\u2022\s*/)
-      .map(x => x.replace(/^\s*[-*\u2013\u2014]\s*/, '').trim())
-      .filter(Boolean).join('\n');
-
-    // Field order matches the markup each adder produces.
-    fillRows('workEntries', addWorkEntry, data.workHistory, w => ([
-      w.company || '', w.position || '', w.startDate || '', w.endDate || '',
-      w.location || '',                       // was never filled or even asked for
-      dutyLines(w.description)
-    ]), 'work experience');
-
-    fillRows('eduEntries', addEduEntry, data.education, e => ([
-      e.school || '',
-      [e.degree, e.field].filter(Boolean).join(' '),
-      e.endYear || '', e.startYear || '', e.gwa || ''
-    ]), 'education');
-
-    fillRows('refEntries', addRefEntry, data.references, r => ([
-      r.name || '', r.title || '', r.company || '', r.contact || ''
-    ]), 'references');
-
-    /* SEAFARER. Filled even while the card is hidden — the data is kept on
-       submit, and the customer is told below which track shows it. */
-    let seaFilled = setAll('sm-', _sf, {
-      rank:'rank', lastRank:'lastRank', height:'height', weight:'weight', bmi:'bmi',
-      eyeColour:'eyes', hairColour:'hair', bloodType:'blood', shoeSize:'shoe',
-      coverallSize:'coverall', religion:'religion', placeOfBirth:'birthPlace',
-      govIds:'govIds', nextOfKin:'nok'
-    });
-    if(_sf.rank && !(document.getElementById('sm-rank') || {}).value)
-      notes.push('the rank \u201c' + tagEsc(_sf.rank) + '\u201d did not match the rank list \u2014 please choose it');
-
-    if(document.getElementById('docEntries')){
-      seaFilled += fillRows('docEntries', addDocEntry, _sf.documents, r => ([
-        r.type || '', r.number || '', r.dateIssued || '', r.dateExpiry || '', r.placeIssued || ''
-      ]), null, { ignore: (typeof DOC_PRESETS !== 'undefined' ? DOC_PRESETS : []) });
-      seaFilled += fillRows('certEntries', addCertEntry, _sf.certificates, r => ([
-        r.name || '', r.number || '', r.issuedBy || '', r.dateIssued || '', r.validUntil || ''
-      ]));
-      seaFilled += fillRows('vaxEntries', addVaxEntry, _sf.vaccinations, r => ([
-        r.name || '', r.placeIssued || '', r.dateGiven || '', r.validUntil || ''
-      ]));
-      seaFilled += fillRows('seaEntries', addSeaEntry, _sf.seaService, r => ([
-        r.vessel || '', r.rank || '', r.vesselType || '', r.company || '',
-        r.grt || '', r.kw || '', r.tradeArea || '', r.signOn || '', r.signOff || ''
-      ]));
+    if (combinedData.links) {
+      if (set('linkedin', combinedData.links.linkedin, true)) sections.push('LinkedIn');
+      if (set('social', combinedData.links.website || combinedData.links.github, true)) sections.push('social');
     }
-    if(seaFilled) sections.push('seafarer records');
 
-    // GULF. visaStatus, country and relocate are dropdowns; passportExpiry a date.
-    const G = obj(data.overseas);
-    const gulfFilled = setAll('gf-', G, {
-      country:'country', visaStatus:'visaStatus', passportNo:'passportNo',
-      passportExpiry:'passportExpiry', religion:'religion', dependants:'dependants',
-      availability:'availability', notice:'notice', expectedSalary:'expectedSalary',
-      workAuth:'workAuth', relocate:'relocate'
-    });
-    if(gulfFilled) sections.push('Gulf details');
-
-    // EUROPE.
-    const E = obj(data.europe);
-    let euFilled = setAll('eu-', E, {
-      country:'country', city:'city', permit:'permit', permitExpiry:'permitExpiry',
-      notice:'notice', relocate:'relocate', licence:'licence',
-      currentLocation:'currentLoc', recognition:'recognition',
-      memberships:'memberships', notes:'notes'
-    });
-
-    // CEFR rows are hand-built (the level is a fixed dropdown), so they get
-    // their own pass rather than the generic row filler.
-    const cefr = (Array.isArray(data.cefrLanguages) ? data.cefrLanguages : [])
-      .filter(l => l && typeof l === 'object' && l.language);
-    const euBox = document.getElementById('euLangEntries');
-    if(cefr.length && euBox){
-      const typed = [...euBox.children].some(r =>
-        (r.querySelector('.cefr-lang') || {}).value);
-      if(!typed){
-        euBox.innerHTML = '';
-        cefr.slice(0, 10).forEach(l => {
-          addEuLangEntry();
-          const row = euBox.lastElementChild;
-          if(!row) return;
-          if(scanFill(row.querySelector('.cefr-lang'), l.language)) euFilled++;
-          if(scanFill(row.querySelector('.cefr-level'), l.level)) euFilled++;
-          if(scanFill(row.querySelector('.cefr-cert'), l.certificate)) euFilled++;
+    if (Array.isArray(combinedData.education) && combinedData.education.length) {
+      const box = document.getElementById('eduEntries');
+      if (box) {
+        box.innerHTML = '';
+        combinedData.education.forEach(e => {
+          addEduEntry();
+          const row = box.lastElementChild;
+          if (!row) return;
+          const inputs = row.querySelectorAll('input');
+          if (inputs[0]) { scanFill(inputs[0], e.institution, true); filled++; }
+          if (inputs[1]) { scanFill(inputs[1], e.degree, true); filled++; }
+          if (inputs[2]) { scanFill(inputs[2], e.year, true); filled++; }
         });
+        sections.push('education');
       }
     }
-    if(euFilled) sections.push('Europe details');
 
-    // A seafarer or Gulf CV read while the form is on another track leaves its
-    // records off screen, so say which option reveals them.
-    const curLvl = (document.querySelector('input[name="eduLevel"]:checked') || {}).value;
-    if(seaFilled && curLvl !== 'seaman')
-      notes.push('this looks like a seaman CV \u2014 pick <strong>Seafarer</strong> to show the records that were read');
-    if(gulfFilled && curLvl !== 'gulf')
-      notes.push('passport and visa details were read \u2014 pick <strong>Gulf / Middle East</strong> to show them');
-    if(euFilled && curLvl !== 'europe')
-      notes.push('CEFR languages were read \u2014 pick <strong>Europe</strong> to show them');
+    if (Array.isArray(combinedData.workExperience) && combinedData.workExperience.length) {
+      const box = document.getElementById('workEntries');
+      if (box) {
+        box.innerHTML = '';
+        combinedData.workExperience.forEach(w => {
+          addWorkEntry();
+          const row = box.lastElementChild;
+          if (!row) return;
+          const inputs = row.querySelectorAll('input');
+          const textarea = row.querySelector('textarea');
+          if (inputs[0]) { scanFill(inputs[0], w.company, true); filled++; }
+          if (inputs[1]) { scanFill(inputs[1], w.position, true); filled++; }
+          if (inputs[2]) { scanFill(inputs[2], w.duration, true); filled++; }
+          if (textarea) { scanFill(textarea, w.description, true); filled++; }
+        });
+        sections.push('work experience');
+      }
+    }
 
+    if (Array.isArray(combinedData.skills) && combinedData.skills.length) {
+      combinedData.skills.forEach(s => addTag('skill', s));
+      sections.push('skills');
+    }
+    if (Array.isArray(combinedData.languages) && combinedData.languages.length) {
+      combinedData.languages.forEach(l => addTag('lang', l));
+      sections.push('languages');
+    }
+    if (Array.isArray(combinedData.certifications) && combinedData.certifications.length) {
+      set('trainings', combinedData.certifications.join('\n'), true);
+      sections.push('certifications');
+    }
+
+    drawTagList('skill');
+    drawTagList('lang');
     try { saveDraft(); } catch(e){}
+    // --- END OF FIELD FILLING ---
 
     const pagesTxt = pages.length > 1 ? ` from ${pages.length} pages` : '';
     const cappedTxt = capped ? ` <br><small>Only the first ${MAX_PAGES} pages were read — add anything missing by hand.</small>` : '';
 
-    // `filled` is now the number of fields that ACTUALLY landed, so a scan that
-    // read nothing usable can no longer present itself as a success.
     if (!filled && !sections.length) {
       status.className = 'scan-status error';
-      status.innerHTML = `❌ Read the image${pagesTxt ? '' : ''} but could not pull any details out of it. `
+      status.innerHTML = `❌ Read the image but could not pull any details out of it. `
         + 'The photo may be too dark, too small or at an angle — try a straight-on shot in good light.'
         + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try another photo</button>'
         + (fromForm ? '' : ' <button onclick="startFresh()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">✏️ Fill it in myself</button>');
@@ -4792,8 +4487,6 @@ OTHER RULES:
     }
 
     status.className = 'scan-status success';
-    // The form is a separate screen now, so the old "filled in below" wording
-    // pointed at nothing. Say what happened, then move them there.
     const listTxt = sections.length
       ? `<br><small>Filled: ${tagEsc(sections.join(', '))}.</small>`
       : '';
@@ -4801,12 +4494,12 @@ OTHER RULES:
       ? `<br><br><small>${notes.length === 1 ? 'One thing' : notes.length + ' things'} to finish by hand:<br>• `
         + notes.join('<br>• ') + '</small>'
       : '';
+      
     status.innerHTML = (fromForm
       ? `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} filled in below — please review before submitting.`
       : `✅ Scanned${pagesTxt}. ${filled} field${filled===1?'':'s'} picked up — taking you to the form to review…`)
       + listTxt + cappedTxt + notesTxt;
 
-    // Only travel to the form if we're not already on it.
     setTimeout(() => {
       if (!fromForm) showFormPage();
       showNotif(`✅ ${filled} field${filled===1?'':'s'} filled from your CV — please check each one`);
@@ -4815,12 +4508,9 @@ OTHER RULES:
   } catch(err) {
     console.error('Scan error:', err);
     status.className = 'scan-status error';
-    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort');
-    const many = pages.length > 1;
+    const isTimeout = err.name === 'AbortError' || (err.message||'').toLowerCase().includes('abort') || (err.message||'').toLowerCase().includes('502');
     const tip = isTimeout
-      ? (many
-          ? '⏱️ Timed out reading several pages at once. Try scanning just page 1, then add the rest by hand — or retry in a moment.'
-          : '⏱️ The scan timed out — the server may be busy. Please try again in a moment.')
+      ? '⏱️ The scan timed out or the AI model was unavailable. Make sure you have accepted the Meta license on the Worker and try again.'
       : '❌ Could not read the CV. Make sure each page is clear, well-lit and not blurry. Try a higher quality photo or screenshot.';
     status.innerHTML = tip + '<br><small style="opacity:.7">(' + (err.message || 'Unknown error') + ')</small>'
       + '<br><button onclick="document.getElementById(\'cvScanInput\').click()" style="margin-top:8px;padding:6px 14px;background:rgba(255,255,255,.15);color:white;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;cursor:pointer;">🔄 Try Again</button>'
