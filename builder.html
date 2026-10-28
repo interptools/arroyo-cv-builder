@@ -6579,90 +6579,83 @@ async function scanOldCV(input){
 // Per-role duty suggestions. The blank "what you did" box is where most people
 // stall: they know the job, but not how to phrase it for a CV. This reads the
 // company and position already typed into THIS entry and offers real bullets.
-async function suggestDuties(btn){
-  const entry = btn.closest('.entry');
-  const list  = entry.parentElement;
-  const isOjt = list.id === 'ojtList';
-  const f = entry.querySelectorAll('input, textarea, select');
-  const keys = isOjt ? ROW_KEYS.ojt : ROW_KEYS.work;
-  const get = k => (f[keys.indexOf(k)]?.value || '').trim();
-
-  const company  = get('company');
-  const position = isOjt ? (get('role') || 'On-the-Job Trainee') : get('position');
-  const box = entry.querySelector('textarea');
-
-  if(!position && !company){
-    toast('Type the position or company first, then I can suggest duties.', true);
-    (f[keys.indexOf(isOjt ? 'role' : 'position')] || f[0])?.focus();
-    return;
+function applyScan(d){
+  d = d || {};
+  let count = 0;
+  const sections = [];
+  const notes = [];
+  const set = (id, v, force) => { const ok = scanFill($(id), v, force); if(ok) count++; return ok; };
+  
+  if (d.fullName) {
+    const parts = String(d.fullName).trim().split(/\s+/);
+    if (parts.length === 1) set('firstName', parts[0], true);
+    else if (parts.length === 2) { set('firstName', parts[0], true); set('lastName', parts[1], true); }
+    else { set('firstName', parts[0], true); set('middleName', parts[1], true); set('lastName', parts.slice(2).join(' '), true); }
+    sections.push('name');
+  }
+  if (set('email', d.email, true)) sections.push('email');
+  if (set('phone', d.phone, true)) sections.push('phone');
+  if (set('address', d.address, true)) sections.push('address');
+  if (set('profileSummary', d.summary, true)) sections.push('summary');
+  
+  if (d.links) {
+    if (set('linkedin', d.links.linkedin, true)) sections.push('LinkedIn');
+    if (set('social', d.links.website || d.links.github, true)) sections.push('social');
   }
 
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  const say = m => { btn.innerHTML = '<span class="spin"></span> ' + m; };
-  say('Thinking\u2026');
-
-  const context = [
-    position && ('Job title: ' + position),
-    company && ('Employer: ' + company),
-    get('location') && ('Location: ' + get('location')),
-    isOjt && get('department') && ('Department: ' + get('department')),
-    isOjt && 'This was an on-the-job training placement, not a paid role.',
-    val('jobTitle') && ('The applicant is now applying for: ' + val('jobTitle'))
-  ].filter(Boolean).join('\n');
-
-  const prompt = `You write CV bullet points for Filipino job applicants.
-
-List FIVE duties someone in the role below would realistically have performed.
-
-Rules:
-- One duty per line, no numbering, no bullet characters, no blank lines
-- Start each line with a past-tense verb (Handled, Prepared, Resolved, Assisted, Maintained)
-- 6 to 14 words each
-- Describe ordinary duties of the role. Do NOT invent specific numbers, percentages,
-  award names, system names or client names \u2014 the applicant will add their own
-- Plain English an employer in the Philippines would recognise
-- Output ONLY the five lines. No heading, no explanation, no closing remark.
-
-ROLE:
-${context}`;
-
-  try {
-    const text = await aiGenerate(prompt, say);
-    if(!text) throw new Error('no suggestions came back');
-
-    // Models add a preamble and a sign-off however firmly you ask them not to.
-    // Dropping those matters twice over: a line like "Here are five duties:"
-    // is not a duty, and left in it displaces a real one from the top five.
-    const CHATTER = /^(here|below|sure|certainly|of course|hope|let me know|these|i hope)\b/i;
-    const lines = String(text).split(/\r?\n/)
-      .map(l => l.replace(/^\s*(?:[-*\u2022\u00b7]|\d+[.)])\s*/, '').trim())
-      .filter(l =>
-           l.length > 8 && l.length < 160
-        && !l.endsWith(':')            // headings
-        && !CHATTER.test(l)            // preamble and sign-offs
-        && /\s/.test(l))              // at least two words
-      .slice(0, 5);
-    if(!lines.length) throw new Error('nothing usable came back');
-
-    // Never overwrite what the customer already wrote \u2014 append what is new.
-    const existing = box.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    const seen = new Set(existing.map(s => s.toLowerCase()));
-    const added = lines.filter(l => !seen.has(l.toLowerCase()));
-    box.value = existing.concat(added).join('\n');
-
-    renderPreview(); saveDraft();
-    toast(existing.length
-      ? 'Added ' + added.length + ' more \u2014 edit or delete any you did not do.'
-      : 'Five suggestions added \u2014 edit or delete any you did not do.');
-
-  } catch(err){
-    console.error('Duty suggestions failed:', err);
-    toast(aiErrorAdvice(), true);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = original;
+  if (Array.isArray(d.education) && d.education.length) {
+    const list = $('eduList');
+    if (list) {
+      list.innerHTML = '';
+      d.education.forEach(e => {
+        addEdu();
+        const row = list.lastElementChild;
+        if(!row) return;
+        const f = row.querySelectorAll('input');
+        if (f[0]) { scanFill(f[0], e.institution, true); count++; }
+        if (f[1]) { scanFill(f[1], e.degree, true); count++; }
+        if (f[2]) { scanFill(f[2], e.year, true); count++; }
+      });
+      sections.push('education');
+    }
   }
+
+  if (Array.isArray(d.workExperience) && d.workExperience.length) {
+    const list = $('workList');
+    if (list) {
+      list.innerHTML = '';
+      d.workExperience.forEach(w => {
+        addWork();
+        const row = list.lastElementChild;
+        if(!row) return;
+        const f = row.querySelectorAll('input, textarea');
+        if (f[0]) { scanFill(f[0], w.company, true); count++; }
+        if (f[1]) { scanFill(f[1], w.position, true); count++; }
+        if (f[2]) { scanFill(f[2], w.duration, true); count++; }
+        if (f[5]) { scanFill(f[5], w.description, true); count++; }
+      });
+      sections.push('work experience');
+    }
+  }
+
+  if (Array.isArray(d.skills) && d.skills.length) {
+    d.skills.forEach(s => addTag('skill', s));
+    sections.push('skills');
+  }
+  if (Array.isArray(d.languages) && d.languages.length) {
+    d.languages.forEach(l => addTag('lang', l));
+    sections.push('languages');
+  }
+  if (Array.isArray(d.certifications) && d.certifications.length) {
+    set('trainings', d.certifications.join('\n'), true);
+    sections.push('certifications');
+  }
+
+  drawTags('skill'); drawTags('lang');
+  syncSections();
+  renderPreview();
+  saveDraft();
+  return { count, sections, notes };
 }
 
 async function generateSummary(){
