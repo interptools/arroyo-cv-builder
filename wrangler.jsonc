@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "arroyo-cv-scanner",
+  "compatibility_date": "2026-10-30",
+  "main": "src/worker/index.ts",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "GEMINI_API_KEY": "",
+    "GEMINI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/"
+  },
+  "assets": {
+    "directory": "ai-video-editor"
+  }
+}
