@@ -390,104 +390,167 @@ export default {
           });
         }
 
-        // Parse multipart form data from binary
         const contentType = request.headers.get("content-type") || "";
-        if (!contentType.includes("multipart/form-data")) {
-          logError("Invalid content type", new Error("Not multipart/form-data"), {
-            requestId,
-            contentType,
-          });
-          return new Response(JSON.stringify({
-            success: false,
-            error: "Content-Type must be multipart/form-data"
-          }), {
-            status: 400,
-            headers: { ...cors, "Content-Type": "application/json" },
-          });
-        }
-
-        const boundaryMatch = contentType.match(/boundary=([^;]+)/);
-        const boundary = boundaryMatch ? boundaryMatch[1].trim() : "";
-        if (!boundary) {
-          logError("Missing boundary", new Error("No boundary in content-type"), {
-            requestId,
-            contentType,
-          });
-          return new Response(JSON.stringify({
-            success: false,
-            error: "Missing boundary in multipart/form-data"
-          }), {
-            status: 400,
-            headers: { ...cors, "Content-Type": "application/json" },
-          });
-        }
-
-        // Get raw binary data
-        const arrayBuffer = await request.arrayBuffer();
-        if (arrayBuffer.byteLength === 0) {
-          logError("Empty request body", new Error("No data received"), { requestId });
-          return new Response(JSON.stringify({
-            success: false,
-            error: "Empty request body"
-          }), {
-            status: 400,
-            headers: { ...cors, "Content-Type": "application/json" },
-          });
-        }
-
-        // Parse multipart form data
-        const parts = await parseMultipartFormDataBinary(arrayBuffer, boundary);
-
-        const imagePart = parts.get("image");
-        if (!imagePart) {
-          logError("No image field in form data", new Error("Missing 'image' field"), {
-            requestId,
-            availableFields: Array.from(parts.keys()),
-          });
-          return new Response(JSON.stringify({
-            success: false,
-            error: "No image file provided (field name: 'image')"
-          }), {
-            status: 400,
-            headers: { ...cors, "Content-Type": "application/json" },
-          });
-        }
-
-        if (!validateImageType(imagePart.contentType || "")) {
-          logError("Unsupported image type", new Error("Invalid image type"), {
-            requestId,
-            contentType: imagePart.contentType,
-          });
-          return new Response(JSON.stringify({
-            success: false,
-            error: `Unsupported image type: ${imagePart.contentType}. Supported: JPEG, PNG, WebP, BMP, TIFF`
-          }), {
-            status: 400,
-            headers: { ...cors, "Content-Type": "application/json" },
-          });
-        }
-
-        // Convert binary image data to base64
         let imageBase64: string;
-        try {
-          // Convert Uint8Array to base64
-          const bytes = imagePart.data;
-          let binary = "";
-          for (let i = 0; i < bytes.length; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          imageBase64 = btoa(binary);
+        let imageContentType = "image/jpeg";
 
-          logError("Image processed", new Error("DEBUG"), {
+        // Support both multipart/form-data (binary) and application/json (base64)
+        if (contentType.includes("multipart/form-data")) {
+          // Parse multipart form data from binary
+          const boundaryMatch = contentType.match(/boundary=([^;]+)/);
+          const boundary = boundaryMatch ? boundaryMatch[1].trim() : "";
+          if (!boundary) {
+            logError("Missing boundary", new Error("No boundary in content-type"), {
+              requestId,
+              contentType,
+            });
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Missing boundary in multipart/form-data"
+            }), {
+              status: 400,
+              headers: { ...cors, "Content-Type": "application/json" },
+            });
+          }
+
+          // Get raw binary data
+          const arrayBuffer = await request.arrayBuffer();
+          if (arrayBuffer.byteLength === 0) {
+            logError("Empty request body", new Error("No data received"), { requestId });
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Empty request body"
+            }), {
+              status: 400,
+              headers: { ...cors, "Content-Type": "application/json" },
+            });
+          }
+
+          // Parse multipart form data
+          const parts = await parseMultipartFormDataBinary(arrayBuffer, boundary);
+
+          const imagePart = parts.get("image");
+          if (!imagePart) {
+            logError("No image field in form data", new Error("Missing 'image' field"), {
+              requestId,
+              availableFields: Array.from(parts.keys()),
+            });
+            return new Response(JSON.stringify({
+              success: false,
+              error: "No image file provided (field name: 'image')"
+            }), {
+              status: 400,
+              headers: { ...cors, "Content-Type": "application/json" },
+            });
+          }
+
+          if (!validateImageType(imagePart.contentType || "")) {
+            logError("Unsupported image type", new Error("Invalid image type"), {
+              requestId,
+              contentType: imagePart.contentType,
+            });
+            return new Response(JSON.stringify({
+              success: false,
+              error: `Unsupported image type: ${imagePart.contentType}. Supported: JPEG, PNG, WebP, BMP, TIFF`
+            }), {
+              status: 400,
+              headers: { ...cors, "Content-Type": "application/json" },
+            });
+          }
+
+          imageContentType = imagePart.contentType || "image/jpeg";
+
+          // Convert binary image data to base64
+          try {
+            // Convert Uint8Array to base64
+            const bytes = imagePart.data;
+            let binary = "";
+            for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            imageBase64 = btoa(binary);
+
+            logError("Image processed (multipart)", new Error("DEBUG"), {
+              requestId,
+              filename: imagePart.filename,
+              contentType: imagePart.contentType,
+              size: bytes.length,
+              base64Length: imageBase64.length,
+            });
+          } catch (e) {
+            logError("Failed to convert image to base64", e, { requestId });
+            throw new Error(`Failed to process image: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        } else if (contentType.includes("application/json")) {
+          // Support JSON with base64 image (for easier frontend integration)
+          try {
+            const json = await request.json();
+            const base64Data = json.image || json.base64 || json.dataUrl;
+            if (!base64Data) {
+              logError("Missing image in JSON", new Error("No image field in JSON"), { requestId });
+              return new Response(JSON.stringify({
+                success: false,
+                error: "Missing 'image' field in JSON body (expected base64 string or data URL)"
+              }), {
+                status: 400,
+                headers: { ...cors, "Content-Type": "application/json" },
+              });
+            }
+
+            // Handle data URL format (data:image/jpeg;base64,...) or raw base64
+            if (base64Data.startsWith("data:")) {
+              const matches = base64Data.match(/^data:([^;]+);base64,(.+)$/);
+              if (matches) {
+                imageContentType = matches[1];
+                imageBase64 = matches[2];
+              } else {
+                throw new Error("Invalid data URL format");
+              }
+            } else {
+              imageBase64 = base64Data;
+            }
+
+            if (!validateImageType(imageContentType)) {
+              logError("Unsupported image type (JSON)", new Error("Invalid image type"), {
+                requestId,
+                contentType: imageContentType,
+              });
+              return new Response(JSON.stringify({
+                success: false,
+                error: `Unsupported image type: ${imageContentType}. Supported: JPEG, PNG, WebP, BMP, TIFF`
+              }), {
+                status: 400,
+                headers: { ...cors, "Content-Type": "application/json" },
+              });
+            }
+
+            logError("Image processed (JSON)", new Error("DEBUG"), {
+              requestId,
+              contentType: imageContentType,
+              base64Length: imageBase64.length,
+            });
+          } catch (e) {
+            logError("Failed to parse JSON request", e, { requestId });
+            return new Response(JSON.stringify({
+              success: false,
+              error: `Invalid JSON request: ${e instanceof Error ? e.message : String(e)}`
+            }), {
+              status: 400,
+              headers: { ...cors, "Content-Type": "application/json" },
+            });
+          }
+        } else {
+          logError("Invalid content type", new Error("Unsupported content type"), {
             requestId,
-            filename: imagePart.filename,
-            contentType: imagePart.contentType,
-            size: bytes.length,
-            base64Length: imageBase64.length,
+            contentType,
           });
-        } catch (e) {
-          logError("Failed to convert image to base64", e, { requestId });
-          throw new Error(`Failed to process image: ${e instanceof Error ? e.message : String(e)}`);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Content-Type must be multipart/form-data or application/json"
+          }), {
+            status: 400,
+            headers: { ...cors, "Content-Type": "application/json" },
+          });
         }
 
         // Extract data from image

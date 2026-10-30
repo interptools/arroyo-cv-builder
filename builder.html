@@ -6501,24 +6501,32 @@ async function scanOldCV(input){
     strip.innerHTML = pages.map((p, i) =>
       `<div class="sp-thumb"><img src="${p.dataUrl}" alt="Page ${i+1}"><span>${i+1}</span></div>`).join('');
 
-    const workerUrl = 'https://arroyo-cv-api.areymar36.workers.dev/scan';
+    const workerUrl = 'https://arroyo-cv-scanner.areymar36.workers.dev/api/scan';
     let combinedData = {};
-    
+
     for (let i = 0; i < pages.length; i++) {
       say('wait', `Reading page ${i + 1} of ${pages.length}… this may take up to 30s.`);
-      
+
+      // Send base64 image data as JSON (worker supports both multipart/form-data and application/json)
       const res = await fetch(workerUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: pages[i].dataUrl })
+        body: JSON.stringify({ image: pages[i].base64 }) // Use base64 (without data URL prefix)
       });
-      
+
       if (!res.ok) {
-        if (res.status === 502) throw new Error('The AI model is temporarily unavailable or the Meta license is not accepted on the Worker.');
-        throw new Error('Scan failed with HTTP ' + res.status);
+        let errorMsg = `Scan failed with HTTP ${res.status}`;
+        try {
+          const errJson = await res.json();
+          if (errJson.error) errorMsg = errJson.error;
+        } catch (e) {
+          // Use default error message
+        }
+        if (res.status === 502) errorMsg = 'The AI model is temporarily unavailable or the Meta license is not accepted on the Worker.';
+        throw new Error(errorMsg);
       }
       const json = await res.json();
-      if (!json.ok) throw new Error(json.error || 'Worker failed to read the image.');
+      if (!json.success) throw new Error(json.error || 'Worker failed to read the image.');
       
       const extracted = json.data || {};
       if (extracted.education) combinedData.education = (combinedData.education || []).concat(extracted.education);
