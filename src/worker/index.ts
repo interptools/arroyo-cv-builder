@@ -192,112 +192,18 @@ function logError(context: string, error: unknown, extra?: Record<string, unknow
   console.error(JSON.stringify(errorInfo));
 }
 
-// Parse multipart/form-data from binary ArrayBuffer
-async function parseMultipartFormDataBinary(
-  buffer: ArrayBuffer,
-  boundary: string
-): Promise<Map<string, { filename?: string; contentType?: string; data: Uint8Array }>> {
-  const parts = new Map<string, { filename?: string; contentType?: string; data: Uint8Array }>();
-  const delimiter = `--${boundary}`;
-  const delimiterBytes = new TextEncoder().encode(delimiter);
-  const endDelimiterBytes = new TextEncoder().encode(`${delimiter}--`);
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
 
-  const view = new Uint8Array(buffer);
-  let offset = 0;
-
-  while (offset < view.length) {
-    // Find next delimiter
-    let delimiterIndex = -1;
-    for (let i = offset; i <= view.length - delimiterBytes.length; i++) {
-      let match = true;
-      for (let j = 0; j < delimiterBytes.length; j++) {
-        if (view[i + j] !== delimiterBytes[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        delimiterIndex = i;
-        break;
-      }
-    }
-
-    if (delimiterIndex === -1) break;
-
-    // Check if this is the end delimiter
-    let isEnd = true;
-    for (let j = 0; j < endDelimiterBytes.length; j++) {
-      if (view[delimiterIndex + j] !== endDelimiterBytes[j]) {
-        isEnd = false;
-        break;
-      }
-    }
-    if (isEnd) break;
-
-    const partStart = delimiterIndex + delimiterBytes.length;
-    offset = partStart;
-
-    // Find the end of headers (\r\n\r\n)
-    let headerEnd = -1;
-    for (let i = offset; i <= view.length - 4; i++) {
-      if (view[i] === 0x0d && view[i + 1] === 0x0a && view[i + 2] === 0x0d && view[i + 3] === 0x0a) {
-        headerEnd = i;
-        break;
-      }
-    }
-
-    if (headerEnd === -1) break;
-
-    // Parse headers
-    const headerBytes = view.slice(offset, headerEnd);
-    const headersText = new TextDecoder().decode(headerBytes);
-
-    // Find next delimiter for this part's data
-    let nextDelimiterIndex = -1;
-    for (let i = headerEnd + 4; i <= view.length - delimiterBytes.length; i++) {
-      let match = true;
-      for (let j = 0; j < delimiterBytes.length; j++) {
-        if (view[i + j] !== delimiterBytes[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) {
-        nextDelimiterIndex = i;
-        break;
-      }
-    }
-
-    if (nextDelimiterIndex === -1) break;
-
-    // Extract data (between headers and next delimiter)
-    const dataStart = headerEnd + 4;
-    const dataEnd = nextDelimiterIndex - 2; // Remove trailing \r\n
-    const dataBytes = view.slice(dataStart, dataEnd);
-
-    // Parse headers for metadata
-    const contentDisposition = headersText.match(/name="([^"]+)"/)?.[1];
-    if (!contentDisposition) {
-      offset = nextDelimiterIndex;
-      continue;
-    }
-
-    const filename = headersText.match(/filename="([^"]+)"/)?.[1];
-    const contentType = headersText.match(/Content-Type:\s*([^\r\n]+)/i)?.[1]?.trim();
-
-    parts.set(contentDisposition, {
-      filename,
-      contentType,
-      data: dataBytes,
-    });
-
-    offset = nextDelimiterIndex;
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
 
-  return parts;
+  return btoa(binary);
 }
 
-async function extractFromImage(env: Env, imageBase64: string): Promise<ExtractedData> {
+async function extractFromImage(env: Env, imageBase64: string, mimeType: string): Promise<ExtractedData> {
   const client = new OpenAI({
     apiKey: env.GEMINI_API_KEY,
     baseURL: env.GEMINI_BASE_URL,
@@ -314,7 +220,7 @@ async function extractFromImage(env: Env, imageBase64: string): Promise<Extracte
           {
             type: "image_url",
             image_url: {
-              url: `data:image/jpeg;base64=${imageBase64}`,
+              url: `data:${mimeType};base64,${imageBase64}`,
             },
           },
         ],
@@ -394,46 +300,15 @@ export default {
         let imageBase64: string;
         let imageContentType = "image/jpeg";
 
-        // Support both multipart/form-data (binary) and application/json (base64)
+        // Support both multipart/form-data (binary upload) and application/json (base64)
         if (contentType.includes("multipart/form-data")) {
-          // Parse multipart form data from binary
-          const boundaryMatch = contentType.match(/boundary=([^;]+)/);
-          const boundary = boundaryMatch ? boundaryMatch[1].trim() : "";
-          if (!boundary) {
-            logError("Missing boundary", new Error("No boundary in content-type"), {
-              requestId,
-              contentType,
-            });
-            return new Response(JSON.stringify({
-              success: false,
-              error: "Missing boundary in multipart/form-data"
-            }), {
-              status: 400,
-              headers: { ...cors, "Content-Type": "application/json" },
-            });
-          }
+          const formData = await request.formData();
+          const imageFile = formData.get("image");
 
-          // Get raw binary data
-          const arrayBuffer = await request.arrayBuffer();
-          if (arrayBuffer.byteLength === 0) {
-            logError("Empty request body", new Error("No data received"), { requestId });
-            return new Response(JSON.stringify({
-              success: false,
-              error: "Empty request body"
-            }), {
-              status: 400,
-              headers: { ...cors, "Content-Type": "application/json" },
-            });
-          }
-
-          // Parse multipart form data
-          const parts = await parseMultipartFormDataBinary(arrayBuffer, boundary);
-
-          const imagePart = parts.get("image");
-          if (!imagePart) {
+          if (!(imageFile instanceof File)) {
             logError("No image field in form data", new Error("Missing 'image' field"), {
               requestId,
-              availableFields: Array.from(parts.keys()),
+              formKeys: Array.from(formData.keys()),
             });
             return new Response(JSON.stringify({
               success: false,
@@ -444,41 +319,26 @@ export default {
             });
           }
 
-          if (!validateImageType(imagePart.contentType || "")) {
+          imageContentType = imageFile.type || "image/png";
+
+          if (!validateImageType(imageContentType)) {
             logError("Unsupported image type", new Error("Invalid image type"), {
               requestId,
-              contentType: imagePart.contentType,
+              contentType: imageFile.type,
             });
             return new Response(JSON.stringify({
               success: false,
-              error: `Unsupported image type: ${imagePart.contentType}. Supported: JPEG, PNG, WebP, BMP, TIFF`
+              error: `Unsupported image type: ${imageFile.type}. Supported: JPEG, PNG, WebP, BMP, TIFF`
             }), {
               status: 400,
               headers: { ...cors, "Content-Type": "application/json" },
             });
           }
 
-          imageContentType = imagePart.contentType || "image/jpeg";
-
-          // Convert binary image data to base64
           try {
-            // Convert Uint8Array to base64
-            const bytes = imagePart.data;
-            let binary = "";
-            for (let i = 0; i < bytes.length; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            imageBase64 = btoa(binary);
-
-            logError("Image processed (multipart)", new Error("DEBUG"), {
-              requestId,
-              filename: imagePart.filename,
-              contentType: imagePart.contentType,
-              size: bytes.length,
-              base64Length: imageBase64.length,
-            });
+            imageBase64 = arrayBufferToBase64(await imageFile.arrayBuffer());
           } catch (e) {
-            logError("Failed to convert image to base64", e, { requestId });
+            logError("Failed to read uploaded image", e, { requestId });
             throw new Error(`Failed to process image: ${e instanceof Error ? e.message : String(e)}`);
           }
         } else if (contentType.includes("application/json")) {
@@ -523,12 +383,6 @@ export default {
                 headers: { ...cors, "Content-Type": "application/json" },
               });
             }
-
-            logError("Image processed (JSON)", new Error("DEBUG"), {
-              requestId,
-              contentType: imageContentType,
-              base64Length: imageBase64.length,
-            });
           } catch (e) {
             logError("Failed to parse JSON request", e, { requestId });
             return new Response(JSON.stringify({
@@ -553,9 +407,8 @@ export default {
           });
         }
 
-        // Extract data from image
         logError("Starting Gemini extraction", new Error("DEBUG"), { requestId });
-        const extractedData = await extractFromImage(env, imageBase64);
+        const extractedData = await extractFromImage(env, imageBase64, imageContentType);
 
         const processingTime = Date.now() - startTime;
 
